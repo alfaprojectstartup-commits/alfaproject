@@ -1,0 +1,28 @@
+﻿@model IEnumerable<dynamic>
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, Alfa.Web
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Processos</h3>
+    <a asp-action="Novo" class="btn btn-primary">Novo processo</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Nenhum processo ainda.</div>
+}
+else
+{
+    <div class="list-group">
+        @foreach (var p in Model)
+        {
+            <div class="list-group-item d-flex justify-content-between">
+                <div>
+                    <strong>@p.Titulo</strong>
+                    <div class="text-muted small">@p.Status</div>
+                </div>
+                <progress-bar value="@(Convert.ToInt32(p.ProgressoPct))"></progress-bar>
+            </div>
+        }
+    </div>
+}
