@@ -426,3 +426,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+/Alfa.Api/appsettings.json
