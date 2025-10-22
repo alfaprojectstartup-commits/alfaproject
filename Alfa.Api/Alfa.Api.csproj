@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Aplicacao\IProcessoApp.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="DbUp" Version="5.0.41" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.13" />

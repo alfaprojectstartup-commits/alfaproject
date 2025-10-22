@@ -1,44 +1,41 @@
-﻿using Alfa.Api.Aplicacao;
+﻿using Alfa.Api.Aplicacao.Interfaces;
+using Alfa.Api.Dtos.Comuns;
 using Alfa.Api.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Alfa.Api.Controllers;
-
 [ApiController]
 [Route("api/[controller]")]
-public class ProcessosController(IProcessoApp app) : ControllerBase
+public class ProcessosController : ControllerBase
 {
-    [HttpGet]
-    public async Task<ActionResult<Paginado<ProcessoListaDto>>> Listar(
-        [FromQuery] int empresaId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 10, CancellationToken ct = default)
-    {
-        if (empresaId <= 0) return BadRequest("empresaId é obrigatório.");
-        var res = await app.ListarAsync(empresaId, pagina, tamanho, ct);
-        return Ok(res);
-    }
+    private readonly IProcessoApp _app;
+    public ProcessosController(IProcessoApp app) => _app = app;
+    private int EmpresaId =>
+    HttpContext.Items.TryGetValue("EmpresaId", out var v)
+    && int.TryParse(v?.ToString(), out var id)
+        ? id
+        : 0;
 
-    [HttpPost]
-    public async Task<ActionResult> Criar([FromBody] ProcessoCriarDto dto, CancellationToken ct = default)
+    [HttpGet]
+    public async Task<ActionResult<PaginadoResultDto<ProcessoListItemDto>>> Listar([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
     {
-        var id = await app.CriarAsync(dto, ct);
-        return CreatedAtAction(nameof(Obter), new { id, empresaId = dto.EmpresaId }, new { id });
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var (total, items) = await _app.Listar(emp, page, pageSize, status);
+        return Ok(new PaginadoResultDto<ProcessoListItemDto>(total, items));
     }
 
     [HttpGet("{id:int}")]
-    public ActionResult Obter(int id, [FromQuery] int empresaId)
-        => Ok(new { id, empresaId });
-
-    [HttpPut("{id:int}/titulo")]
-    public async Task<ActionResult> AtualizarTitulo(int id, [FromQuery] int empresaId, [FromBody] ProcessoAtualizarTituloDto dto, CancellationToken ct = default)
+    public async Task<ActionResult<ProcessoDetalheDto>> Obter(int id)
     {
-        var ok = await app.AtualizarTituloAsync(id, empresaId, dto, ct);
-        return ok ? NoContent() : NotFound();
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var dto = await _app.Obter(emp, id);
+        return dto is null ? NotFound() : Ok(dto);
     }
 
-    [HttpDelete("{id:int}")]
-    public async Task<ActionResult> Excluir(int id, [FromQuery] int empresaId, CancellationToken ct = default)
+    [HttpPost]
+    public async Task<ActionResult> Criar([FromBody] ProcessoCreateDto dto)
     {
-        var ok = await app.ExcluirAsync(id, empresaId, ct);
-        return ok ? NoContent() : NotFound();
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var id = await _app.Criar(emp, dto);
+        return CreatedAtAction(nameof(Obter), new { id }, new { id });
     }
 }
