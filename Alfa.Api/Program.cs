@@ -2,17 +2,26 @@ using Alfa.Api.Dados;
 using Alfa.Api.Repositorios;
 using Alfa.Api.Db;
 using Alfa.Api.Aplicacao;
+using Alfa.Api.Repositorios.Interfaces;
+using Alfa.Api.Aplicacao.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // serviços normais
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IConexaoSql, ConexaoSql>();
 builder.Services.AddScoped<IProcessoRepositorio, ProcessoRepositorio>();
 builder.Services.AddScoped<IProcessoApp, ProcessoApp>();
+
+builder.Services.AddScoped<IFaseRepositorio, FaseRepositorio>();
+builder.Services.AddScoped<IPaginaRepositorio, PaginaRepositorio>();
+builder.Services.AddScoped<ICampoRepositorio, CampoRepositorio>();
+builder.Services.AddScoped<IRespostaRepositorio, RespostaRepositorio>();
+
 
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 {
@@ -40,6 +49,14 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 }
 
 var app = builder.Build();
+
+app.Use(async (ctx, next) =>
+{
+    var h = ctx.Request.Headers["X-Empresa-Id"].FirstOrDefault();
+    if (int.TryParse(h, out var empId) && empId > 0)
+        ctx.Items["EmpresaId"] = empId;
+    await next();
+});
 
 if (app.Environment.IsDevelopment())
 {

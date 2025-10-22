@@ -1,27 +1,40 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Alfa.Web.Dtos;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 public class ProcessosController : Controller
 {
     private readonly ApiClient _api;
     public ProcessosController(ApiClient api) => _api = api;
 
-    public async Task<IActionResult> Index(int page = 1)
+    public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
     {
-        int empresaId = 1; // por enquanto fixo;
-        var (total, items) = await _api.GetProcessesAsync(empresaId, page, 10);
-        ViewBag.Total = total; ViewBag.Page = page;
-        return View(items);
+        var status = tab == "finalizados" ? "Concluido" : null;
+        var res = await _api.GetProcessosAsync(page, 10, status) ?? new(0, Enumerable.Empty<ProcessoListItemVm>());
+        ViewBag.Tab = tab;
+        ViewBag.Page = page;
+        ViewBag.PageSize = 10;
+        ViewBag.Total = res.total;
+        return View(res.items);
     }
 
     [HttpGet]
-    public IActionResult Novo() => View();
+    public IActionResult Novo() => View(new NovoProcessoVm());
 
     [HttpPost]
-    public async Task<IActionResult> Novo(string titulo)
+    public async Task<IActionResult> Novo(NovoProcessoVm vm)
     {
-        int empresaId = 1;
-        var resp = await _api.CreateProcessAsync(titulo, empresaId);
-        if (!resp.IsSuccessStatusCode) ModelState.AddModelError("", "Erro ao criar processo.");
+        if (!ModelState.IsValid) return View(vm);
+        var fases = vm.FasesSelecionadasIds?.ToArray() ?? Array.Empty<int>();
+        var resp = await _api.CriarProcessoAsync(vm.Titulo!, fases);
+        if (!resp.IsSuccessStatusCode) { ModelState.AddModelError("", "Falha ao criar processo."); return View(vm); }
+        TempData["ok"] = "Processo criado.";
         return RedirectToAction(nameof(Index));
     }
+}
+
+public class NovoProcessoVm
+{
+    [Required] public string? Titulo { get; set; }
+    public List<int> FasesSelecionadasIds { get; set; } = new();
 }
