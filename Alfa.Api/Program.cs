@@ -31,9 +31,9 @@ if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
              ?? cfg.GetConnectionString("Padrao")
              ?? throw new InvalidOperationException("ConnectionString não encontrada.");
 
-    var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Db", "Scripts");
+    var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Infra", "Scripts");
     if (!Directory.Exists(scriptsPath))
-        scriptsPath = Path.Combine(builder.Environment.ContentRootPath, "Db", "Scripts");
+        scriptsPath = Path.Combine(builder.Environment.ContentRootPath, "Infra", "Scripts");
 
     var code = Migracoes.Executar(cs, scriptsPath, logger);
     return;
