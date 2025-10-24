@@ -12,7 +12,7 @@ public class ProcessoRepositorio : IProcessoRepositorio
     public async Task<(int total, IEnumerable<ProcessoListItemDto> items)> ListarAsync(
         int empresaId, int page, int pageSize, string? status)
     {
-        using var conn = await _db.AbrirAsync();
+        using var conn = await _db.AbrirConexaoAsync();
 
         // total (com filtro de status se vier)
         var totalSql = @"
