@@ -16,7 +16,7 @@ namespace Alfa.Api.Repositorios
         private readonly IConexaoSql _db;
         public RespostaRepositorio(IConexaoSql db) => _db = db;
 
-        public async Task SalvarPaginaAsync(int empresaId, PageResponseDto dto)
+        public async Task SalvarPaginaAsync(int empresaId, PaginaRespostaDto dto)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             using var tx = conn.BeginTransaction();
@@ -24,14 +24,14 @@ namespace Alfa.Api.Repositorios
             const string delSql = @"
         DELETE FROM RespostaCampo
         WHERE EmpresaId = @EmpresaId
-          AND FaseInstanceId = @FaseInstanceId
-          AND PaginaTemplateId = @PaginaTemplateId;";
+          AND FasesId = @FasesId
+          AND PaginaModelosId = @PaginaModelosId;";
 
             await conn.ExecuteAsync(delSql, new
             {
                 EmpresaId = empresaId,
-                FaseInstanceId = dto.FaseInstanceId,
-                PaginaTemplateId = dto.PaginaTemplateId
+                FasesId = dto.FasesId,
+                PaginaModelosId = dto.PaginaModelosId
             }, tx);
 
             // converte valores tipados para string única "Valor"
@@ -48,9 +48,9 @@ namespace Alfa.Api.Repositorios
                 .Select(f => new
                 {
                     EmpresaId = empresaId,
-                    FaseInstanceId = dto.FaseInstanceId,
-                    PaginaTemplateId = dto.PaginaTemplateId,
-                    CampoTemplateId = f.FieldTemplateId,
+                    FasesId = dto.FasesId,
+                    PaginaModelosId = dto.PaginaModelosId,
+                    CampoModeloId = f.FieldTemplateId,
                     Valor = ToValor(f)
                 })
                 .Where(x => !string.IsNullOrWhiteSpace(x.Valor))
@@ -60,9 +60,9 @@ namespace Alfa.Api.Repositorios
             {
                 const string insSql = @"
             INSERT INTO RespostaCampo
-                (EmpresaId, FaseInstanceId, PaginaTemplateId, CampoTemplateId, Valor)
+                (EmpresaId, FasesId, PaginaModelosId, CampoModeloId, Valor)
             VALUES
-                (@EmpresaId, @FaseInstanceId, @PaginaTemplateId, @CampoTemplateId, @Valor);";
+                (@EmpresaId, @FasesId, @PaginaModelosId, @CampoModeloId, @Valor);";
 
                 await conn.ExecuteAsync(insSql, rows, tx);
             }
@@ -71,100 +71,100 @@ namespace Alfa.Api.Repositorios
         }
 
         // Quantos campos obrigatórios existem em uma página
-        public async Task<int> ContarCamposObrigatoriosAsync(int empresaId, int paginaTemplateId)
+        public async Task<int> ContarCamposObrigatoriosAsync(int empresaId, int PaginaModelosId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
-                FROM CampoTemplate
+                FROM CampoModelo
                 WHERE EmpresaId = @EmpresaId
-                  AND PaginaTemplateId = @PaginaTemplateId
+                  AND PaginaModelosId = @PaginaModelosId
                   AND Obrigatorio = 1;";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                PaginaTemplateId = paginaTemplateId
+                PaginaModelosId = PaginaModelosId
             });
         }
 
         // Quantos desses obrigatórios já têm resposta não-vazia na fase
-        public async Task<int> ContarCamposPreenchidosAsync(int empresaId, int faseInstanceId, int paginaTemplateId)
+        public async Task<int> ContarCamposPreenchidosAsync(int empresaId, int FasesId, int PaginaModelosId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
                 FROM RespostaCampo r
-                JOIN CampoTemplate c
+                JOIN CampoModelo c
                   ON c.EmpresaId = r.EmpresaId
-                 AND c.Id        = r.CampoTemplateId
+                 AND c.Id        = r.CampoModeloId
                 WHERE r.EmpresaId = @EmpresaId
-                  AND r.FaseInstanceId = @FaseInstanceId
-                  AND r.PaginaTemplateId = @PaginaTemplateId
+                  AND r.FasesId = @FasesId
+                  AND r.PaginaModelosId = @PaginaModelosId
                   AND c.Obrigatorio = 1
                   AND NULLIF(LTRIM(RTRIM(r.Valor)), '') IS NOT NULL;";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                FaseInstanceId = faseInstanceId,
-                PaginaTemplateId = paginaTemplateId
+                FasesId = FasesId,
+                PaginaModelosId = PaginaModelosId
             });
         }
 
         // Quantidade total de páginas (templates) pertencentes à fase
-        public async Task<int> ContarPaginasDaFaseAsync(int empresaId, int faseInstanceId)
+        public async Task<int> ContarPaginasDaFaseAsync(int empresaId, int FasesId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
-                FROM PaginaTemplate p
-                JOIN FaseInstance fi
+                FROM PaginaModelos p
+                JOIN Fases fi
                   ON fi.EmpresaId = p.EmpresaId
-                 AND fi.FaseTemplateId = p.FaseTemplateId
+                 AND fi.FaseModeloId = p.FaseModeloId
                 WHERE p.EmpresaId = @EmpresaId
-                  AND fi.Id = @FaseInstanceId;";
+                  AND fi.Id = @FasesId;";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                FaseInstanceId = faseInstanceId
+                FasesId = FasesId
             });
         }
 
         // Retorna para cada página (da fase) o trio: paginaId, obrigatórios e preenchidos
         public async Task<IEnumerable<(int paginaId, int obrig, int preenc)>> ObterResumoPorPaginasDaFaseAsync(
-            int empresaId, int faseInstanceId)
+            int empresaId, int FasesId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 ;WITH P AS (
                     SELECT p.Id AS PaginaId
-                    FROM PaginaTemplate p
-                    JOIN FaseInstance fi
+                    FROM PaginaModelos p
+                    JOIN Fases fi
                       ON fi.EmpresaId = p.EmpresaId
-                     AND fi.FaseTemplateId = p.FaseTemplateId
+                     AND fi.FaseModeloId = p.FaseModeloId
                     WHERE p.EmpresaId = @EmpresaId
-                      AND fi.Id = @FaseInstanceId
+                      AND fi.Id = @FasesId
                 ),
                 OBR AS (
-                    SELECT c.PaginaTemplateId AS PaginaId, COUNT(1) AS Obrig
-                    FROM CampoTemplate c
-                    JOIN P ON P.PaginaId = c.PaginaTemplateId
+                    SELECT c.PaginaModelosId AS PaginaId, COUNT(1) AS Obrig
+                    FROM CampoModelo c
+                    JOIN P ON P.PaginaId = c.PaginaModelosId
                     WHERE c.EmpresaId = @EmpresaId AND c.Obrigatorio = 1
-                    GROUP BY c.PaginaTemplateId
+                    GROUP BY c.PaginaModelosId
                 ),
                 PRE AS (
-                    SELECT r.PaginaTemplateId AS PaginaId, COUNT(1) AS Preenc
+                    SELECT r.PaginaModelosId AS PaginaId, COUNT(1) AS Preenc
                     FROM RespostaCampo r
-                    JOIN CampoTemplate c
+                    JOIN CampoModelo c
                       ON c.EmpresaId = r.EmpresaId
-                     AND c.Id        = r.CampoTemplateId
+                     AND c.Id        = r.CampoModeloId
                     WHERE r.EmpresaId = @EmpresaId
-                      AND r.FaseInstanceId = @FaseInstanceId
+                      AND r.FasesId = @FasesId
                       AND c.Obrigatorio = 1
                       AND NULLIF(LTRIM(RTRIM(r.Valor)), '') IS NOT NULL
-                    GROUP BY r.PaginaTemplateId
+                    GROUP BY r.PaginaModelosId
                 )
                 SELECT P.PaginaId AS paginaId,
                        ISNULL(OBR.Obrig, 0) AS obrig,
@@ -177,7 +177,7 @@ namespace Alfa.Api.Repositorios
             return await conn.QueryAsync<(int paginaId, int obrig, int preenc)>(sql, new
             {
                 EmpresaId = empresaId,
-                FaseInstanceId = faseInstanceId
+                FasesId = FasesId
             });
         }
     }

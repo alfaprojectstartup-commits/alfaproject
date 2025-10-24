@@ -12,22 +12,22 @@ namespace Alfa.Api.Repositorios
         private readonly IConexaoSql _db;
         public CampoRepositorio(IConexaoSql db) => _db = db;
 
-        public async Task<IEnumerable<CampoTemplateDto>> ListarPorPaginaAsync(
-            int empresaId, int paginaTemplateId)
+        public async Task<IEnumerable<CampoModeloDto>> ListarPorPaginaAsync(
+            int empresaId, int PaginaModelosId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, PaginaTemplateId, Tipo, Rotulo, Obrigatorio, Ordem,
+                SELECT Id, PaginaModelosId, Tipo, Rotulo, Obrigatorio, Ordem,
                        Placeholder, Mascara, Ajuda
-                FROM CampoTemplate                -- << ajuste se necessário
+                FROM CampoModelo                -- << ajuste se necessário
                 WHERE EmpresaId = @EmpresaId
-                  AND PaginaTemplateId = @PaginaTemplateId
+                  AND PaginaModelosId = @PaginaModelosId
                 ORDER BY Ordem;";
 
-            return await conn.QueryAsync<CampoTemplateDto>(sql, new
+            return await conn.QueryAsync<CampoModeloDto>(sql, new
             {
                 EmpresaId = empresaId,
-                PaginaTemplateId = paginaTemplateId
+                PaginaModelosId = PaginaModelosId
             });
         }
 
@@ -36,16 +36,16 @@ namespace Alfa.Api.Repositorios
         {
             using IDbConnection conn = await  _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, CampoTemplateId, Valor, Texto, Ordem
+                SELECT Id, CampoModeloId, Valor, Texto, Ordem
                 FROM CampoOpcao                   -- << ajuste se necessário
                 WHERE EmpresaId = @EmpresaId
-                  AND CampoTemplateId = @CampoTemplateId
+                  AND CampoModeloId = @CampoModeloId
                 ORDER BY Ordem;";
 
             return await conn.QueryAsync<CampoOpcaoDto>(sql, new
             {
                 EmpresaId = empresaId,
-                CampoTemplateId = fieldTemplateId
+                CampoModeloId = fieldTemplateId
             });
         }
     }

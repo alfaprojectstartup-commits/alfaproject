@@ -1,4 +1,4 @@
 ﻿namespace Alfa.Api.Dtos.Comuns
 {
-    public record PaginadoResultDto<T>(int total, IEnumerable<T> items);
+    public record PaginadoResultadoDto<T>(int total, IEnumerable<T> items);
 }

@@ -16,11 +16,11 @@ public class ProcessosController : ControllerBase
         : 0;
 
     [HttpGet]
-    public async Task<ActionResult<PaginadoResultDto<ProcessoListItemDto>>> Listar([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
+    public async Task<ActionResult<PaginadoResultadoDto<ProcessoListItemDto>>> Listar([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
     {
         var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
         var (total, items) = await _app.Listar(emp, page, pageSize, status);
-        return Ok(new PaginadoResultDto<ProcessoListItemDto>(total, items));
+        return Ok(new PaginadoResultadoDto<ProcessoListItemDto>(total, items));
     }
 
     [HttpGet("{id:int}")]
@@ -32,7 +32,7 @@ public class ProcessosController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult> Criar([FromBody] ProcessoCreateDto dto)
+    public async Task<ActionResult> Criar([FromBody] ProcessoCriarDto dto)
     {
         var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
         var id = await _app.Criar(emp, dto);

@@ -1,4 +1,4 @@
 ﻿namespace Alfa.Api.Dtos
 {
-    public record PaginaTemplateDto(int Id, string Titulo, int Ordem);
+    public record PaginaModelosDto(int Id, string Titulo, int Ordem);
 }

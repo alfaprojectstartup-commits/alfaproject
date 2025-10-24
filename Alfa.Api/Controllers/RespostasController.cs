@@ -20,28 +20,28 @@ public class RespostasController : ControllerBase
         : 0;
 
     [HttpPost("pagina")]
-    public async Task<ActionResult> SalvarPagina([FromBody] PageResponseDto dto)
+    public async Task<ActionResult> SalvarPagina([FromBody] PaginaRespostaDto dto)
     {
         var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
         await _resp.SalvarPaginaAsync(emp, dto);
 
         // Recalcula % da fase
-        await _fase.RecalcularProgressoFaseAsync(emp, dto.FaseInstanceId);
+        await _fase.RecalcularProgressoFaseAsync(emp, dto.FasesId);
 
         // Recalcula % do processo (média)
         // descobrir processoId a partir da fase:
         // (para simplificar, pegue via query rápida)
-        var processoId = await ObterProcessoIdDaFase(emp, dto.FaseInstanceId);
+        var processoId = await ObterProcessoIdDaFase(emp, dto.FasesId);
         await _proc.RecalcularProgressoProcesso(emp, processoId);
 
         return Ok();
     }
 
-    private async Task<int> ObterProcessoIdDaFase(int emp, int faseInstanceId)
+    private async Task<int> ObterProcessoIdDaFase(int emp, int FasesId)
     {
         using var cn = await (HttpContext.RequestServices.GetRequiredService<IConexaoSql>()).AbrirConexaoAsync();
         return await cn.ExecuteScalarAsync<int>(
-            "SELECT ProcessInstanceId FROM PhaseInstances WHERE EmpresaId=@emp AND Id=@id",
-            new { emp, id = faseInstanceId });
+            "SELECT ProcessInstanceId FROM Fases WHERE EmpresaId=@emp AND Id=@id",
+            new { emp, id = FasesId });
     }
 }

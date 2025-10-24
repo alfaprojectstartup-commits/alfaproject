@@ -21,38 +21,38 @@ namespace Alfa.Api.Repositorios
             _respostas = respostas;
         }
 
-        public async Task<IEnumerable<FaseTemplateDto>> ListarTemplatesAsync(int empresaId)
+        public async Task<IEnumerable<FaseModelosDto>> ListarTemplatesAsync(int empresaId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT Id, Titulo, Ordem
-                FROM FaseTemplate
+                FROM FaseModelos
                 WHERE EmpresaId = @EmpresaId
                 ORDER BY Ordem;";
 
-            return await conn.QueryAsync<FaseTemplateDto>(sql, new { EmpresaId = empresaId });
+            return await conn.QueryAsync<FaseModelosDto>(sql, new { EmpresaId = empresaId });
         }
 
-        public async Task<IEnumerable<FaseInstanceDto>> ListarInstanciasAsync(int empresaId, int processoId)
+        public async Task<IEnumerable<FasesDto>> ListarInstanciasAsync(int empresaId, int processoId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, ProcessoId, FaseTemplateId, Titulo, Ordem, Progresso
-                FROM FaseInstance
+                SELECT Id, ProcessoId, FaseModeloId, Titulo, Ordem, Progresso
+                FROM Fases
                 WHERE EmpresaId = @EmpresaId AND ProcessoId = @ProcessoId
                 ORDER BY Ordem;";
 
-            return await conn.QueryAsync<FaseInstanceDto>(sql, new
+            return await conn.QueryAsync<FasesDto>(sql, new
             {
                 EmpresaId = empresaId,
                 ProcessoId = processoId
             });
         }
 
-        public async Task RecalcularProgressoFaseAsync(int empresaId, int faseInstanceId)
+        public async Task RecalcularProgressoFaseAsync(int empresaId, int FasesId)
         {
             // pega, para cada página da fase, quantos obrigatórios existem e quantos estão preenchidos
-            var resumo = await _respostas.ObterResumoPorPaginasDaFaseAsync(empresaId, faseInstanceId);
+            var resumo = await _respostas.ObterResumoPorPaginasDaFaseAsync(empresaId, FasesId);
 
             double progresso = 0;
             var lista = resumo.ToList();
@@ -62,20 +62,20 @@ namespace Alfa.Api.Repositorios
                 progresso = percentuais.Average();
             }
 
-            // arredonda para inteiro (0..100) e salva na FaseInstance
+            // arredonda para inteiro (0..100) e salva na Fases
             var progressoInt = (int)System.Math.Round(progresso);
 
             using var conn = await _db.AbrirConexaoAsync();
             const string updSql = @"
-                UPDATE FaseInstance
+                UPDATE Fases
                 SET Progresso = @Progresso
                 WHERE EmpresaId = @EmpresaId
-                  AND Id = @FaseInstanceId;";
+                  AND Id = @FasesId;";
 
             await conn.ExecuteAsync(updSql, new
             {
                 EmpresaId = empresaId,
-                FaseInstanceId = faseInstanceId,
+                FasesId = FasesId,
                 Progresso = progressoInt
             });
         }
