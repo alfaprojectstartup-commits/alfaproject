@@ -1,6 +1,6 @@
 ﻿using Alfa.Api.Aplicacao.Interfaces;
-using Alfa.Api.Dados;
 using Alfa.Api.Dtos;
+using Alfa.Api.Infra.Interfaces;
 using Alfa.Api.Repositorios.Interfaces;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
@@ -39,7 +39,7 @@ public class RespostasController : ControllerBase
 
     private async Task<int> ObterProcessoIdDaFase(int emp, int FasesId)
     {
-        using var cn = await (HttpContext.RequestServices.GetRequiredService<IConexaoSql>()).AbrirAsync();
+        using var cn = await (HttpContext.RequestServices.GetRequiredService<IConexaoSql>()).AbrirConexaoAsync();
         return await cn.ExecuteScalarAsync<int>(
             "SELECT ProcessInstanceId FROM Fases WHERE EmpresaId=@emp AND Id=@id",
             new { emp, id = FasesId });

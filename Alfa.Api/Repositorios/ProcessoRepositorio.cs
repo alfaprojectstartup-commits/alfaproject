@@ -1,5 +1,5 @@
-﻿using Alfa.Api.Dados;
-using Alfa.Api.Dtos;
+﻿using Alfa.Api.Dtos;
+using Alfa.Api.Infra.Interfaces;
 using Alfa.Api.Repositorios.Interfaces;
 using Dapper;
 using System.Data;
@@ -12,7 +12,7 @@ public class ProcessoRepositorio : IProcessoRepositorio
     public async Task<(int total, IEnumerable<ProcessoListItemDto> items)> ListarAsync(
         int empresaId, int page, int pageSize, string? status)
     {
-        using var conn = await _db.AbrirAsync();
+        using var conn = await _db.AbrirConexaoAsync();
 
         // total (com filtro de status se vier)
         var totalSql = @"
@@ -56,7 +56,7 @@ public class ProcessoRepositorio : IProcessoRepositorio
 
     public async Task<int> CriarAsync(int empresaId, string titulo, int[] fasesTemplateIds)
     {
-        using var cn = await _db.AbrirAsync();
+        using var cn = await _db.AbrirConexaoAsync();
         using var tx = cn.BeginTransaction();
 
         var procId = await cn.ExecuteScalarAsync<int>(
@@ -83,7 +83,7 @@ public class ProcessoRepositorio : IProcessoRepositorio
 
     public async Task<ProcessoDetalheDto?> ObterAsync(int empresaId, int id)
     {
-        using var cn = await _db.AbrirAsync();
+        using var cn = await _db.AbrirConexaoAsync();
 
         var proc = await cn.QueryFirstOrDefaultAsync<(int Id, string Titulo, string Status, int PorcentagemProgresso)>(
             @"SELECT Id, Titulo, Status, PorcentagemProgresso FROM Processos WHERE EmpresaId=@empresaId AND Id=@id",
@@ -100,7 +100,7 @@ public class ProcessoRepositorio : IProcessoRepositorio
 
     public async Task AtualizarStatusEProgressoAsync(int empresaId, int processoId, string? status, int? progresso)
     {
-        using var cn = await _db.AbrirAsync();
+        using var cn = await _db.AbrirConexaoAsync();
         var set = new List<string>();
         if (status != null) set.Add("Status=@status");
         if (progresso != null) set.Add("PorcentagemProgresso=@progresso");
