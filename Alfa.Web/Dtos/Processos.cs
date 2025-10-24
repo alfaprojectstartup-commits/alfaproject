@@ -1,5 +1,16 @@
 ﻿namespace Alfa.Web.Dtos
 {
-    public record PaginadoResultDto<T>(int total, IEnumerable<T> items);
-    public record ProcessoListItemVm(int Id, string Titulo, string Status, int ProgressoPct, DateTime CriadoEm);
+    public class ProcessoListaItemViewModel
+    {
+        public int Id { get; set; }
+        public string Titulo { get; set; } = "";
+        public string Status { get; set; } = "";
+        public int PorcentagemProgresso { get; set; }
+    }
+
+    public class PaginadoResultadoDto<T>
+    {
+        public int total { get; set; }
+        public IEnumerable<T> items { get; set; } = Enumerable.Empty<T>();
+    }
 }

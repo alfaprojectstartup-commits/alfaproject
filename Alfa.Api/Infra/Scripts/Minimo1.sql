@@ -47,18 +47,18 @@ BEGIN
   );
 END
 
--- FaseModelos
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='FaseModelos')
+-- Fases
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='Fases')
 BEGIN
-  CREATE TABLE FaseModelos(
+  CREATE TABLE Fases(
     Id         INT IDENTITY(1,1) PRIMARY KEY,
     EmpresaId  INT NOT NULL,
     Nome       NVARCHAR(100) NOT NULL,
     Ordem      INT NOT NULL,
-    Ativo      BIT NOT NULL CONSTRAINT DF_FaseModelos_Ativo DEFAULT(1),
-    CONSTRAINT FK_FaseModelos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
+    Ativo      BIT NOT NULL CONSTRAINT DF_Fases_Ativo DEFAULT(1),
+    CONSTRAINT FK_Fases_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
   );
-  CREATE INDEX Index_FaseModelos_Empresas_Ordem ON FaseModelos(EmpresaId, Ordem);
+  CREATE INDEX Index_Fases_Empresas_Ordem ON Fases(EmpresaId, Ordem);
 END
 
 -- PaginaModelos
@@ -71,9 +71,9 @@ BEGIN
     Titulo        NVARCHAR(150) NOT NULL,
     Ordem         INT NOT NULL,
     CONSTRAINT FK_PaginaModelos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-    CONSTRAINT FK_PaginaModelos_FaseModelos_Id FOREIGN KEY(FaseModeloId) REFERENCES FaseModelos(Id)
+    CONSTRAINT FK_PaginaModelos_Fases_Id FOREIGN KEY(FaseModeloId) REFERENCES Fases(Id)
   );
-  CREATE INDEX Index_PaginaModelos_FaseModelos_Empresas_Ordem ON PaginaModelos(EmpresaId, FaseModeloId, Ordem);
+  CREATE INDEX Index_PaginaModelos_Fases_Empresas_Ordem ON PaginaModelos(EmpresaId, FaseModeloId, Ordem);
 END
 
 -- CampoModelos
@@ -172,7 +172,7 @@ BEGIN
     PorcentagemProgresso  INT NOT NULL CONSTRAINT DF_Fases_PorcentagemProgresso DEFAULT(0),
     CONSTRAINT FK_Fases_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
     CONSTRAINT FK_Fases_Processos_Id FOREIGN KEY(ProcessoId) REFERENCES Processos(Id),
-    CONSTRAINT FK_Fases_FaseModelos_Id FOREIGN KEY(FaseModeloId) REFERENCES FaseModelos(Id),
+    CONSTRAINT FK_Fases_Fases_Id FOREIGN KEY(FaseModeloId) REFERENCES Fases(Id),
 	CONSTRAINT FK_Fases_FaseStatus_Id FOREIGN KEY(Status) REFERENCES FaseStatus(Id)
   );
   CREATE INDEX Index_Fases_Processos_Empresas_Ordem ON Fases(EmpresaId, ProcessoId, Ordem);

@@ -17,7 +17,7 @@ namespace Alfa.Api.Aplicacao
         public Task<ProcessoDetalheDto?> Obter(int emp, int id)
             => _procRepo.ObterAsync(emp, id);
 
-        public Task<int> Criar(int emp, ProcessoCreateDto dto)
+        public Task<int> Criar(int emp, ProcessoCriarDto dto)
             => _procRepo.CriarAsync(emp, dto.Titulo, dto.FasesTemplateIds);
 
         public async Task RecalcularProgressoProcesso(int empresaId, int processoId)
@@ -25,7 +25,7 @@ namespace Alfa.Api.Aplicacao
             // média das fases
             var fases = await _faseRepo.ListarInstanciasAsync(empresaId, processoId);
             var list = fases.ToList();
-            var progresso = list.Count == 0 ? 0 : (int)Math.Round(list.Average(f => (double)f.ProgressoPct));
+            var progresso = list.Count == 0 ? 0 : (int)Math.Round(list.Average(f => (double)f.PorcentagemProgresso));
             var status = progresso >= 100 ? "Concluido" : "EmAndamento";
             await _procRepo.AtualizarStatusEProgressoAsync(empresaId, processoId, status, progresso);
         }
