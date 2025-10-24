@@ -6,8 +6,8 @@ using Dapper;
 using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
-using Alfa.Api.Dados;
 using System.Globalization;
+using Alfa.Api.Infra.Interfaces;
 
 namespace Alfa.Api.Repositorios
 {
@@ -18,7 +18,7 @@ namespace Alfa.Api.Repositorios
 
         public async Task SalvarPaginaAsync(int empresaId, PageResponseDto dto)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             using var tx = conn.BeginTransaction();
 
             const string delSql = @"
@@ -73,7 +73,7 @@ namespace Alfa.Api.Repositorios
         // Quantos campos obrigatórios existem em uma página
         public async Task<int> ContarCamposObrigatoriosAsync(int empresaId, int paginaTemplateId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
                 FROM CampoTemplate
@@ -91,7 +91,7 @@ namespace Alfa.Api.Repositorios
         // Quantos desses obrigatórios já têm resposta não-vazia na fase
         public async Task<int> ContarCamposPreenchidosAsync(int empresaId, int faseInstanceId, int paginaTemplateId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
                 FROM RespostaCampo r
@@ -115,7 +115,7 @@ namespace Alfa.Api.Repositorios
         // Quantidade total de páginas (templates) pertencentes à fase
         public async Task<int> ContarPaginasDaFaseAsync(int empresaId, int faseInstanceId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
                 FROM PaginaTemplate p
@@ -136,7 +136,7 @@ namespace Alfa.Api.Repositorios
         public async Task<IEnumerable<(int paginaId, int obrig, int preenc)>> ObterResumoPorPaginasDaFaseAsync(
             int empresaId, int faseInstanceId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 ;WITH P AS (
                     SELECT p.Id AS PaginaId

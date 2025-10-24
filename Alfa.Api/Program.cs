@@ -1,69 +1,52 @@
-using Alfa.Api.Dados;
-using Alfa.Api.Repositorios;
-using Alfa.Api.Db;
-using Alfa.Api.Aplicacao;
-using Alfa.Api.Repositorios.Interfaces;
-using Alfa.Api.Aplicacao.Interfaces;
+using Alfa.Api.Configuracoes;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// serviços normais
+// Serviços
 builder.Services.AddControllers();
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpContextAccessor();
+builder.Services.RegistrarDependencias();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Alfa API", Version = "v1" });
+});
 
-builder.Services.AddSingleton<IConexaoSql, ConexaoSql>();
-builder.Services.AddScoped<IProcessoRepositorio, ProcessoRepositorio>();
-builder.Services.AddScoped<IProcessoApp, ProcessoApp>();
+// Logging e CORS
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Services.AddCors(opt => opt.AddPolicy("DefaultCors", p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-builder.Services.AddScoped<IFaseRepositorio, FaseRepositorio>();
-builder.Services.AddScoped<IPaginaRepositorio, PaginaRepositorio>();
-builder.Services.AddScoped<ICampoRepositorio, CampoRepositorio>();
-builder.Services.AddScoped<IRespostaRepositorio, RespostaRepositorio>();
-
-
+// Migrações
 if (args.Contains("--migrate", StringComparer.OrdinalIgnoreCase))
 {
     using var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
     var logger = loggerFactory.CreateLogger("Migracoes");
-
-    // connection string: 1) param --cs, 2) env AZURE_SQL_CONNSTR, 3) appsettings
-    string? csFromArg = null;
-    for (int i = 0; i < args.Length - 1; i++)
-        if (args[i].Equals("--cs", StringComparison.OrdinalIgnoreCase))
-            csFromArg = args[i + 1];
-
-    var cfg = builder.Configuration;
-    var cs = csFromArg
-             ?? Environment.GetEnvironmentVariable("AZURE_SQL_CONNSTR")
-             ?? cfg.GetConnectionString("Padrao")
-             ?? throw new InvalidOperationException("ConnectionString não encontrada.");
-
-    var scriptsPath = Path.Combine(AppContext.BaseDirectory, "Infra", "Scripts");
-    if (!Directory.Exists(scriptsPath))
-        scriptsPath = Path.Combine(builder.Environment.ContentRootPath, "Infra", "Scripts");
-
-    var code = Migracoes.Executar(cs, scriptsPath, logger);
+    Migracao.Executar(args, builder.Configuration, builder.Environment, logger);
     return;
 }
 
 var app = builder.Build();
 
+// Middleware empresa
 app.Use(async (ctx, next) =>
 {
-    var h = ctx.Request.Headers["X-Empresa-Id"].FirstOrDefault();
-    if (int.TryParse(h, out var empId) && empId > 0)
-        ctx.Items["EmpresaId"] = empId;
+    if (ctx.Request.Headers.TryGetValue("X-Empresa-Id", out var header) &&
+        int.TryParse(header.FirstOrDefault(), out var empresaId) && empresaId > 0)
+        ctx.Items["EmpresaId"] = empresaId;
+
     await next();
 });
 
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Alfa API v1"));
 }
 
 app.UseHttpsRedirection();
+app.UseCors("DefaultCors");
 app.MapControllers();
 app.Run();

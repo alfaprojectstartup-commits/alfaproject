@@ -6,7 +6,7 @@ using Dapper;
 using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
-using Alfa.Api.Dados;
+using Alfa.Api.Infra.Interfaces;
 
 namespace Alfa.Api.Repositorios
 {
@@ -23,7 +23,7 @@ namespace Alfa.Api.Repositorios
 
         public async Task<IEnumerable<FaseTemplateDto>> ListarTemplatesAsync(int empresaId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT Id, Titulo, Ordem
                 FROM FaseTemplate
@@ -35,7 +35,7 @@ namespace Alfa.Api.Repositorios
 
         public async Task<IEnumerable<FaseInstanceDto>> ListarInstanciasAsync(int empresaId, int processoId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT Id, ProcessoId, FaseTemplateId, Titulo, Ordem, Progresso
                 FROM FaseInstance
@@ -65,7 +65,7 @@ namespace Alfa.Api.Repositorios
             // arredonda para inteiro (0..100) e salva na FaseInstance
             var progressoInt = (int)System.Math.Round(progresso);
 
-            using var conn = await _db.AbrirAsync();
+            using var conn = await _db.AbrirConexaoAsync();
             const string updSql = @"
                 UPDATE FaseInstance
                 SET Progresso = @Progresso
