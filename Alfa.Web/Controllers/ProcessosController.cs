@@ -1,4 +1,5 @@
 ﻿using Alfa.Web.Dtos;
+using Alfa.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -9,8 +10,14 @@ public class ProcessosController : Controller
 
     public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
     {
-        var status = tab == "finalizados" ? "Concluido" : null;
-        var res = await _api.GetProcessosAsync(page, 10, status) ?? new(0, Enumerable.Empty<ProcessoListItemVm>());
+        var status = tab == "finalizados" ? "Concluído" : null;
+        var res = await _api.GetProcessosAsync(page, 10, status)
+          ?? new PaginadoResultadoDto<ProcessoListaItemViewModel>
+          {
+              total = 0,
+              items = Enumerable.Empty<ProcessoListaItemViewModel>()
+          };
+
         ViewBag.Tab = tab;
         ViewBag.Page = page;
         ViewBag.PageSize = 10;

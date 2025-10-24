@@ -45,12 +45,12 @@ END
 -- ===============================
 -- Inserir FaseModelo
 -- ===============================
-IF NOT EXISTS(SELECT 1 FROM FaseModelos WHERE EmpresaId=@EmpresaId AND Nome=N'Lead')
+IF NOT EXISTS(SELECT 1 FROM Fases WHERE EmpresaId=@EmpresaId AND Nome=N'Lead')
 BEGIN
-    INSERT INTO FaseModelos (EmpresaId, Nome, Ordem, Ativo) VALUES (@EmpresaId, N'Lead', 1, 1);
+    INSERT INTO Fases (EmpresaId, Nome, Ordem, Ativo) VALUES (@EmpresaId, N'Lead', 1, 1);
 END
 
-DECLARE @FaseModeloId INT = (SELECT TOP 1 Id FROM FaseModelos WHERE EmpresaId=@EmpresaId AND Nome=N'Lead');
+DECLARE @FaseModeloId INT = (SELECT TOP 1 Id FROM Fases WHERE EmpresaId=@EmpresaId AND Nome=N'Lead');
 
 -- ===============================
 -- Inserir PaginaModelo
