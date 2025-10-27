@@ -5,7 +5,7 @@ using Dapper;
 using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
-using Alfa.Api.Dados;
+using Alfa.Api.Infra.Interfaces;
 
 namespace Alfa.Api.Repositorios
 {
@@ -17,7 +17,7 @@ namespace Alfa.Api.Repositorios
         public async Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFaseModelosAsync(
             int empresaId, int FaseModeloId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT Id, FaseModeloId, Titulo, Ordem
                 FROM PaginaModelos           -- << ajuste se necessário
@@ -35,7 +35,7 @@ namespace Alfa.Api.Repositorios
         public async Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFasesAsync(
             int empresaId, int FasesId)
         {
-            using IDbConnection conn = await _db.AbrirAsync();
+            using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT p.Id, p.FaseModeloId, p.Titulo, p.Ordem
                 FROM PaginaModelos p        -- << ajuste se necessário
