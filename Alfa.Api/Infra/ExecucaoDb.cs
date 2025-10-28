@@ -21,7 +21,7 @@ namespace Alfa.Api.Infra
             DynamicParameters? parametros = null,
             IDbTransaction? transacao = null)
         {
-            using var conn = await _dbConexao.AbrirConexaoAsync();
+            using var conn = await ObterConexaoAsync();
             return await conn.QueryFirstOrDefaultAsync<T>(sql, parametros, transacao);
         }
 
@@ -35,7 +35,7 @@ namespace Alfa.Api.Infra
             DynamicParameters? parametros = null,
             IDbTransaction? transacao = null)
         {
-            using var conn = await _dbConexao.AbrirConexaoAsync();
+            using var conn = await ObterConexaoAsync();
             return await conn.QueryAsync<T>(sql, parametros, transacao);
         }
 
@@ -48,7 +48,7 @@ namespace Alfa.Api.Infra
             DynamicParameters? parametros = null,
             IDbTransaction? transacao = null)
         {
-            using var conn = await _dbConexao.AbrirConexaoAsync();
+            using var conn = await ObterConexaoAsync();
             return await conn.ExecuteAsync(sql, parametros, transacao);
         }
 
@@ -60,8 +60,20 @@ namespace Alfa.Api.Infra
             DynamicParameters? parametros = null,
             IDbTransaction? transacao = null)
         {
-            using var conn = await _dbConexao.AbrirConexaoAsync();
+            using var conn = await ObterConexaoAsync();
             return await conn.ExecuteScalarAsync<T>(sql, parametros, transacao);
+        }
+
+        private async Task<IDbConnection> ObterConexaoAsync()
+        {
+            try
+            {
+                return await _dbConexao.AbrirConexaoAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao obter conexão com o banco de dados.", ex);
+            } 
         }
     }
 }
