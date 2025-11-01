@@ -1,6 +1,10 @@
 ﻿@using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor Http
 @inject IConfiguration Config
+@using Microsoft.Extensions.Configuration
+@inject IHttpContextAccessor Http
+@inject IConfiguration Config
+
 @{
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";

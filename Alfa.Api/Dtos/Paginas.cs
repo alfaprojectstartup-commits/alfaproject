@@ -15,6 +15,21 @@ namespace Alfa.Api.Dtos
 
     public class PaginaInstanciaDto
     {
+        public PaginaInstanciaDto(
+        int id,
+        int paginaModeloId,
+        string titulo,
+        int ordem,
+        bool concluida,
+        IEnumerable<CampoInstanciaDto> campos)
+        {
+            Id = id;
+            PaginaModeloId = paginaModeloId;
+            Titulo = titulo;
+            Ordem = ordem;
+            Concluida = concluida;
+            Campos = campos ?? new List<CampoInstanciaDto>();
+        }
         public int Id { get; set; }
 
         public int PaginaModeloId { get; set; }
