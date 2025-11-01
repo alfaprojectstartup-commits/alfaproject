@@ -3,6 +3,7 @@
 @{
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
+    var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
 }
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -13,7 +14,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body data-empresa-id="@empresaId">
     <header class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" asp-controller="Processos" asp-action="Index">
@@ -69,6 +70,8 @@
         }
         @RenderBody()
     </main>
+
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
 
     <footer class="border-top mt-auto py-3">
         <div class="container d-flex justify-content-between small text-muted">

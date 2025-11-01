@@ -1,28 +1,49 @@
-﻿@model IEnumerable<dynamic>
+﻿@model IReadOnlyList<Alfa.Web.Dtos.ProcessoListaItemViewModel>
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Processos</h3>
+@{
+    ViewData["Title"] = "Processos";
+    var tab = (string?)(ViewBag.Tab ?? "ativos");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-0">Processos</h3>
+        <p class="text-muted mb-0">Acompanhe o andamento dos processos e acesse suas fases.</p>
+    </div>
     <a asp-action="Novo" class="btn btn-primary">Novo processo</a>
 </div>
 
-@if (!Model.Any())
+<ul class="nav nav-pills mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link @(tab=="ativos"?"active":"")" asp-action="Index" asp-route-tab="ativos">Ativos</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link @(tab=="finalizados"?"active":"")" asp-action="Index" asp-route-tab="finalizados">Finalizados</a>
+    </li>
+</ul>
+
+@if (Model is null || !Model.Any())
 {
-    <div class="alert alert-info">Nenhum processo ainda.</div>
+    <div class="alert alert-info">Nenhum processo encontrado.</div>
 }
 else
 {
-    <div class="list-group">
+    <div class="list-group shadow-sm">
         @foreach (var p in Model)
         {
-            <div class="list-group-item d-flex justify-content-between">
-                <div>
-                    <strong>@p.Titulo</strong>
-                    <div class="text-muted small">@p.Status</div>
+            <a asp-action="Detalhes" asp-route-id="@p.Id" class="list-group-item list-group-item-action py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <strong class="d-block">@p.Titulo</strong>
+                        <span class="badge rounded-pill bg-secondary">@p.Status</span>
+                    </div>
+                    <div class="flex-grow-1 ms-lg-4">
+                        <progress-bar value="@p.PorcentagemProgresso" small="true" label="@($"{p.PorcentagemProgresso}%")"></progress-bar>
+                    </div>
                 </div>
-                <progress-bar value="@(Convert.ToInt32(p.PorcentagemProgresso))"></progress-bar>
-            </div>
+            </a>
         }
     </div>
 }
