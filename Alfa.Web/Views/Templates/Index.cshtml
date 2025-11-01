@@ -1,6 +1,9 @@
 @model IReadOnlyList<Alfa.Web.Models.FaseModelosViewModel>
+@using System.Collections.Generic
+@using System.Linq
 @{
     ViewData["Title"] = "Templates";
+    var totalFases = Model?.Count ?? 0;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -10,51 +13,153 @@
     </ol>
 </nav>
 
-<div class="row g-4">
-    <div class="col-lg-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-white">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                    <div>
-                        <h2 class="h5 mb-1">Fases cadastradas</h2>
-                        <p class="text-muted mb-0">Selecione uma fase para configurar páginas e campos. A edição detalhada ainda está em desenvolvimento.</p>
-                    </div>
-                    <span class="badge bg-light text-dark align-self-center">@Model.Count fase(s)</span>
-                </div>
-            </div>
-            <div class="list-group list-group-flush">
-                @if (Model.Count == 0)
-                {
-                    <div class="list-group-item text-muted small">Nenhuma fase cadastrada até o momento.</div>
-                }
-                else
-                {
-                    foreach (var fase in Model)
-                    {
-                        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <h1 class="h4 mb-1">Catálogo de templates</h1>
+        <p class="text-muted mb-0">Visualize todas as fases, páginas e campos disponíveis antes de iniciar um novo processo.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="Templates" asp-action="Novo" class="btn btn-outline-primary">Nova fase</a>
+        <a asp-controller="Processos" asp-action="Novo" class="btn btn-primary">Novo processo</a>
+    </div>
+</div>
+
+@if (totalFases == 0)
+{
+    <div class="alert alert-info">Nenhum template cadastrado até o momento.</div>
+}
+else
+{
+    <div class="accordion" id="fasesAccordion">
+        var index = 0;
+        foreach (var fase in Model)
+        {
+            var collapseId = $"fase_{fase.Id}";
+            var headingId = $"fase_heading_{fase.Id}";
+            var paginaCount = fase.Paginas?.Count ?? 0;
+            <div class="accordion-item mb-3 shadow-sm border-0">
+                <h2 class="accordion-header" id="@headingId">
+                    <button class="accordion-button @(index == 0 ? string.Empty : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="@(index == 0 ? "true" : "false")" aria-controls="@collapseId">
+                        <div class="w-100 d-flex justify-content-between align-items-center gap-3">
                             <div>
-                                <div class="fw-semibold">@fase.Titulo</div>
-                                <div class="text-muted small">Ordem: @fase.Ordem</div>
+                                <span class="d-block fw-semibold">@fase.Titulo</span>
+                                <span class="text-muted small">Ordem: @fase.Ordem · @paginaCount página(s)</span>
                             </div>
                             <span class="badge @(fase.Ativo ? "bg-success" : "bg-secondary")">@(fase.Ativo ? "Ativa" : "Inativa")</span>
                         </div>
-                    }
-                }
+                    </button>
+                </h2>
+                <div id="@collapseId" class="accordion-collapse collapse @(index == 0 ? "show" : string.Empty)" aria-labelledby="@headingId" data-bs-parent="#fasesAccordion">
+                    <div class="accordion-body">
+                        <div class="d-flex justify-content-end mb-3">
+                            <a asp-action="Editar" asp-route-id="@fase.Id" class="btn btn-sm btn-outline-primary">Editar fase</a>
+                        </div>
+                        if (paginaCount == 0)
+                        {
+                            <div class="text-muted small">Nenhuma página configurada para esta fase.</div>
+                        }
+                        else
+                        {
+                            foreach (var pagina in (fase.Paginas ?? Enumerable.Empty<Alfa.Web.Models.PaginaModeloViewModel>()).OrderBy(p => p.Ordem).ThenBy(p => p.Titulo))
+                            {
+                                var campos = pagina.Campos ?? new List<Alfa.Web.Models.CampoModeloViewModel>();
+                                <section class="mb-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h3 class="h6 mb-1">@pagina.Titulo</h3>
+                                            <span class="text-muted small">Ordem: @pagina.Ordem · @campos.Count campo(s)</span>
+                                        </div>
+                                    </div>
+                                    if (campos.Count == 0)
+                                    {
+                                        <div class="alert alert-light border small mb-0">Nenhum campo cadastrado para esta página.</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle mb-0">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th scope="col">Rótulo</th>
+                                                        <th scope="col">Nome</th>
+                                                        <th scope="col">Tipo</th>
+                                                        <th scope="col">Obrigatório</th>
+                                                        <th scope="col">Ajuda / Placeholder</th>
+                                                        <th scope="col">Opções</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var campo in campos.OrderBy(c => c.Ordem).ThenBy(c => c.Rotulo))
+                                                    {
+                                                        var opcoesAtivas = (campo.Opcoes ?? new List<Alfa.Web.Models.CampoOpcaoViewModel>())
+                                                            .Where(o => o.Ativo)
+                                                            .OrderBy(o => o.Ordem)
+                                                            .ToList();
+                                                        <tr>
+                                                            <td>
+                                                                <div class="fw-semibold">@campo.Rotulo</div>
+                                                                <div class="text-muted small">Ordem: @campo.Ordem</div>
+                                                            </td>
+                                                            <td><code>@campo.NomeCampo</code></td>
+                                                            <td class="text-capitalize">@campo.Tipo</td>
+                                                            <td>
+                                                                @if (campo.Obrigatorio)
+                                                                {
+                                                                    <span class="badge bg-danger">Sim</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="badge bg-secondary">Não</span>
+                                                                }
+                                                            </td>
+                                                            <td class="small">
+                                                                @if (!string.IsNullOrWhiteSpace(campo.Placeholder))
+                                                                {
+                                                                    <div><span class="text-muted">Placeholder:</span> @campo.Placeholder</div>
+                                                                }
+                                                                @if (!string.IsNullOrWhiteSpace(campo.Ajuda))
+                                                                {
+                                                                    <div><span class="text-muted">Ajuda:</span> @campo.Ajuda</div>
+                                                                }
+                                                                @if (string.IsNullOrWhiteSpace(campo.Placeholder) && string.IsNullOrWhiteSpace(campo.Ajuda))
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td class="small">
+                                                                @if (opcoesAtivas.Count > 0)
+                                                                {
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        @foreach (var opcao in opcoesAtivas)
+                                                                        {
+                                                                            <li>
+                                                                                <span class="fw-semibold">@opcao.Texto</span>
+                                                                                @if (!string.IsNullOrWhiteSpace(opcao.Valor))
+                                                                                {
+                                                                                    <span class="text-muted">(@opcao.Valor)</span>
+                                                                                }
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                </section>
+                            }
+                        }
+                    </div>
+                </div>
             </div>
-        </div>
+            index++;
+        }
     </div>
-    <div class="col-lg-4">
-        <div class="card shadow-sm h-100">
-            <div class="card-body">
-                <h3 class="h6">Próximos passos</h3>
-                <p class="text-muted small">Em breve você poderá:</p>
-                <ul class="small text-muted ps-3">
-                    <li>Adicionar novas fases ao catálogo;</li>
-                    <li>Configurar páginas dentro de cada fase;</li>
-                    <li>Definir campos dinâmicos e opções.</li>
-                </ul>
-                <p class="text-muted small mb-0">Enquanto isso, utilize a criação de processos para validar o fluxo atual.</p>
-            </div>
-        </div>
-    </div>
-</div>
+}

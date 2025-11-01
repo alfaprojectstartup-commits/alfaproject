@@ -37,4 +37,13 @@ public class ApiClient
 
     public Task<List<FaseModelosViewModel>?> GetFaseTemplatesAsync()
         => _http.GetFromJsonAsync<List<FaseModelosViewModel>>("api/fases/modelos");
+
+    public Task<FaseModelosViewModel?> GetFaseTemplateAsync(int id)
+        => _http.GetFromJsonAsync<FaseModelosViewModel>($"api/fases/modelos/{id}");
+
+    public Task<HttpResponseMessage> CriarFaseTemplateAsync(FaseTemplateInputDto payload)
+        => _http.PostAsJsonAsync("api/fases/modelos", payload);
+
+    public Task<HttpResponseMessage> AtualizarFaseTemplateAsync(int id, FaseTemplateInputDto payload)
+        => _http.PutAsJsonAsync($"api/fases/modelos/{id}", payload);
 }
