@@ -31,8 +31,10 @@
 else
 {
     <div class="accordion" id="fasesAccordion">
-        var index = 0;
-        foreach (var fase in Model)
+        @{
+            var index = 0;
+        }        
+        @foreach (var fase in Model)
         {
             var collapseId = $"fase_{fase.Id}";
             var headingId = $"fase_heading_{fase.Id}";
@@ -54,7 +56,7 @@ else
                         <div class="d-flex justify-content-end mb-3">
                             <a asp-action="Editar" asp-route-id="@fase.Id" class="btn btn-sm btn-outline-primary">Editar fase</a>
                         </div>
-                        if (paginaCount == 0)
+                        @if (paginaCount == 0)
                         {
                             <div class="text-muted small">Nenhuma página configurada para esta fase.</div>
                         }
@@ -63,6 +65,7 @@ else
                             foreach (var pagina in (fase.Paginas ?? Enumerable.Empty<Alfa.Web.Models.PaginaModeloViewModel>()).OrderBy(p => p.Ordem).ThenBy(p => p.Titulo))
                             {
                                 var campos = pagina.Campos ?? new List<Alfa.Web.Models.CampoModeloViewModel>();
+
                                 <section class="mb-4">
                                     <div class="d-flex justify-content-between align-items-start mb-2">
                                         <div>
@@ -70,7 +73,7 @@ else
                                             <span class="text-muted small">Ordem: @pagina.Ordem · @campos.Count campo(s)</span>
                                         </div>
                                     </div>
-                                    if (campos.Count == 0)
+                                    @if (campos.Count == 0)
                                     {
                                         <div class="alert alert-light border small mb-0">Nenhum campo cadastrado para esta página.</div>
                                     }
