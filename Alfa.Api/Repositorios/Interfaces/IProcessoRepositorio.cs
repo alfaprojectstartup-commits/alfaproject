@@ -8,6 +8,7 @@ namespace Alfa.Api.Repositorios.Interfaces
         Task<(int total, IEnumerable<ProcessoListItemDto> items)> ListarAsync(int empresaId, int page, int pageSize, string? status);
         Task<int> CriarAsync(int empresaId, string titulo, int[] faseModeloIds);
         Task<ProcessoDetalheDto?> ObterAsync(int empresaId, int id);
+        Task<int?> ObterProcessoIdDaFaseAsync(int empresaId, int faseInstanciaId);
         Task AtualizarStatusEProgressoAsync(int empresaId, int processoId, string? status, int? progresso);
     }
 }
