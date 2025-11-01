@@ -7,5 +7,6 @@ namespace Alfa.Api.Repositorios.Interfaces
     {
         Task<IEnumerable<CampoModeloDto>> ListarPorPaginaModeloAsync(int empresaId, int paginaModeloId);
         Task<IEnumerable<CampoOpcaoDto>> ListarOpcoesAsync(int empresaId, int campoModeloId);
+        Task<IEnumerable<CampoModeloDto>> ListarCatalogoAsync(int empresaId);
     }
 }

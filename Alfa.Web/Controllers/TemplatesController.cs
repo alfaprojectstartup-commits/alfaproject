@@ -47,7 +47,7 @@ public class TemplatesController : Controller
     }
 
     [HttpGet]
-    public IActionResult Novo()
+    public async Task<IActionResult> Novo()
     {
         var modelo = new FaseModeloFormViewModel
         {
@@ -55,6 +55,7 @@ public class TemplatesController : Controller
             Paginas = new List<PaginaModeloFormViewModel>()
         };
 
+        await PopularCatalogoAsync(modelo);
         return View("Form", modelo);
     }
 
@@ -69,6 +70,7 @@ public class TemplatesController : Controller
 
         if (!ModelState.IsValid)
         {
+            await PopularCatalogoAsync(model);
             return View("Form", model);
         }
 
@@ -78,6 +80,7 @@ public class TemplatesController : Controller
         {
             var corpo = await resposta.Content.ReadAsStringAsync();
             ModelState.AddModelError(string.Empty, $"Não foi possível criar a fase: {(int)resposta.StatusCode} {resposta.ReasonPhrase}. {corpo}");
+            await PopularCatalogoAsync(model);
             return View("Form", model);
         }
 
@@ -101,6 +104,7 @@ public class TemplatesController : Controller
                 .ToList()
         };
 
+        await PopularCatalogoAsync(modelo);
         return View("Form", modelo);
     }
 
@@ -116,6 +120,7 @@ public class TemplatesController : Controller
 
         if (!ModelState.IsValid)
         {
+            await PopularCatalogoAsync(model);
             return View("Form", model);
         }
 
@@ -125,6 +130,7 @@ public class TemplatesController : Controller
         {
             var corpo = await resposta.Content.ReadAsStringAsync();
             ModelState.AddModelError(string.Empty, $"Não foi possível atualizar a fase: {(int)resposta.StatusCode} {resposta.ReasonPhrase}. {corpo}");
+            await PopularCatalogoAsync(model);
             return View("Form", model);
         }
 
@@ -242,5 +248,14 @@ public class TemplatesController : Controller
         };
 
         return dto;
+    }
+
+    private async Task PopularCatalogoAsync(FaseModeloFormViewModel model)
+    {
+        var catalogo = await _apiClient.GetCatalogoCamposAsync() ?? new List<CampoModeloViewModel>();
+        model.CatalogoCampos = catalogo
+            .OrderBy(c => c.Rotulo)
+            .ThenBy(c => c.NomeCampo)
+            .ToList();
     }
 }

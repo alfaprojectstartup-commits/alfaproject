@@ -1,7 +1,12 @@
 @model Alfa.Web.Models.FaseModeloFormViewModel
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using Alfa.Web.Models
 @{
     var isEdit = Model?.Id.HasValue ?? false;
     ViewData["Title"] = isEdit ? "Editar fase" : "Nova fase";
+    var catalogoCampos = Model?.CatalogoCampos ?? new List<CampoModeloViewModel>();
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -91,6 +96,8 @@
                                         for (var j = 0; j < pagina.Campos.Count; j++)
                                         {
                                             var campo = pagina.Campos[j];
+                                            var tipoAtual = campo?.Tipo ?? string.Empty;
+                                            var possuiCatalogo = catalogoCampos.Any(c => string.Equals(c.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase));
                                             <div class="border rounded p-3 campo-item" data-field-index="@j">
                                                 <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -110,7 +117,18 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label class="form-label">Tipo</label>
-                                                        <input class="form-control" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo" value="@campo.Tipo" />
+                                                        <select class="form-select" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo">
+                                                            <option value="">Selecione um tipo</option>
+                                                            @foreach (var modelo in catalogoCampos)
+                                                            {
+                                                                var selected = string.Equals(modelo.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase) ? "selected" : string.Empty;
+                                                                <option value="@modelo.Tipo" @selected>@modelo.Rotulo (@modelo.Tipo)</option>
+                                                            }
+                                                            @if (!string.IsNullOrWhiteSpace(tipoAtual) && !possuiCatalogo)
+                                                            {
+                                                                <option value="@tipoAtual" selected>@tipoAtual</option>
+                                                            }
+                                                        </select>
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label class="form-label">Ordem</label>
@@ -250,7 +268,13 @@
             </div>
             <div class="col-md-4">
                 <label class="form-label">Tipo</label>
-                <input class="form-control" data-field-prop="Tipo" />
+                <select class="form-select" data-field-prop="Tipo">
+                    <option value="">Selecione um tipo</option>
+                    @foreach (var modelo in catalogoCampos)
+                    {
+                        <option value="@modelo.Tipo">@modelo.Rotulo (@modelo.Tipo)</option>
+                    }
+                </select>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Ordem</label>
@@ -358,7 +382,17 @@
 
                 campoEl.querySelector('[data-field-prop="NomeCampo"]').value = dados?.NomeCampo ?? '';
                 campoEl.querySelector('[data-field-prop="Rotulo"]').value = dados?.Rotulo ?? '';
-                campoEl.querySelector('[data-field-prop="Tipo"]').value = dados?.Tipo ?? '';
+                const tipoSelect = campoEl.querySelector('[data-field-prop="Tipo"]');
+                if (tipoSelect) {
+                    tipoSelect.value = dados?.Tipo ?? '';
+                    if (!tipoSelect.value && dados?.Tipo) {
+                        const option = document.createElement('option');
+                        option.value = dados.Tipo;
+                        option.textContent = `${dados.Tipo}`;
+                        option.selected = true;
+                        tipoSelect.appendChild(option);
+                    }
+                }
                 campoEl.querySelector('[data-field-prop="Ordem"]').value = dados?.Ordem ?? 0;
                 campoEl.querySelector('[data-field-prop="Placeholder"]').value = dados?.Placeholder ?? '';
                 campoEl.querySelector('[data-field-prop="Mascara"]').value = dados?.Mascara ?? '';
@@ -494,10 +528,8 @@
             });
 
             if (paginasContainer.childElementCount === 0) {
-                // Começar com uma página vazia para facilitar o preenchimento
                 adicionarPagina();
             } else {
-                // Reaplicar scripts para itens renderizados pelo servidor
                 paginasContainer.querySelectorAll('.pagina-item').forEach(paginaEl => {
                     inicializarPagina(paginaEl);
                 });

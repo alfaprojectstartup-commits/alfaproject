@@ -1,5 +1,5 @@
 ﻿@model Alfa.Web.Dtos.ProcessoDetalheViewModel
-@using System.Globalization
+@using System.Linq
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
 
@@ -88,61 +88,7 @@
                             <form data-resposta-form data-fase-id="@fase.Id" data-page-id="@pagina.Id">
                                 @foreach (var campo in pagina.Campos ?? new List<Alfa.Web.Dtos.CampoInstanciaViewModel>())
                                 {
-                                    var tipo = (campo.Tipo ?? "").ToLowerInvariant();
-                                    var numberValue = campo.ValorNumero?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                                    var dateValue = campo.ValorData?.ToString("yyyy-MM-dd") ?? string.Empty;
-                                    <div class="mb-3" data-campo-id="@campo.Id" data-tipo="@tipo">
-                                        @if (tipo == "checkbox")
-                                        {
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" data-field-input id="campo_@campo.Id" @(campo.ValorBool == true ? "checked" : "") />
-                                                <label class="form-check-label" for="campo_@campo.Id">
-                                                    @campo.Rotulo
-                                                    @if (campo.Obrigatorio)
-                                                    {
-                                                        <span class="badge bg-light text-danger border border-danger ms-2">Obrigatório</span>
-                                                    }
-                                                </label>
-                                                @if (!string.IsNullOrWhiteSpace(campo.Ajuda))
-                                                {
-                                                    <div class="form-text">@campo.Ajuda</div>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <label class="form-label" for="campo_@campo.Id">
-                                                @campo.Rotulo
-                                                @if (campo.Obrigatorio)
-                                                {
-                                                    <span class="badge bg-light text-danger border border-danger ms-2">Obrigatório</span>
-                                                }
-                                            </label>
-
-                                            @switch (tipo)
-                                            {
-                                                case "number":
-                                                    <input class="form-control" type="number" data-field-input id="campo_@campo.Id" value="@numberValue" placeholder="@campo.Placeholder" />;
-                                                    break;
-                                                case "date":
-                                                    <input class="form-control" type="date" data-field-input id="campo_@campo.Id" value="@dateValue" placeholder="@campo.Placeholder" />;
-                                                    break;
-                                                case "textarea":
-                                                    <textarea class="form-control" data-field-input id="campo_@campo.Id" placeholder="@campo.Placeholder" rows="4">@campo.ValorTexto</textarea>;
-                                                    break;
-                                                case "select":
-                                                    <input class="form-control" data-field-input id="campo_@campo.Id" value="@campo.ValorTexto" placeholder="@campo.Placeholder" />;
-                                                    break;
-                                                default:
-                                                    <input class="form-control" type="text" data-field-input id="campo_@campo.Id" value="@campo.ValorTexto" placeholder="@campo.Placeholder" />;
-                                                    break;
-                                            }
-                                            @if (!string.IsNullOrWhiteSpace(campo.Ajuda))
-                                            {
-                                                <div class="form-text">@campo.Ajuda</div>
-                                            }
-                                        }
-                                    </div>
+                                    @await Html.PartialAsync("Partials/_CampoInstancia", campo)
                                 }
 
                                 <div class="d-flex justify-content-between align-items-center mt-4">

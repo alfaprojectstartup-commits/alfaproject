@@ -19,6 +19,8 @@ namespace Alfa.Web.Models
         public bool Ativo { get; set; } = true;
 
         public List<PaginaModeloFormViewModel> Paginas { get; set; } = new();
+
+        public List<CampoModeloViewModel> CatalogoCampos { get; set; } = new();
     }
 
     public class PaginaModeloFormViewModel
@@ -92,6 +94,9 @@ namespace Alfa.Web.Models
 
         [Display(Name = "Obrigatório")]
         public bool Obrigatorio { get; set; }
+
+        [Display(Name = "Modelo de campo")]
+        public int? ModeloCatalogoId { get; set; }
 
         [Range(0, int.MaxValue)]
         [Display(Name = "Ordem")]

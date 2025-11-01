@@ -76,7 +76,8 @@ namespace Alfa.Api.Dtos
             string? valorTexto,
             decimal? valorNumero,
             DateTime? valorData,
-            bool? valorBool)
+            bool? valorBool,
+            IEnumerable<CampoOpcaoDto>? opcoes = null)
         {
             Id = id;
             CampoModeloId = campoModeloId;
@@ -92,6 +93,7 @@ namespace Alfa.Api.Dtos
             ValorNumero = valorNumero;
             ValorData = valorData;
             ValorBool = valorBool;
+            Opcoes = opcoes ?? new List<CampoOpcaoDto>();
         }
 
         public int Id { get; set; }
@@ -121,6 +123,8 @@ namespace Alfa.Api.Dtos
         public DateTime? ValorData { get; set; }
 
         public bool? ValorBool { get; set; }
+
+        public IEnumerable<CampoOpcaoDto> Opcoes { get; set; } = new List<CampoOpcaoDto>();
     }
 
     public class CampoOpcaoDto
