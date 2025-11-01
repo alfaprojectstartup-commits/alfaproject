@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Data;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dapper;
-using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
 using Alfa.Api.Infra.Interfaces;
@@ -14,42 +12,42 @@ namespace Alfa.Api.Repositorios
         private readonly IConexaoSql _db;
         public PaginaRepositorio(IConexaoSql db) => _db = db;
 
-        public async Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFaseModelosAsync(
-            int empresaId, int FaseModeloId)
+        public async Task<IEnumerable<PaginaModeloDto>> ListarTemplatesPorFaseModeloAsync(
+            int empresaId, int faseModeloId)
         {
-            using IDbConnection conn = await _db.AbrirConexaoAsync();
+            using var conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT Id, FaseModeloId, Titulo, Ordem
-                FROM PaginaModelos           -- << ajuste se necessário
+                FROM PaginaModelos
                 WHERE EmpresaId = @EmpresaId
                   AND FaseModeloId = @FaseModeloId
                 ORDER BY Ordem;";
 
-            return await conn.QueryAsync<PaginaModelosDto>(sql, new
+            return await conn.QueryAsync<PaginaModeloDto>(sql, new
             {
                 EmpresaId = empresaId,
-                FaseModeloId = FaseModeloId
+                FaseModeloId = faseModeloId
             });
         }
 
-        public async Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFasesAsync(
-            int empresaId, int FasesId)
+        public async Task<IEnumerable<PaginaModeloDto>> ListarTemplatesPorFaseInstanciaAsync(
+            int empresaId, int faseInstanciaId)
         {
-            using IDbConnection conn = await _db.AbrirConexaoAsync();
+            using var conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT p.Id, p.FaseModeloId, p.Titulo, p.Ordem
-                FROM PaginaModelos p        -- << ajuste se necessário
-                JOIN Fases fi         -- << assume fi tem FaseModeloId
-                  ON fi.EmpresaId = p.EmpresaId
-                 AND fi.FaseModeloId = p.FaseModeloId
-                WHERE p.EmpresaId = @EmpresaId
-                  AND fi.Id        = @FasesId
-                ORDER BY p.Ordem;";
+                SELECT pm.Id, pm.FaseModeloId, pm.Titulo, pm.Ordem
+                FROM PaginaInstancias pi
+                JOIN PaginaModelos pm
+                  ON pm.EmpresaId = pi.EmpresaId
+                 AND pm.Id = pi.PaginaModeloId
+                WHERE pi.EmpresaId = @EmpresaId
+                  AND pi.FaseInstanciaId = @FaseInstanciaId
+                ORDER BY pm.Ordem;";
 
-            return await conn.QueryAsync<PaginaModelosDto>(sql, new
+            return await conn.QueryAsync<PaginaModeloDto>(sql, new
             {
                 EmpresaId = empresaId,
-                FasesId = FasesId
+                FaseInstanciaId = faseInstanciaId
             });
         }
     }

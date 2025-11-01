@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
-using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
-using System.Globalization;
 using Alfa.Api.Infra.Interfaces;
 
 namespace Alfa.Api.Repositorios
@@ -21,163 +19,173 @@ namespace Alfa.Api.Repositorios
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             using var tx = conn.BeginTransaction();
 
-            const string delSql = @"
-        DELETE FROM RespostaCampo
-        WHERE EmpresaId = @EmpresaId
-          AND FasesId = @FasesId
-          AND PaginaModelosId = @PaginaModelosId;";
+            const string validarSql = @"
+                SELECT COUNT(1)
+                FROM PaginaInstancias
+                WHERE EmpresaId = @EmpresaId
+                  AND Id = @PaginaInstanciaId
+                  AND FaseInstanciaId = @FaseInstanciaId;";
 
-            await conn.ExecuteAsync(delSql, new
+            var valido = await conn.ExecuteScalarAsync<int>(validarSql, new
             {
                 EmpresaId = empresaId,
-                FasesId = dto.FasesId,
-                PaginaModelosId = dto.PaginaModelosId
+                PaginaInstanciaId = dto.PaginaInstanciaId,
+                FaseInstanciaId = dto.FaseInstanciaId
             }, tx);
 
-            // converte valores tipados para string única "Valor"
-            string? ToValor(FieldResponseDto f)
+            if (valido == 0)
             {
-                if (!string.IsNullOrWhiteSpace(f.ValorTexto)) return f.ValorTexto?.Trim();
-                if (f.ValorNumero.HasValue) return f.ValorNumero.Value.ToString(CultureInfo.InvariantCulture);
-                if (f.ValorData.HasValue) return f.ValorData.Value.ToString("yyyy-MM-dd");
-                if (f.ValorBool.HasValue) return f.ValorBool.Value ? "true" : "false";
-                return null;
+                tx.Rollback();
+                throw new KeyNotFoundException("Página não pertence à fase informada ou empresa inválida.");
             }
 
             var rows = (dto.Campos ?? new List<FieldResponseDto>())
                 .Select(f => new
                 {
                     EmpresaId = empresaId,
-                    FasesId = dto.FasesId,
-                    PaginaModelosId = dto.PaginaModelosId,
-                    CampoModeloId = f.FieldTemplateId,
-                    Valor = ToValor(f)
+                    PaginaInstanciaId = dto.PaginaInstanciaId,
+                    CampoInstanciaId = f.CampoInstanciaId,
+                    ValorTexto = f.ValorTexto?.Trim(),
+                    ValorNumero = f.ValorNumero,
+                    ValorData = f.ValorData,
+                    ValorBool = f.ValorBool
                 })
-                .Where(x => !string.IsNullOrWhiteSpace(x.Valor))
                 .ToList();
 
-            if (rows.Count > 0)
-            {
-                const string insSql = @"
-            INSERT INTO RespostaCampo
-                (EmpresaId, FasesId, PaginaModelosId, CampoModeloId, Valor)
-            VALUES
-                (@EmpresaId, @FasesId, @PaginaModelosId, @CampoModeloId, @Valor);";
+            const string updateSql = @"
+                UPDATE CampoInstancias
+                SET ValorTexto = @ValorTexto,
+                    ValorNumero = @ValorNumero,
+                    ValorData = @ValorData,
+                    ValorBool = @ValorBool
+                WHERE EmpresaId = @EmpresaId
+                  AND PaginaInstanciaId = @PaginaInstanciaId
+                  AND Id = @CampoInstanciaId;";
 
-                await conn.ExecuteAsync(insSql, rows, tx);
+            foreach (var row in rows)
+            {
+                await conn.ExecuteAsync(updateSql, row, tx);
             }
+
+            const string resumoSql = @"
+                SELECT
+                    SUM(CASE WHEN Obrigatorio = 1 THEN 1 ELSE 0 END) AS Obrigatorios,
+                    SUM(CASE WHEN Obrigatorio = 1 AND (
+                            NULLIF(LTRIM(RTRIM(ISNULL(ValorTexto, ''))), '') IS NOT NULL
+                            OR ValorNumero IS NOT NULL
+                            OR ValorData IS NOT NULL
+                            OR ValorBool IS NOT NULL
+                        ) THEN 1 ELSE 0 END) AS Preenchidos
+                FROM CampoInstancias
+                WHERE EmpresaId = @EmpresaId
+                  AND PaginaInstanciaId = @PaginaInstanciaId;";
+
+            var resumo = await conn.QuerySingleAsync<(int obrig, int preenc)>(resumoSql, new
+            {
+                EmpresaId = empresaId,
+                PaginaInstanciaId = dto.PaginaInstanciaId
+            }, tx);
+
+            var concluida = resumo.obrig == 0 || resumo.obrig == resumo.preenc;
+            const string atualizarPaginaSql = @"
+                UPDATE PaginaInstancias
+                SET Concluida = @Concluida
+                WHERE EmpresaId = @EmpresaId
+                  AND Id = @PaginaInstanciaId;";
+
+            await conn.ExecuteAsync(atualizarPaginaSql, new
+            {
+                EmpresaId = empresaId,
+                PaginaInstanciaId = dto.PaginaInstanciaId,
+                Concluida = concluida ? 1 : 0
+            }, tx);
 
             tx.Commit();
         }
 
-        // Quantos campos obrigatórios existem em uma página
-        public async Task<int> ContarCamposObrigatoriosAsync(int empresaId, int PaginaModelosId)
+        public async Task<int> ContarCamposObrigatoriosAsync(int empresaId, int paginaInstanciaId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
-                FROM CampoModelo
+                FROM CampoInstancias
                 WHERE EmpresaId = @EmpresaId
-                  AND PaginaModelosId = @PaginaModelosId
+                  AND PaginaInstanciaId = @PaginaInstanciaId
                   AND Obrigatorio = 1;";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                PaginaModelosId = PaginaModelosId
+                PaginaInstanciaId = paginaInstanciaId
             });
         }
 
-        // Quantos desses obrigatórios já têm resposta não-vazia na fase
-        public async Task<int> ContarCamposPreenchidosAsync(int empresaId, int FasesId, int PaginaModelosId)
+        public async Task<int> ContarCamposPreenchidosAsync(int empresaId, int paginaInstanciaId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
-                FROM RespostaCampo r
-                JOIN CampoModelo c
-                  ON c.EmpresaId = r.EmpresaId
-                 AND c.Id        = r.CampoModeloId
-                WHERE r.EmpresaId = @EmpresaId
-                  AND r.FasesId = @FasesId
-                  AND r.PaginaModelosId = @PaginaModelosId
-                  AND c.Obrigatorio = 1
-                  AND NULLIF(LTRIM(RTRIM(r.Valor)), '') IS NOT NULL;";
+                FROM CampoInstancias
+                WHERE EmpresaId = @EmpresaId
+                  AND PaginaInstanciaId = @PaginaInstanciaId
+                  AND Obrigatorio = 1
+                  AND (
+                        NULLIF(LTRIM(RTRIM(ISNULL(ValorTexto, ''))), '') IS NOT NULL
+                        OR ValorNumero IS NOT NULL
+                        OR ValorData IS NOT NULL
+                        OR ValorBool IS NOT NULL
+                  );";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                FasesId = FasesId,
-                PaginaModelosId = PaginaModelosId
+                PaginaInstanciaId = paginaInstanciaId
             });
         }
 
-        // Quantidade total de páginas (templates) pertencentes à fase
-        public async Task<int> ContarPaginasDaFaseAsync(int empresaId, int FasesId)
+        public async Task<int> ContarPaginasDaFaseAsync(int empresaId, int faseInstanciaId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
                 SELECT COUNT(1)
-                FROM PaginaModelos p
-                JOIN Fases fi
-                  ON fi.EmpresaId = p.EmpresaId
-                 AND fi.FaseModeloId = p.FaseModeloId
-                WHERE p.EmpresaId = @EmpresaId
-                  AND fi.Id = @FasesId;";
+                FROM PaginaInstancias
+                WHERE EmpresaId = @EmpresaId
+                  AND FaseInstanciaId = @FaseInstanciaId;";
 
             return await conn.ExecuteScalarAsync<int>(sql, new
             {
                 EmpresaId = empresaId,
-                FasesId = FasesId
+                FaseInstanciaId = faseInstanciaId
             });
         }
 
-        // Retorna para cada página (da fase) o trio: paginaId, obrigatórios e preenchidos
-        public async Task<IEnumerable<(int paginaId, int obrig, int preenc)>> ObterResumoPorPaginasDaFaseAsync(
-            int empresaId, int FasesId)
+        public async Task<IEnumerable<(int paginaInstanciaId, int obrig, int preenc)>> ObterResumoPorPaginasDaFaseAsync(
+            int empresaId, int faseInstanciaId)
         {
             using IDbConnection conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                ;WITH P AS (
-                    SELECT p.Id AS PaginaId
-                    FROM PaginaModelos p
-                    JOIN Fases fi
-                      ON fi.EmpresaId = p.EmpresaId
-                     AND fi.FaseModeloId = p.FaseModeloId
-                    WHERE p.EmpresaId = @EmpresaId
-                      AND fi.Id = @FasesId
-                ),
-                OBR AS (
-                    SELECT c.PaginaModelosId AS PaginaId, COUNT(1) AS Obrig
-                    FROM CampoModelo c
-                    JOIN P ON P.PaginaId = c.PaginaModelosId
-                    WHERE c.EmpresaId = @EmpresaId AND c.Obrigatorio = 1
-                    GROUP BY c.PaginaModelosId
-                ),
-                PRE AS (
-                    SELECT r.PaginaModelosId AS PaginaId, COUNT(1) AS Preenc
-                    FROM RespostaCampo r
-                    JOIN CampoModelo c
-                      ON c.EmpresaId = r.EmpresaId
-                     AND c.Id        = r.CampoModeloId
-                    WHERE r.EmpresaId = @EmpresaId
-                      AND r.FasesId = @FasesId
-                      AND c.Obrigatorio = 1
-                      AND NULLIF(LTRIM(RTRIM(r.Valor)), '') IS NOT NULL
-                    GROUP BY r.PaginaModelosId
-                )
-                SELECT P.PaginaId AS paginaId,
-                       ISNULL(OBR.Obrig, 0) AS obrig,
-                       ISNULL(PRE.Preenc, 0) AS preenc
-                FROM P
-                LEFT JOIN OBR ON OBR.PaginaId = P.PaginaId
-                LEFT JOIN PRE ON PRE.PaginaId = P.PaginaId
-                ORDER BY P.PaginaId;";
+                SELECT
+                    pi.Id AS PaginaInstanciaId,
+                    SUM(CASE WHEN ci.Obrigatorio = 1 THEN 1 ELSE 0 END) AS Obrigatorios,
+                    SUM(CASE WHEN ci.Obrigatorio = 1 AND (
+                            NULLIF(LTRIM(RTRIM(ISNULL(ci.ValorTexto, ''))), '') IS NOT NULL
+                            OR ci.ValorNumero IS NOT NULL
+                            OR ci.ValorData IS NOT NULL
+                            OR ci.ValorBool IS NOT NULL
+                        ) THEN 1 ELSE 0 END) AS Preenchidos
+                FROM PaginaInstancias pi
+                LEFT JOIN CampoInstancias ci
+                  ON ci.EmpresaId = pi.EmpresaId
+                 AND ci.PaginaInstanciaId = pi.Id
+                WHERE pi.EmpresaId = @EmpresaId
+                  AND pi.FaseInstanciaId = @FaseInstanciaId
+                GROUP BY pi.Id
+                ORDER BY MAX(pi.Ordem);";
 
-            return await conn.QueryAsync<(int paginaId, int obrig, int preenc)>(sql, new
+            return await conn.QueryAsync<(int paginaInstanciaId, int obrig, int preenc)>(sql, new
             {
                 EmpresaId = empresaId,
-                FasesId = FasesId
+                FaseInstanciaId = faseInstanciaId
             });
         }
     }

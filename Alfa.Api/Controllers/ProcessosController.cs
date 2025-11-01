@@ -1,6 +1,7 @@
-﻿using Alfa.Api.Aplicacao.Interfaces;
-using Alfa.Api.Dtos.Comuns;
+using System.Collections.Generic;
+using Alfa.Api.Aplicacao.Interfaces;
 using Alfa.Api.Dtos;
+using Alfa.Api.Dtos.Comuns;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -10,10 +11,10 @@ public class ProcessosController : ControllerBase
     private readonly IProcessoApp _app;
     public ProcessosController(IProcessoApp app) => _app = app;
     private int EmpresaId =>
-    HttpContext.Items.TryGetValue("EmpresaId", out var v)
-    && int.TryParse(v?.ToString(), out var id)
-        ? id
-        : 0;
+        HttpContext.Items.TryGetValue("EmpresaId", out var v)
+        && int.TryParse(v?.ToString(), out var id)
+            ? id
+            : 0;
 
     [HttpGet]
     public async Task<ActionResult<PaginadoResultadoDto<ProcessoListItemDto>>> Listar([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? status = null)
@@ -37,5 +38,29 @@ public class ProcessosController : ControllerBase
         var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
         var id = await _app.Criar(emp, dto);
         return CreatedAtAction(nameof(Obter), new { id }, new { id });
+    }
+
+    [HttpGet("{id:int}/fases")]
+    public async Task<ActionResult<IEnumerable<FaseInstanciaDto>>> ListarFases(int id)
+    {
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var fases = await _app.ListarFases(emp, id);
+        return Ok(fases);
+    }
+
+    [HttpPost("{id:int}/respostas")]
+    public async Task<ActionResult> RegistrarResposta(int id, [FromBody] PaginaRespostaDto dto)
+    {
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+
+        try
+        {
+            await _app.RegistrarResposta(emp, id, dto);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 }
