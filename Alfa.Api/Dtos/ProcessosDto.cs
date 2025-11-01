@@ -1,24 +1,97 @@
 using System;
 using System.Collections.Generic;
 
-namespace Alfa.Api.Dtos;
+namespace Alfa.Api.Dtos
+{
+    public class ProcessoListItemDto
+    {
+        public ProcessoListItemDto()
+        {
+        }
 
-public record ProcessoListItemDto(
-        int Id,
-        string Titulo,
-        string Status,
-        int PorcentagemProgresso
-    );
+        public ProcessoListItemDto(int id, string titulo, string status, int porcentagemProgresso)
+        {
+            Id = id;
+            Titulo = titulo;
+            Status = status;
+            PorcentagemProgresso = porcentagemProgresso;
+        }
 
-public record ProcessoDetalheDto(
-    int Id,
-    string Titulo,
-    string Status,
-    int PorcentagemProgresso,
-    DateTime CriadoEm,
-    IEnumerable<FaseInstanciaDto> Fases
-);
+        public int Id { get; set; }
 
-public record ProcessoCriarDto(string Titulo, int[] FaseModeloIds);
+        public string Titulo { get; set; } = string.Empty;
 
-public record ProcessoUpdateDto(string? Titulo, string? Status);
+        public string Status { get; set; } = string.Empty;
+
+        public int PorcentagemProgresso { get; set; }
+    }
+
+    public class ProcessoDetalheDto
+    {
+        public ProcessoDetalheDto()
+        {
+        }
+
+        public ProcessoDetalheDto(
+            int id,
+            string titulo,
+            string status,
+            int porcentagemProgresso,
+            DateTime criadoEm,
+            IEnumerable<FaseInstanciaDto> fases)
+        {
+            Id = id;
+            Titulo = titulo;
+            Status = status;
+            PorcentagemProgresso = porcentagemProgresso;
+            CriadoEm = criadoEm;
+            Fases = fases;
+        }
+
+        public int Id { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public string Status { get; set; } = string.Empty;
+
+        public int PorcentagemProgresso { get; set; }
+
+        public DateTime CriadoEm { get; set; }
+
+        public IEnumerable<FaseInstanciaDto> Fases { get; set; } = new List<FaseInstanciaDto>();
+    }
+
+    public class ProcessoCriarDto
+    {
+        public ProcessoCriarDto()
+        {
+        }
+
+        public ProcessoCriarDto(string titulo, int[] faseModeloIds)
+        {
+            Titulo = titulo;
+            FaseModeloIds = faseModeloIds;
+        }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public int[] FaseModeloIds { get; set; } = Array.Empty<int>();
+    }
+
+    public class ProcessoUpdateDto
+    {
+        public ProcessoUpdateDto()
+        {
+        }
+
+        public ProcessoUpdateDto(string? titulo, string? status)
+        {
+            Titulo = titulo;
+            Status = status;
+        }
+
+        public string? Titulo { get; set; }
+
+        public string? Status { get; set; }
+    }
+}

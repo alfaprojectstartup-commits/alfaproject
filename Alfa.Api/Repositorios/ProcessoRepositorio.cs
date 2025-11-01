@@ -342,47 +342,89 @@ public class ProcessoRepositorio : IProcessoRepositorio
         await cn.ExecuteAsync(sql, parameters);
     }
 
-    private record TemplateRow(
-        int FaseModeloId,
-        string FaseTitulo,
-        int FaseOrdem,
-        int? PaginaModeloId,
-        string? PaginaTitulo,
-        int? PaginaOrdem,
-        int? CampoModeloId,
-        string? CampoNome,
-        string? CampoRotulo,
-        string? CampoTipo,
-        bool? CampoObrigatorio,
-        int? CampoOrdem,
-        string? CampoPlaceholder,
-        string? CampoMascara,
-        string? CampoAjuda);
+    private class TemplateRow
+    {
+        public int FaseModeloId { get; set; }
 
-    private record ProcessoGraphRow(
-        int FaseId,
-        int FaseModeloId,
-        string FaseTitulo,
-        int FaseOrdem,
-        string FaseStatus,
-        int FaseProgresso,
-        int? PaginaId,
-        int? PaginaModeloId,
-        string? PaginaTitulo,
-        int? PaginaOrdem,
-        bool? PaginaConcluida,
-        int? CampoId,
-        int? CampoModeloId,
-        string? CampoNome,
-        string? CampoRotulo,
-        string? CampoTipo,
-        bool? CampoObrigatorio,
-        int? CampoOrdem,
-        string? CampoPlaceholder,
-        string? CampoMascara,
-        string? CampoAjuda,
-        string? ValorTexto,
-        decimal? ValorNumero,
-        DateTime? ValorData,
-        bool? ValorBool);
+        public string FaseTitulo { get; set; } = string.Empty;
+
+        public int FaseOrdem { get; set; }
+
+        public int? PaginaModeloId { get; set; }
+
+        public string? PaginaTitulo { get; set; }
+
+        public int? PaginaOrdem { get; set; }
+
+        public int? CampoModeloId { get; set; }
+
+        public string? CampoNome { get; set; }
+
+        public string? CampoRotulo { get; set; }
+
+        public string? CampoTipo { get; set; }
+
+        public bool? CampoObrigatorio { get; set; }
+
+        public int? CampoOrdem { get; set; }
+
+        public string? CampoPlaceholder { get; set; }
+
+        public string? CampoMascara { get; set; }
+
+        public string? CampoAjuda { get; set; }
+    }
+
+    private class ProcessoGraphRow
+    {
+        public int FaseId { get; set; }
+
+        public int FaseModeloId { get; set; }
+
+        public string FaseTitulo { get; set; } = string.Empty;
+
+        public int FaseOrdem { get; set; }
+
+        public string FaseStatus { get; set; } = string.Empty;
+
+        public int FaseProgresso { get; set; }
+
+        public int? PaginaId { get; set; }
+
+        public int? PaginaModeloId { get; set; }
+
+        public string? PaginaTitulo { get; set; }
+
+        public int? PaginaOrdem { get; set; }
+
+        public bool? PaginaConcluida { get; set; }
+
+        public int? CampoId { get; set; }
+
+        public int? CampoModeloId { get; set; }
+
+        public string? CampoNome { get; set; }
+
+        public string? CampoRotulo { get; set; }
+
+        public string? CampoTipo { get; set; }
+
+        public bool? CampoObrigatorio { get; set; }
+
+        public int? CampoOrdem { get; set; }
+
+        public string? CampoPlaceholder { get; set; }
+
+        public string? CampoMascara { get; set; }
+
+        public string? CampoAjuda { get; set; }
+
+        public string? ValorTexto { get; set; }
+
+        public decimal? ValorNumero { get; set; }
+
+        public DateTime? ValorData { get; set; }
+
+        public bool? ValorBool { get; set; }
+    }
 }
