@@ -23,6 +23,23 @@ public class TemplatesController : Controller
         var ordenadas = fases
             .OrderBy(f => f.Ordem)
             .ThenBy(f => f.Titulo)
+            .Select(fase =>
+            {
+                fase.Paginas = (fase.Paginas ?? new List<PaginaModeloViewModel>())
+                    .OrderBy(p => p.Ordem)
+                    .ThenBy(p => p.Titulo)
+                    .Select(pagina =>
+                    {
+                        pagina.Campos = (pagina.Campos ?? new List<CampoModeloViewModel>())
+                            .OrderBy(c => c.Ordem)
+                            .ThenBy(c => c.Rotulo)
+                            .ToList();
+                        return pagina;
+                    })
+                    .ToList();
+
+                return fase;
+            })
             .ToList();
 
         return View(ordenadas);

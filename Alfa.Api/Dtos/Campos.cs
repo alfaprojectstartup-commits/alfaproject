@@ -52,6 +52,8 @@ namespace Alfa.Api.Dtos
         public string? Mascara { get; set; }
 
         public string? Ajuda { get; set; }
+
+        public IEnumerable<CampoOpcaoDto> Opcoes { get; set; } = new List<CampoOpcaoDto>();
     }
 
     public class CampoInstanciaDto

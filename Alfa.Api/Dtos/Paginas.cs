@@ -11,6 +11,8 @@ namespace Alfa.Api.Dtos
         public string Titulo { get; set; } = string.Empty;
 
         public int Ordem { get; set; }
+
+        public IEnumerable<CampoModeloDto> Campos { get; set; } = new List<CampoModeloDto>();
     }
 
     public class PaginaInstanciaDto
