@@ -60,6 +60,7 @@
                 {
                     var pagina = Model.Paginas[i];
                     <div class="card shadow-sm pagina-item" data-page-index="@i">
+                        <input type="hidden" data-page-index-field name="Paginas.Index" value="@i" />
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold">Página</span>
@@ -91,6 +92,7 @@
                                         {
                                             var campo = pagina.Campos[j];
                                             <div class="border rounded p-3 campo-item" data-field-index="@j">
+                                                <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
                                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                                     <div>
                                                         <span class="fw-semibold">Campo</span>
@@ -147,6 +149,7 @@
                                                             {
                                                                 var opcao = campo.Opcoes[k];
                                                                 <div class="border rounded p-2 opcao-item" data-option-index="@k">
+                                                                    <input type="hidden" data-option-index-field name="Paginas[@i].Campos[@j].Opcoes.Index" value="@k" />
                                                                     <div class="row g-2 align-items-end">
                                                                         <div class="col-md-5">
                                                                             <label class="form-label form-label-sm">Texto</label>
@@ -197,6 +200,7 @@
 
 <template id="pagina-template">
     <div class="card shadow-sm pagina-item">
+        <input type="hidden" data-page-index-field />
         <div class="card-header bg-white d-flex justify-content-between align-items-center">
             <div>
                 <span class="fw-semibold">Página</span>
@@ -228,6 +232,7 @@
 
 <template id="campo-template">
     <div class="border rounded p-3 campo-item">
+        <input type="hidden" data-field-index-field />
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
                 <span class="fw-semibold">Campo</span>
@@ -283,6 +288,7 @@
 
 <template id="opcao-template">
     <div class="border rounded p-2 opcao-item">
+        <input type="hidden" data-option-index-field />
         <div class="row g-2 align-items-end">
             <div class="col-md-5">
                 <label class="form-label form-label-sm">Texto</label>
@@ -439,6 +445,11 @@
                 const paginaEls = paginasContainer.querySelectorAll('.pagina-item');
                 paginaEls.forEach((paginaEl, pIndex) => {
                     paginaEl.dataset.pageIndex = pIndex;
+                    const paginaIndexInput = paginaEl.querySelector('[data-page-index-field]');
+                    if (paginaIndexInput) {
+                        paginaIndexInput.name = 'Paginas.Index';
+                        paginaIndexInput.value = pIndex;
+                    }
                     paginaEl.querySelectorAll('[data-page-prop]').forEach(input => {
                         const prop = input.getAttribute('data-page-prop');
                         input.name = `Paginas[${pIndex}].${prop}`;
@@ -447,6 +458,11 @@
                     const campoEls = paginaEl.querySelectorAll('.campo-item');
                     campoEls.forEach((campoEl, cIndex) => {
                         campoEl.dataset.fieldIndex = cIndex;
+                        const campoIndexInput = campoEl.querySelector('[data-field-index-field]');
+                        if (campoIndexInput) {
+                            campoIndexInput.name = `Paginas[${pIndex}].Campos.Index`;
+                            campoIndexInput.value = cIndex;
+                        }
                         campoEl.querySelectorAll('[data-field-prop]').forEach(input => {
                             const prop = input.getAttribute('data-field-prop');
                             input.name = `Paginas[${pIndex}].Campos[${cIndex}].${prop}`;
@@ -455,6 +471,11 @@
                         const opcaoEls = campoEl.querySelectorAll('.opcao-item');
                         opcaoEls.forEach((opcaoEl, oIndex) => {
                             opcaoEl.dataset.optionIndex = oIndex;
+                            const opcaoIndexInput = opcaoEl.querySelector('[data-option-index-field]');
+                            if (opcaoIndexInput) {
+                                opcaoIndexInput.name = `Paginas[${pIndex}].Campos[${cIndex}].Opcoes.Index`;
+                                opcaoIndexInput.value = oIndex;
+                            }
                             opcaoEl.querySelectorAll('[data-option-prop]').forEach(input => {
                                 const prop = input.getAttribute('data-option-prop');
                                 input.name = `Paginas[${pIndex}].Campos[${cIndex}].Opcoes[${oIndex}].${prop}`;
