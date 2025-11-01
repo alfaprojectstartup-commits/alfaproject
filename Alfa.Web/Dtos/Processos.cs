@@ -65,6 +65,17 @@ namespace Alfa.Web.Dtos
         public decimal? ValorNumero { get; set; }
         public DateTime? ValorData { get; set; }
         public bool? ValorBool { get; set; }
+        public IList<CampoOpcaoViewModel> Opcoes { get; set; } = new List<CampoOpcaoViewModel>();
+    }
+
+    public class CampoOpcaoViewModel
+    {
+        public int Id { get; set; }
+        public int CampoModeloId { get; set; }
+        public string Texto { get; set; } = string.Empty;
+        public string? Valor { get; set; }
+        public int Ordem { get; set; }
+        public bool Ativo { get; set; }
     }
 
     public class PaginaRespostaInput

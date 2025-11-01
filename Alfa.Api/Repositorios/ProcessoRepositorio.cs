@@ -235,6 +235,33 @@ public class ProcessoRepositorio : IProcessoRepositorio
             ORDER BY fi.Ordem, pi.Ordem, ci.Ordem;",
             new { empresaId, id })).ToList();
 
+        var campoModeloIds = rows
+            .Where(r => r.CampoModeloId.HasValue)
+            .Select(r => r.CampoModeloId!.Value)
+            .Distinct()
+            .ToArray();
+
+        var opcoesPorCampo = new Dictionary<int, List<CampoOpcaoDto>>();
+        if (campoModeloIds.Length > 0)
+        {
+            var opcoes = (await cn.QueryAsync<CampoOpcaoDto>(@"
+                SELECT Id, CampoModeloId, Texto, Valor, Ordem, Ativo
+                FROM CampoConfiguracoes
+                WHERE EmpresaId = @empresaId
+                  AND CampoModeloId IN @ids
+                ORDER BY CampoModeloId, Ordem;",
+                new { empresaId, ids = campoModeloIds })).ToList();
+
+            opcoesPorCampo = opcoes
+                .GroupBy(o => o.CampoModeloId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g
+                        .Where(o => o.Ativo)
+                        .OrderBy(o => o.Ordem)
+                        .ToList());
+        }
+
         var fases = rows
             .GroupBy(r => new
             {
@@ -265,25 +292,28 @@ public class ProcessoRepositorio : IProcessoRepositorio
                         pagina.Key.PaginaTitulo ?? string.Empty,
                         pagina.Key.PaginaOrdem ?? 0,
                         pagina.Key.PaginaConcluida ?? false,
-                        pagina
-                            .Where(r => r.CampoId.HasValue)
-                            .OrderBy(r => r.CampoOrdem ?? int.MaxValue)
-                            .Select(c => new CampoInstanciaDto(
-                                c.CampoId!.Value,
-                                c.CampoModeloId ?? 0,
-                                c.CampoNome ?? string.Empty,
-                                c.CampoRotulo ?? string.Empty,
-                                c.CampoTipo ?? string.Empty,
-                                c.CampoObrigatorio ?? false,
-                                c.CampoOrdem ?? 0,
-                                c.CampoPlaceholder,
-                                c.CampoMascara,
-                                c.CampoAjuda,
-                                c.ValorTexto,
-                                c.ValorNumero,
-                                c.ValorData,
-                                c.ValorBool
-                            ))
+                            pagina
+                                .Where(r => r.CampoId.HasValue)
+                                .OrderBy(r => r.CampoOrdem ?? int.MaxValue)
+                                .Select(c => new CampoInstanciaDto(
+                                    c.CampoId!.Value,
+                                    c.CampoModeloId ?? 0,
+                                    c.CampoNome ?? string.Empty,
+                                    c.CampoRotulo ?? string.Empty,
+                                    c.CampoTipo ?? string.Empty,
+                                    c.CampoObrigatorio ?? false,
+                                    c.CampoOrdem ?? 0,
+                                    c.CampoPlaceholder,
+                                    c.CampoMascara,
+                                    c.CampoAjuda,
+                                    c.ValorTexto,
+                                    c.ValorNumero,
+                                    c.ValorData,
+                                    c.ValorBool,
+                                    opcoesPorCampo.TryGetValue(c.CampoModeloId ?? 0, out var opcoes)
+                                        ? opcoes.ToList()
+                                        : new List<CampoOpcaoDto>()
+                                ))
                     ));
 
                 return new FaseInstanciaDto(
