@@ -1,4 +1,21 @@
-﻿namespace Alfa.Api.Dtos.Comuns
+using System.Collections.Generic;
+
+namespace Alfa.Api.Dtos.Comuns
 {
-    public record PaginadoResultadoDto<T>(int total, IEnumerable<T> items);
+    public class PaginadoResultadoDto<T>
+    {
+        public PaginadoResultadoDto()
+        {
+        }
+
+        public PaginadoResultadoDto(int total, IEnumerable<T> items)
+        {
+            Total = total;
+            Items = items;
+        }
+
+        public int Total { get; set; }
+
+        public IEnumerable<T> Items { get; set; } = new List<T>();
+    }
 }

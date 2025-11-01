@@ -1,0 +1,60 @@
+@model IReadOnlyList<Alfa.Web.Models.FaseModelosViewModel>
+@{
+    ViewData["Title"] = "Templates";
+}
+
+<nav aria-label="breadcrumb" class="mb-3 small">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-controller="Processos" asp-action="Index">Processos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Templates</li>
+    </ol>
+</nav>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div>
+                        <h2 class="h5 mb-1">Fases cadastradas</h2>
+                        <p class="text-muted mb-0">Selecione uma fase para configurar páginas e campos. A edição detalhada ainda está em desenvolvimento.</p>
+                    </div>
+                    <span class="badge bg-light text-dark align-self-center">@Model.Count fase(s)</span>
+                </div>
+            </div>
+            <div class="list-group list-group-flush">
+                @if (Model.Count == 0)
+                {
+                    <div class="list-group-item text-muted small">Nenhuma fase cadastrada até o momento.</div>
+                }
+                else
+                {
+                    foreach (var fase in Model)
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <div class="fw-semibold">@fase.Titulo</div>
+                                <div class="text-muted small">Ordem: @fase.Ordem</div>
+                            </div>
+                            <span class="badge @(fase.Ativo ? "bg-success" : "bg-secondary")">@(fase.Ativo ? "Ativa" : "Inativa")</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h3 class="h6">Próximos passos</h3>
+                <p class="text-muted small">Em breve você poderá:</p>
+                <ul class="small text-muted ps-3">
+                    <li>Adicionar novas fases ao catálogo;</li>
+                    <li>Configurar páginas dentro de cada fase;</li>
+                    <li>Definir campos dinâmicos e opções.</li>
+                </ul>
+                <p class="text-muted small mb-0">Enquanto isso, utilize a criação de processos para validar o fluxo atual.</p>
+            </div>
+        </div>
+    </div>
+</div>

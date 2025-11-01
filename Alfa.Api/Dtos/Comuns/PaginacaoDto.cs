@@ -1,4 +1,9 @@
-﻿namespace Alfa.Api.Dtos.Comuns
+namespace Alfa.Api.Dtos.Comuns
 {
-    public record PaginacaoDto(int page = 1, int pageSize = 10);
+    public class PaginacaoDto
+    {
+        public int Page { get; set; } = 1;
+
+        public int PageSize { get; set; } = 10;
+    }
 }

@@ -2,13 +2,29 @@ using System.Collections.Generic;
 
 namespace Alfa.Api.Dtos
 {
-    public record PaginaModeloDto(int Id, int FaseModeloId, string Titulo, int Ordem);
+    public class PaginaModeloDto
+    {
+        public int Id { get; set; }
 
-    public record PaginaInstanciaDto(
-        int Id,
-        int PaginaModeloId,
-        string Titulo,
-        int Ordem,
-        bool Concluida,
-        IEnumerable<CampoInstanciaDto> Campos);
+        public int FaseModeloId { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public int Ordem { get; set; }
+    }
+
+    public class PaginaInstanciaDto
+    {
+        public int Id { get; set; }
+
+        public int PaginaModeloId { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public int Ordem { get; set; }
+
+        public bool Concluida { get; set; }
+
+        public IEnumerable<CampoInstanciaDto> Campos { get; set; } = new List<CampoInstanciaDto>();
+    }
 }
