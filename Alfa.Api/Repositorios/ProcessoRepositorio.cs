@@ -300,6 +300,13 @@ public class ProcessoRepositorio : IProcessoRepositorio
         return new ProcessoDetalheDto(proc.Value.Id, proc.Value.Titulo, proc.Value.Status, proc.Value.Progresso, proc.Value.CriadoEm, fases);
     }
 
+    public async Task<int?> ObterProcessoIdDaFaseAsync(int empresaId, int faseInstanciaId)
+    {
+        using var cn = await _db.AbrirConexaoAsync();
+        const string sql = @"SELECT ProcessoId FROM FaseInstancias WHERE EmpresaId = @empresaId AND Id = @faseInstanciaId;";
+        return await cn.ExecuteScalarAsync<int?>(sql, new { empresaId, faseInstanciaId });
+    }
+
     public async Task AtualizarStatusEProgressoAsync(int empresaId, int processoId, string? status, int? progresso)
     {
         if (status is null && progresso is null) return;
