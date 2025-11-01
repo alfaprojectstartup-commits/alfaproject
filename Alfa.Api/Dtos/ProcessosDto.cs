@@ -1,4 +1,8 @@
-﻿namespace Alfa.Api.Dtos;
+using System;
+using System.Collections.Generic;
+
+namespace Alfa.Api.Dtos;
+
 public record ProcessoListItemDto(
         int Id,
         string Titulo,
@@ -6,7 +10,15 @@ public record ProcessoListItemDto(
         int PorcentagemProgresso
     );
 
-public record PaginadoResultDto<T>(int total, IEnumerable<T> items);
-public record ProcessoDetalheDto(int Id, string Titulo, string Status, int PorcentagemProgresso, IEnumerable<FasesDto> Fases);
-public record ProcessoCriarDto(string Titulo, int[] FasesTemplateIds);
+public record ProcessoDetalheDto(
+    int Id,
+    string Titulo,
+    string Status,
+    int PorcentagemProgresso,
+    DateTime CriadoEm,
+    IEnumerable<FaseInstanciaDto> Fases
+);
+
+public record ProcessoCriarDto(string Titulo, int[] FaseModeloIds);
+
 public record ProcessoUpdateDto(string? Titulo, string? Status);

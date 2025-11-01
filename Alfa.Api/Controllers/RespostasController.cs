@@ -26,22 +26,22 @@ public class RespostasController : ControllerBase
         await _resp.SalvarPaginaAsync(emp, dto);
 
         // Recalcula % da fase
-        await _fase.RecalcularProgressoFaseAsync(emp, dto.FasesId);
+        await _fase.RecalcularProgressoFaseAsync(emp, dto.FaseInstanciaId);
 
         // Recalcula % do processo (média)
         // descobrir processoId a partir da fase:
         // (para simplificar, pegue via query rápida)
-        var processoId = await ObterProcessoIdDaFase(emp, dto.FasesId);
+        var processoId = await ObterProcessoIdDaFase(emp, dto.FaseInstanciaId);
         await _proc.RecalcularProgressoProcesso(emp, processoId);
 
         return Ok();
     }
 
-    private async Task<int> ObterProcessoIdDaFase(int emp, int FasesId)
+    private async Task<int> ObterProcessoIdDaFase(int emp, int faseInstanciaId)
     {
         using var cn = await (HttpContext.RequestServices.GetRequiredService<IConexaoSql>()).AbrirConexaoAsync();
         return await cn.ExecuteScalarAsync<int>(
-            "SELECT ProcessInstanceId FROM Fases WHERE EmpresaId=@emp AND Id=@id",
-            new { emp, id = FasesId });
+            "SELECT ProcessoId FROM FaseInstancias WHERE EmpresaId=@emp AND Id=@id",
+            new { emp, id = faseInstanciaId });
     }
 }
