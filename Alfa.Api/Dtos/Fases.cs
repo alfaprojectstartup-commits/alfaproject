@@ -23,6 +23,8 @@ namespace Alfa.Api.Dtos
         public int Ordem { get; set; }
 
         public bool Ativo { get; set; }
+
+        public IEnumerable<PaginaModeloDto> Paginas { get; set; } = new List<PaginaModeloDto>();
     }
 
     public class FaseInstanciaDto
