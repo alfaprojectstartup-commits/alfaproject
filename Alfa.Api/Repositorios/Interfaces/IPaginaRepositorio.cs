@@ -1,10 +1,11 @@
-﻿using Alfa.Api.Dtos;
+using System.Collections.Generic;
+using Alfa.Api.Dtos;
 
 namespace Alfa.Api.Repositorios.Interfaces
 {
     public interface IPaginaRepositorio
     {
-        Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFaseModelosAsync(int empresaId, int FaseModeloId);
-        Task<IEnumerable<PaginaModelosDto>> ListarTemplatesPorFasesAsync(int empresaId, int FasesId);
+        Task<IEnumerable<PaginaModeloDto>> ListarTemplatesPorFaseModeloAsync(int empresaId, int faseModeloId);
+        Task<IEnumerable<PaginaModeloDto>> ListarTemplatesPorFaseInstanciaAsync(int empresaId, int faseInstanciaId);
     }
 }

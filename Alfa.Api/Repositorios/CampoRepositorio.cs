@@ -1,6 +1,6 @@
-﻿using System.Data;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Dapper;
-using Alfa.Api.Db;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
 using Alfa.Api.Infra.Interfaces;
@@ -12,32 +12,31 @@ namespace Alfa.Api.Repositorios
         private readonly IConexaoSql _db;
         public CampoRepositorio(IConexaoSql db) => _db = db;
 
-        public async Task<IEnumerable<CampoModeloDto>> ListarPorPaginaAsync(
-            int empresaId, int PaginaModelosId)
+        public async Task<IEnumerable<CampoModeloDto>> ListarPorPaginaModeloAsync(
+            int empresaId, int paginaModeloId)
         {
-            using IDbConnection conn = await _db.AbrirConexaoAsync();
+            using var conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, PaginaModelosId, Tipo, Rotulo, Obrigatorio, Ordem,
-                       Placeholder, Mascara, Ajuda
-                FROM CampoModelo                -- << ajuste se necessário
+                SELECT Id, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda
+                FROM CampoModelos
                 WHERE EmpresaId = @EmpresaId
-                  AND PaginaModelosId = @PaginaModelosId
+                  AND PaginaModeloId = @PaginaModeloId
                 ORDER BY Ordem;";
 
             return await conn.QueryAsync<CampoModeloDto>(sql, new
             {
                 EmpresaId = empresaId,
-                PaginaModelosId = PaginaModelosId
+                PaginaModeloId = paginaModeloId
             });
         }
 
         public async Task<IEnumerable<CampoOpcaoDto>> ListarOpcoesAsync(
-            int empresaId, int fieldTemplateId)
+            int empresaId, int campoModeloId)
         {
-            using IDbConnection conn = await  _db.AbrirConexaoAsync();
+            using var conn = await  _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, CampoModeloId, Valor, Texto, Ordem
-                FROM CampoOpcao                   -- << ajuste se necessário
+                SELECT Id, CampoModeloId, Texto, Valor, Ordem, Ativo
+                FROM CampoConfiguracoes
                 WHERE EmpresaId = @EmpresaId
                   AND CampoModeloId = @CampoModeloId
                 ORDER BY Ordem;";
@@ -45,7 +44,7 @@ namespace Alfa.Api.Repositorios
             return await conn.QueryAsync<CampoOpcaoDto>(sql, new
             {
                 EmpresaId = empresaId,
-                CampoModeloId = fieldTemplateId
+                CampoModeloId = campoModeloId
             });
         }
     }
