@@ -18,7 +18,10 @@
         <h1 class="h4 mb-1">Catálogo de templates</h1>
         <p class="text-muted mb-0">Visualize todas as fases, páginas e campos disponíveis antes de iniciar um novo processo.</p>
     </div>
-    <a asp-controller="Processos" asp-action="Novo" class="btn btn-primary">Novo processo</a>
+    <div class="d-flex gap-2">
+        <a asp-controller="Templates" asp-action="Novo" class="btn btn-outline-primary">Nova fase</a>
+        <a asp-controller="Processos" asp-action="Novo" class="btn btn-primary">Novo processo</a>
+    </div>
 </div>
 
 @if (totalFases == 0)
@@ -28,8 +31,10 @@
 else
 {
     <div class="accordion" id="fasesAccordion">
-        var index = 0;
-        foreach (var fase in Model)
+        @{
+            var index = 0;
+        }        
+        @foreach (var fase in Model)
         {
             var collapseId = $"fase_{fase.Id}";
             var headingId = $"fase_heading_{fase.Id}";
@@ -48,7 +53,10 @@ else
                 </h2>
                 <div id="@collapseId" class="accordion-collapse collapse @(index == 0 ? "show" : string.Empty)" aria-labelledby="@headingId" data-bs-parent="#fasesAccordion">
                     <div class="accordion-body">
-                        if (paginaCount == 0)
+                    < div class="d-flex justify-content-end mb-3">
+                    <a asp-action="Editar" asp-route-id="@fase.Id" class="btn btn-sm btn-outline-primary">Editar fase</a>
+                    </div>
+                    @if (paginaCount == 0)
                         {
                             <div class="text-muted small">Nenhuma página configurada para esta fase.</div>
                         }
@@ -64,7 +72,7 @@ else
                                             <span class="text-muted small">Ordem: @pagina.Ordem · @campos.Count campo(s)</span>
                                         </div>
                                     </div>
-                                    if (campos.Count == 0)
+                                    @if (campos.Count == 0)
                                     {
                                         <div class="alert alert-light border small mb-0">Nenhum campo cadastrado para esta página.</div>
                                     }
@@ -152,7 +160,6 @@ else
                         }
                     </div>
                 </div>
-            </div>
             index++;
         }
     </div>

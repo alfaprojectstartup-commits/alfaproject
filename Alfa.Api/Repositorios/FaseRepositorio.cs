@@ -1,5 +1,5 @@
-using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
@@ -30,6 +30,135 @@ namespace Alfa.Api.Repositorios
                 ORDER BY Ordem;";
 
             return await conn.QueryAsync<FaseModeloDto>(sql, new { EmpresaId = empresaId });
+        }
+
+        public async Task<FaseModeloDto?> ObterTemplateAsync(int empresaId, int faseModeloId)
+        {
+            using var conn = await _db.AbrirConexaoAsync();
+            const string sql = @"
+                SELECT Id, Titulo, Ordem, Ativo
+                FROM FaseModelos
+                WHERE EmpresaId = @EmpresaId
+                  AND Id = @FaseModeloId;";
+
+            return await conn.QueryFirstOrDefaultAsync<FaseModeloDto>(sql, new
+            {
+                EmpresaId = empresaId,
+                FaseModeloId = faseModeloId
+            });
+        }
+
+        public async Task<int> CriarTemplateAsync(int empresaId, FaseModeloInputDto dto)
+        {
+            using var conn = await _db.AbrirConexaoAsync();
+            using var tx = conn.BeginTransaction();
+
+            var faseId = await conn.ExecuteScalarAsync<int>(
+                @"INSERT INTO FaseModelos (EmpresaId, Titulo, Ordem, Ativo)
+                  VALUES (@EmpresaId, @Titulo, @Ordem, @Ativo);
+                  SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                new
+                {
+                    EmpresaId = empresaId,
+                    Titulo = dto.Titulo?.Trim() ?? string.Empty,
+                    dto.Ordem,
+                    dto.Ativo
+                }, tx);
+
+            await InserirEstruturaAsync(conn, tx, empresaId, faseId, dto.Paginas);
+
+            tx.Commit();
+            return faseId;
+        }
+
+        public async Task AtualizarTemplateAsync(int empresaId, int faseModeloId, FaseModeloInputDto dto)
+        {
+            using var conn = await _db.AbrirConexaoAsync();
+            using var tx = conn.BeginTransaction();
+
+            var linhas = await conn.ExecuteAsync(
+                @"UPDATE FaseModelos
+                     SET Titulo = @Titulo,
+                         Ordem = @Ordem,
+                         Ativo = @Ativo
+                   WHERE EmpresaId = @EmpresaId
+                     AND Id = @FaseModeloId;",
+                new
+                {
+                    EmpresaId = empresaId,
+                    FaseModeloId = faseModeloId,
+                    Titulo = dto.Titulo?.Trim() ?? string.Empty,
+                    dto.Ordem,
+                    dto.Ativo
+                }, tx);
+
+            if (linhas == 0)
+            {
+                tx.Rollback();
+                throw new KeyNotFoundException("Fase não encontrada para atualização.");
+            }
+
+            var paginaIds = (await conn.QueryAsync<int>(
+                @"SELECT Id
+                    FROM PaginaModelos
+                   WHERE EmpresaId = @EmpresaId
+                     AND FaseModeloId = @FaseModeloId;",
+                new
+                {
+                    EmpresaId = empresaId,
+                    FaseModeloId = faseModeloId
+                }, tx)).ToList();
+
+            if (paginaIds.Count > 0)
+            {
+                var campoIds = (await conn.QueryAsync<int>(
+                    @"SELECT Id
+                        FROM CampoModelos
+                       WHERE EmpresaId = @EmpresaId
+                         AND PaginaModeloId IN @PaginaIds;",
+                    new
+                    {
+                        EmpresaId = empresaId,
+                        PaginaIds = paginaIds
+                    }, tx)).ToList();
+
+                if (campoIds.Count > 0)
+                {
+                    await conn.ExecuteAsync(
+                        @"DELETE FROM CampoConfiguracoes
+                          WHERE EmpresaId = @EmpresaId
+                            AND CampoModeloId IN @CampoIds;",
+                        new
+                        {
+                            EmpresaId = empresaId,
+                            CampoIds = campoIds
+                        }, tx);
+                }
+
+                await conn.ExecuteAsync(
+                    @"DELETE FROM CampoModelos
+                      WHERE EmpresaId = @EmpresaId
+                        AND PaginaModeloId IN @PaginaIds;",
+                    new
+                    {
+                        EmpresaId = empresaId,
+                        PaginaIds = paginaIds
+                    }, tx);
+
+                await conn.ExecuteAsync(
+                    @"DELETE FROM PaginaModelos
+                      WHERE EmpresaId = @EmpresaId
+                        AND Id IN @PaginaIds;",
+                    new
+                    {
+                        EmpresaId = empresaId,
+                        PaginaIds = paginaIds
+                    }, tx);
+            }
+
+            await InserirEstruturaAsync(conn, tx, empresaId, faseModeloId, dto.Paginas);
+
+            tx.Commit();
         }
 
         public async Task<IEnumerable<FaseInstanciaDto>> ListarInstanciasAsync(int empresaId, int processoId)
@@ -170,6 +299,85 @@ namespace Alfa.Api.Repositorios
                 FaseInstanciaId = faseInstanciaId,
                 Progresso = progressoInt
             });
+        }
+
+        private static async Task InserirEstruturaAsync(
+            IDbConnection conn,
+            IDbTransaction tx,
+            int empresaId,
+            int faseModeloId,
+            IEnumerable<PaginaModeloInputDto>? paginas)
+        {
+            if (paginas is null)
+            {
+                return;
+            }
+
+            foreach (var pagina in paginas.OrderBy(p => p.Ordem))
+            {
+                var paginaId = await conn.ExecuteScalarAsync<int>(
+                    @"INSERT INTO PaginaModelos (EmpresaId, FaseModeloId, Titulo, Ordem)
+                      VALUES (@EmpresaId, @FaseModeloId, @Titulo, @Ordem);
+                      SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                    new
+                    {
+                        EmpresaId = empresaId,
+                        FaseModeloId = faseModeloId,
+                        Titulo = pagina.Titulo?.Trim() ?? string.Empty,
+                        pagina.Ordem
+                    }, tx);
+
+                if (pagina.Campos is null)
+                {
+                    continue;
+                }
+
+                foreach (var campo in pagina.Campos.OrderBy(c => c.Ordem))
+                {
+                    var campoId = await conn.ExecuteScalarAsync<int>(
+                        @"INSERT INTO CampoModelos
+                              (EmpresaId, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda)
+                          VALUES
+                              (@EmpresaId, @PaginaModeloId, @NomeCampo, @Rotulo, @Tipo, @Obrigatorio, @Ordem, @Placeholder, @Mascara, @Ajuda);
+                          SELECT CAST(SCOPE_IDENTITY() AS INT);",
+                        new
+                        {
+                            EmpresaId = empresaId,
+                            PaginaModeloId = paginaId,
+                            NomeCampo = campo.NomeCampo?.Trim() ?? string.Empty,
+                            Rotulo = campo.Rotulo?.Trim() ?? string.Empty,
+                            Tipo = campo.Tipo?.Trim() ?? string.Empty,
+                            Obrigatorio = campo.Obrigatorio,
+                            campo.Ordem,
+                            Placeholder = string.IsNullOrWhiteSpace(campo.Placeholder) ? null : campo.Placeholder.Trim(),
+                            Mascara = string.IsNullOrWhiteSpace(campo.Mascara) ? null : campo.Mascara.Trim(),
+                            Ajuda = string.IsNullOrWhiteSpace(campo.Ajuda) ? null : campo.Ajuda.Trim()
+                        }, tx);
+
+                    if (campo.Opcoes is null || !campo.Opcoes.Any())
+                    {
+                        continue;
+                    }
+
+                    foreach (var opcao in campo.Opcoes.OrderBy(o => o.Ordem))
+                    {
+                        await conn.ExecuteAsync(
+                            @"INSERT INTO CampoConfiguracoes
+                                  (EmpresaId, CampoModeloId, Texto, Valor, Ordem, Ativo)
+                              VALUES
+                                  (@EmpresaId, @CampoModeloId, @Texto, @Valor, @Ordem, @Ativo);",
+                            new
+                            {
+                                EmpresaId = empresaId,
+                                CampoModeloId = campoId,
+                                Texto = opcao.Texto?.Trim() ?? string.Empty,
+                                Valor = string.IsNullOrWhiteSpace(opcao.Valor) ? null : opcao.Valor.Trim(),
+                                opcao.Ordem,
+                                opcao.Ativo
+                            }, tx);
+                    }
+                }
+            }
         }
 
         private class FaseInstanciaRow
