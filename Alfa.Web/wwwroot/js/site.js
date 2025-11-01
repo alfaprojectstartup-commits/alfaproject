@@ -49,6 +49,16 @@
     });
 
     const empresaId = () => document.body ? document.body.dataset.empresaId : undefined;
+    const apiBaseUrl = () => document.body ? document.body.dataset.apiBase : undefined;
+    const buildApiUrl = (path) => {
+        const base = apiBaseUrl();
+        if (base && /^https?:/i.test(base)) {
+            const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+            const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+            return `${normalizedBase}/${normalizedPath}`;
+        }
+        return path;
+    };
 
     Alfa.initProcessoDetalhes = function (root) {
         if (!root) return;
@@ -139,7 +149,7 @@
                     const headers = { 'Content-Type': 'application/json' };
                     const empId = empresaId();
                     if (empId) headers['X-Empresa-Id'] = empId;
-                    const resp = await fetch(`/api/processos/${processoId}/respostas`, {
+                    const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
                         method: 'POST',
                         headers,
                         body: JSON.stringify(payload)
@@ -290,7 +300,7 @@
             const headers = {};
             const empId = empresaId();
             if (empId) headers['X-Empresa-Id'] = empId;
-            const resp = await fetch(`/api/processos/${processoId}`, { headers });
+            const resp = await fetch(buildApiUrl(`/processos/${processoId}`), { headers });
             if (!resp.ok) throw new Error('Erro ao atualizar processo');
             const data = await resp.json();
             updateProcessSummary(data);
