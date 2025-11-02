@@ -34,7 +34,8 @@ public class ProcessoRepositorio : IProcessoRepositorio
             p.Id,
             p.Titulo,
             ps.Status,
-            p.PorcentagemProgresso
+            p.PorcentagemProgresso,
+            p.CriadoEm
         FROM Processos p
         JOIN ProcessoStatus ps ON ps.Id = p.StatusId
         WHERE p.EmpresaId = @EmpresaId

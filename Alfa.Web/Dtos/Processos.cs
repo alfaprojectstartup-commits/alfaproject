@@ -10,6 +10,7 @@ namespace Alfa.Web.Dtos
         public string Titulo { get; set; } = "";
         public string Status { get; set; } = "";
         public int PorcentagemProgresso { get; set; }
+        public DateTime CriadoEm { get; set; }
     }
 
     public class PaginadoResultadoDto<T>
