@@ -160,6 +160,7 @@
                                                         <label class="form-label">Ajuda</label>
                                                         <input class="form-control" data-field-prop="Ajuda" name="Paginas[@i].Campos[@j].Ajuda" value="@campo.Ajuda" />
                                                     </div>
+                                                    <input type="hidden" data-field-prop="EhCatalogo" name="Paginas[@i].Campos[@j].EhCatalogo" value="@campo.EhCatalogo.ToString().ToLowerInvariant()" />
                                                     <div class="col-md-3 d-flex align-items-center">
                                                         <div class="form-check mt-4">
                                                             <input type="hidden" data-field-prop="Obrigatorio" name="Paginas[@i].Campos[@j].Obrigatorio" value="false" />
@@ -306,6 +307,7 @@
                 <label class="form-label">Ajuda</label>
                 <input class="form-control" data-field-prop="Ajuda" />
             </div>
+            <input type="hidden" data-field-prop="EhCatalogo" value="false" />
             <div class="col-md-3 d-flex align-items-center">
                 <div class="form-check mt-4">
                     <input type="hidden" data-field-prop="Obrigatorio" value="false" />
@@ -411,6 +413,10 @@
                 campoEl.querySelector('[data-field-prop="Placeholder"]').value = dados?.Placeholder ?? '';
                 campoEl.querySelector('[data-field-prop="Mascara"]').value = dados?.Mascara ?? '';
                 campoEl.querySelector('[data-field-prop="Ajuda"]').value = dados?.Ajuda ?? '';
+                const ehCatalogoInput = campoEl.querySelector('[data-field-prop="EhCatalogo"]');
+                if (ehCatalogoInput) {
+                    ehCatalogoInput.value = dados?.EhCatalogo ? 'true' : 'false';
+                }
                 const obrigatorioHidden = campoEl.querySelector('input[type="hidden"][data-field-prop="Obrigatorio"]');
                 const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
                 const obrigatorio = dados?.Obrigatorio ?? false;

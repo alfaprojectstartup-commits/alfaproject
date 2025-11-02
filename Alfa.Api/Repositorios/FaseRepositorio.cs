@@ -366,9 +366,9 @@ namespace Alfa.Api.Repositorios
                 {
                     var campoId = await conn.ExecuteScalarAsync<int>(
                         @"INSERT INTO CampoModelos
-                              (EmpresaId, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda)
+                              (EmpresaId, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda, EhCatalogo)
                           VALUES
-                              (@EmpresaId, @PaginaModeloId, @NomeCampo, @Rotulo, @Tipo, @Obrigatorio, @Ordem, @Placeholder, @Mascara, @Ajuda);
+                              (@EmpresaId, @PaginaModeloId, @NomeCampo, @Rotulo, @Tipo, @Obrigatorio, @Ordem, @Placeholder, @Mascara, @Ajuda, @EhCatalogo);
                           SELECT CAST(SCOPE_IDENTITY() AS INT);",
                         new
                         {
@@ -381,7 +381,8 @@ namespace Alfa.Api.Repositorios
                             campo.Ordem,
                             Placeholder = string.IsNullOrWhiteSpace(campo.Placeholder) ? null : campo.Placeholder.Trim(),
                             Mascara = string.IsNullOrWhiteSpace(campo.Mascara) ? null : campo.Mascara.Trim(),
-                            Ajuda = string.IsNullOrWhiteSpace(campo.Ajuda) ? null : campo.Ajuda.Trim()
+                            Ajuda = string.IsNullOrWhiteSpace(campo.Ajuda) ? null : campo.Ajuda.Trim(),
+                            EhCatalogo = campo.EhCatalogo
                         }, tx);
 
                     if (campo.Opcoes is null || !campo.Opcoes.Any())

@@ -13,15 +13,15 @@ public class ProgressBarTagHelper : TagHelper
     public bool Small { get; set; }
     public bool HideLabel { get; set; }
 
-    public override void Process(TagHelperContext context, TagHelperOutput output)
-    {
-        var value = Math.Clamp(Value, 0, 100);
-        var labelText = Label ?? $"{value}%";
-        var variantClass = ResolveVariantClass(value);
-        if (!string.IsNullOrWhiteSpace(Variant))
+        public override void Process(TagHelperContext context, TagHelperOutput output)
         {
-            variantClass = $"bg-{Variant}";
-        }
+            var value = Math.Clamp(Value, 0, 100);
+            var labelText = Label ?? $"{value}%";
+            var variantClass = ResolveVariantClass(value);
+            if (!string.IsNullOrWhiteSpace(Variant))
+            {
+                variantClass = $"is-progress-{Variant.ToLowerInvariant()}";
+            }
 
         var progressClasses = Small ? "progress progress-sm" : "progress";
         if (context.AllAttributes.TryGetAttribute("class", out var extraClass) && extraClass?.Value is string cls && !string.IsNullOrWhiteSpace(cls))
@@ -47,9 +47,9 @@ public class ProgressBarTagHelper : TagHelper
         output.Content.SetHtmlContent(inner);
     }
 
-    private static string ResolveVariantClass(int value)
-        => value >= 100 ? "bg-success" :
-           value >= 70 ? "bg-primary" :
-           value > 0 ? "bg-warning text-dark" :
-           "bg-secondary";
+        private static string ResolveVariantClass(int value)
+        => value >= 100 ? "is-progress-success" :
+           value >= 70 ? "is-progress-primary" :
+           value > 0 ? "is-progress-warning" :
+           "is-progress-secondary";
 }

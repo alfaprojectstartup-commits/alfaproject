@@ -341,6 +341,7 @@
         }
 
         const forms = Array.from(root.querySelectorAll('form[data-resposta-form]'));
+        let pendingStructureReload = false;
         forms.forEach(form => {
             form.addEventListener('submit', async (ev) => {
                 ev.preventDefault();
@@ -443,10 +444,10 @@
         });
 
         function resolveVariantClasses(value) {
-            if (value >= 100) return ['bg-success'];
-            if (value >= 70) return ['bg-primary'];
-            if (value > 0) return ['bg-warning', 'text-dark'];
-            return ['bg-secondary'];
+            if (value >= 100) return ['is-progress-success'];
+            if (value >= 70) return ['is-progress-primary'];
+            if (value > 0) return ['is-progress-warning'];
+            return ['is-progress-secondary'];
         }
 
         function updateProgress(element, value, labelText) {
@@ -471,7 +472,7 @@
                 bar.textContent = labelText ?? `${val}%`;
             }
             const variants = resolveVariantClasses(val);
-            const classes = ['bg-success', 'bg-primary', 'bg-warning', 'bg-secondary', 'text-dark'];
+            const classes = ['is-progress-success', 'is-progress-primary', 'is-progress-warning', 'is-progress-secondary'];
             classes.forEach(cls => bar.classList.remove(cls));
             variants.forEach(cls => bar.classList.add(cls));
         }
@@ -513,36 +514,108 @@
             });
         }
 
+        function updateSelectOptions(select, campo) {
+            const opcoes = Array.isArray(campo.Opcoes) ? campo.Opcoes.filter(o => o.Ativo).sort((a, b) => (a.Ordem ?? 0) - (b.Ordem ?? 0)) : [];
+            const existing = Array.from(select.options).map(opt => ({ value: opt.value, text: opt.textContent ?? '', selected: opt.selected }));
+            const obrigatorio = campo.Obrigatorio === true;
+            const placeholder = campo.Placeholder || '';
+
+            const newOptions = [];
+            if (!obrigatorio) {
+                newOptions.push({ value: '', text: placeholder || 'Selecione', selected: false });
+            }
+            opcoes.forEach(opcao => {
+                const valor = opcao.Valor || opcao.Texto || '';
+                newOptions.push({ value: valor, text: opcao.Texto || valor, selected: false });
+            });
+
+            const currentValue = select.value;
+            let requiresUpdate = newOptions.length !== existing.length;
+            if (!requiresUpdate) {
+                for (let i = 0; i < newOptions.length; i += 1) {
+                    const novo = newOptions[i];
+                    const antigo = existing[i];
+                    if (novo.value !== antigo.value || novo.text !== antigo.text) {
+                        requiresUpdate = true;
+                        break;
+                    }
+                }
+            }
+
+            if (requiresUpdate) {
+                select.innerHTML = '';
+                newOptions.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.text;
+                    select.appendChild(option);
+                });
+            }
+
+            if (newOptions.some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            } else if (!obrigatorio) {
+                select.value = '';
+            } else if (newOptions.length > 0) {
+                select.value = newOptions[0].value;
+            }
+        }
+
         function updateFormFields(fases) {
+            let requiresReload = false;
             fases.forEach(fase => {
                 (fase.Paginas || []).forEach(pagina => {
                     const form = root.querySelector(`form[data-page-id="${pagina.Id}"]`);
-                    if (!form) return;
+                    if (!form) {
+                        requiresReload = true;
+                        return;
+                    }
+
+                    const expectedIds = new Set((pagina.Campos || []).map(campo => campo.Id));
+                    form.querySelectorAll('[data-campo-id]').forEach(wrapper => {
+                        const campoId = parseInt(wrapper.dataset.campoId || '0', 10);
+                        if (!expectedIds.has(campoId)) {
+                            requiresReload = true;
+                        }
+                    });
+
                     (pagina.Campos || []).forEach(campo => {
                         const wrapper = form.querySelector(`[data-campo-id="${campo.Id}"]`);
-                        if (!wrapper) return;
+                        if (!wrapper) {
+                            requiresReload = true;
+                            return;
+                        }
                         const input = wrapper.querySelector('[data-field-input]');
-                        if (!input) return;
-                        switch (wrapper.dataset.tipo) {
-                            case 'number':
-                                input.value = campo.ValorNumero != null ? String(campo.ValorNumero) : '';
-                                break;
-                            case 'date':
-                                input.value = campo.ValorData ? campo.ValorData.substring(0, 10) : '';
-                                break;
-                            case 'checkbox':
-                                input.checked = Boolean(campo.ValorBool);
-                                break;
-                            case 'textarea':
-                            case 'select':
-                            case 'text':
-                            default:
-                                input.value = campo.ValorTexto || '';
-                                break;
+                        if (!input) {
+                            requiresReload = true;
+                            return;
+                        }
+                        if (wrapper.dataset.tipo === 'select' && input instanceof HTMLSelectElement) {
+                            updateSelectOptions(input, campo);
+                        }
+                        if (wrapper.dataset.tipo === 'checkbox' && input instanceof HTMLInputElement) {
+                            input.checked = Boolean(campo.ValorBool);
+                        } else {
+                            switch (wrapper.dataset.tipo) {
+                                case 'number':
+                                    input.value = campo.ValorNumero != null ? String(campo.ValorNumero) : '';
+                                    break;
+                                case 'date':
+                                    input.value = campo.ValorData ? campo.ValorData.substring(0, 10) : '';
+                                    break;
+                                case 'textarea':
+                                case 'select':
+                                case 'text':
+                                default:
+                                    input.value = campo.ValorTexto || '';
+                                    break;
+                            }
                         }
                     });
                 });
             });
+
+            return requiresReload;
         }
 
         async function refreshProcess(focusPageId) {
@@ -555,7 +628,12 @@
             updateProcessSummary(data);
             if (Array.isArray(data.Fases)) {
                 updatePhaseCards(data.Fases);
-                updateFormFields(data.Fases);
+                const reloadNeeded = updateFormFields(data.Fases);
+                if (reloadNeeded && !pendingStructureReload) {
+                    pendingStructureReload = true;
+                    window.location.reload();
+                    return data;
+                }
             }
             if (focusPageId) {
                 const active = root.querySelector(`[data-page-selector][data-page-id="${focusPageId}"]`);

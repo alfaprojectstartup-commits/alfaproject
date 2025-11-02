@@ -19,7 +19,8 @@ namespace Alfa.Api.Dtos
             int ordem,
             string? placeholder,
             string? mascara,
-            string? ajuda)
+            string? ajuda,
+            bool ehCatalogo)
         {
             Id = id;
             PaginaModeloId = paginaModeloId;
@@ -31,6 +32,7 @@ namespace Alfa.Api.Dtos
             Placeholder = placeholder;
             Mascara = mascara;
             Ajuda = ajuda;
+            EhCatalogo = ehCatalogo;
         }
 
         public int Id { get; set; }
@@ -52,6 +54,8 @@ namespace Alfa.Api.Dtos
         public string? Mascara { get; set; }
 
         public string? Ajuda { get; set; }
+
+        public bool EhCatalogo { get; set; }
 
         public IEnumerable<CampoOpcaoDto> Opcoes { get; set; } = new List<CampoOpcaoDto>();
     }

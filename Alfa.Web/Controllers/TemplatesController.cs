@@ -232,6 +232,7 @@ public class TemplatesController : Controller
                             Placeholder = c.Placeholder,
                             Mascara = c.Mascara,
                             Ajuda = c.Ajuda,
+                            EhCatalogo = c.EhCatalogo,
                             Opcoes = c.Opcoes
                                 .Select(o => new CampoOpcaoTemplateInputDto
                                 {

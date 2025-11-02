@@ -17,10 +17,11 @@ namespace Alfa.Api.Repositorios
         {
             using var conn = await _db.AbrirConexaoAsync();
             const string sqlCampos = @"
-                SELECT Id, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda
+                SELECT Id, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda, EhCatalogo
                 FROM CampoModelos
                 WHERE EmpresaId = @EmpresaId
                   AND Ativo = 1
+                  AND EhCatalogo = 1
                 ORDER BY Rotulo, NomeCampo;";
 
             var campos = (await conn.QueryAsync<CampoModeloDto>(sqlCampos, new
@@ -63,7 +64,7 @@ namespace Alfa.Api.Repositorios
         {
             using var conn = await _db.AbrirConexaoAsync();
             const string sql = @"
-                SELECT Id, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda
+                SELECT Id, PaginaModeloId, NomeCampo, Rotulo, Tipo, Obrigatorio, Ordem, Placeholder, Mascara, Ajuda, EhCatalogo
                 FROM CampoModelos
                 WHERE EmpresaId = @EmpresaId
                   AND PaginaModeloId = @PaginaModeloId

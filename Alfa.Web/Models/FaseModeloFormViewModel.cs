@@ -71,6 +71,7 @@ namespace Alfa.Web.Models
             Placeholder = origem.Placeholder;
             Mascara = origem.Mascara;
             Ajuda = origem.Ajuda;
+            EhCatalogo = origem.EhCatalogo;
 
             foreach (var opcao in origem.Opcoes ?? new List<CampoOpcaoViewModel>())
             {
@@ -110,6 +111,8 @@ namespace Alfa.Web.Models
 
         [Display(Name = "Ajuda")]
         public string? Ajuda { get; set; }
+
+        public bool EhCatalogo { get; set; }
 
         public List<CampoOpcaoFormViewModel> Opcoes { get; set; } = new();
     }

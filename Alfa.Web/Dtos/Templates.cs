@@ -57,6 +57,8 @@ namespace Alfa.Web.Dtos
         [MaxLength(500)]
         public string? Ajuda { get; set; }
 
+        public bool EhCatalogo { get; set; }
+
         public List<CampoOpcaoTemplateInputDto> Opcoes { get; set; } = new();
     }
 

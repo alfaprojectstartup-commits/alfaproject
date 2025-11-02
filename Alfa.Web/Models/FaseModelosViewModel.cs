@@ -32,6 +32,7 @@ namespace Alfa.Web.Models
         public string? Placeholder { get; set; }
         public string? Mascara { get; set; }
         public string? Ajuda { get; set; }
+        public bool EhCatalogo { get; set; }
         public List<CampoOpcaoViewModel> Opcoes { get; set; } = new();
     }
 
