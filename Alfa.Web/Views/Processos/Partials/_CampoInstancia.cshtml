@@ -23,7 +23,7 @@
                 @Model?.Rotulo
                 @if (Model?.Obrigatorio == true)
                 {
-                    <span class="badge bg-light text-danger border border-danger ms-2">Obrigatório</span>
+                    <span class="badge badge-required ms-2">Obrigatório</span>
                 }
             </label>
             @if (!string.IsNullOrWhiteSpace(Model?.Ajuda))
@@ -38,7 +38,7 @@
             @Model?.Rotulo
             @if (Model?.Obrigatorio == true)
             {
-                <span class="badge bg-light text-danger border border-danger ms-2">Obrigatório</span>
+                <span class="badge badge-required ms-2">Obrigatório</span>
             }
         </label>
 

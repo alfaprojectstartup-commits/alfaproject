@@ -18,6 +18,9 @@
     --alfa-chip-text-active: #243da1;
     --alfa-accent-gradient: linear-gradient(135deg, rgba(45, 78, 215, 0.9), rgba(94, 132, 255, 0.9));
     --alfa-badge-bg: #eef1ff;
+    --alfa-attention: #d23c64;
+    --alfa-attention-soft: rgba(210, 60, 100, 0.16);
+    --alfa-attention-border: rgba(210, 60, 100, 0.28);
 }
 
 html[data-theme="dark"] {
@@ -40,6 +43,9 @@ html[data-theme="dark"] {
     --alfa-chip-text-active: #dbe4ff;
     --alfa-accent-gradient: linear-gradient(135deg, rgba(108, 143, 255, 0.9), rgba(45, 63, 132, 0.9));
     --alfa-badge-bg: rgba(108, 143, 255, 0.18);
+    --alfa-attention: #ff99b3;
+    --alfa-attention-soft: rgba(210, 60, 100, 0.32);
+    --alfa-attention-border: rgba(210, 60, 100, 0.48);
 }
 
 body {
@@ -104,6 +110,13 @@ a:hover {
     background-color: var(--alfa-surface);
     color: var(--alfa-text);
     border-color: var(--alfa-border);
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.card-header {
+    background-color: var(--alfa-surface);
+    color: inherit;
+    border-bottom-color: var(--alfa-border);
     transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
@@ -376,6 +389,50 @@ a:hover {
     position: relative;
 }
 
+.processos-lista .processo-item {
+    padding-block: 0.85rem;
+}
+
+.processo-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.processo-item-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.processo-item-title {
+    display: block;
+    margin-bottom: 0.15rem;
+}
+
+.processo-progress {
+    flex: 0 0 180px;
+    text-align: right;
+}
+
+.processo-progress .progress {
+    margin-bottom: 0;
+}
+
+@media (max-width: 576px) {
+    .processo-item-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .processo-progress {
+        flex-basis: auto;
+        width: 100%;
+        text-align: left;
+    }
+}
+
 .processos-lista .list-group-item:last-child {
     border-bottom-left-radius: 1.2rem;
     border-bottom-right-radius: 1.2rem;
@@ -410,6 +467,23 @@ html[data-theme="dark"] .status-badge {
     color: var(--alfa-text);
 }
 
+.badge-required {
+    background-color: var(--alfa-attention-soft);
+    color: var(--alfa-attention);
+    border: 1px solid var(--alfa-attention-border);
+    font-weight: 600;
+}
+
+.badge-phase-status {
+    background-color: var(--alfa-primary-soft) !important;
+    color: var(--alfa-primary);
+    font-weight: 600;
+}
+
+html[data-theme="dark"] .badge-phase-status {
+    color: var(--alfa-text);
+}
+
 .list-group-item {
     transition: background-color .12s ease;
 }
@@ -420,6 +494,16 @@ html[data-theme="dark"] .status-badge {
 
 .progress-sm {
     height: .5rem;
+}
+
+.progress {
+    background-color: var(--alfa-surface-subtle);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress .progress-bar {
+    font-weight: 600;
 }
 
 .fase-card .list-group-item {

@@ -24,7 +24,7 @@
             <h2 class="h4 mb-1">@Model.Titulo</h2>
             <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
         </div>
-        <span class="badge rounded-pill bg-info text-dark align-self-center" data-status-processo>@Model.Status</span>
+        <span class="badge rounded-pill status-badge align-self-center" data-status-processo>@Model.Status</span>
     </div>
 
     <div class="mb-4">
@@ -41,7 +41,7 @@
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div>
                                 <h5 class="card-title h6 mb-1">@fase.Titulo</h5>
-                                <span class="badge rounded-pill bg-light text-dark" data-fase-status="@fase.Id">@fase.Status</span>
+                                <span class="badge rounded-pill badge-phase-status" data-fase-status="@fase.Id">@fase.Status</span>
                             </div>
                         </div>
                         <div class="mt-3">
@@ -73,7 +73,7 @@
                 {
                     var isActive = primeiraPagina != null && primeiraPagina.Id == pagina.Id;
                     <section class="card shadow-sm mb-4 page-section @(isActive ? string.Empty : "d-none")" data-page-section data-fase-id="@fase.Id" data-page-id="@pagina.Id">
-                        <div class="card-header bg-white">
+                        <div class="card-header">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                                 <div>
                                     <h5 class="card-title mb-1">@pagina.Titulo</h5>

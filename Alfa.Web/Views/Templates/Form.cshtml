@@ -66,7 +66,7 @@
                     var pagina = Model.Paginas[i];
                     <div class="card shadow-sm pagina-item" data-page-index="@i">
                         <input type="hidden" data-page-index-field name="Paginas.Index" value="@i" />
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-semibold">Página</span>
                                 <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
@@ -233,7 +233,7 @@
 <template id="pagina-template">
     <div class="card shadow-sm pagina-item">
         <input type="hidden" data-page-index-field />
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <span class="fw-semibold">Página</span>
                 <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
