@@ -50,12 +50,95 @@ body {
     min-height: 100vh;
 }
 
+.text-muted {
+    color: var(--alfa-text-muted) !important;
+}
+
+label,
+.form-label,
+.form-check-label {
+    color: var(--alfa-text);
+}
+
 a {
     color: var(--alfa-primary);
 }
 
 a:hover {
     color: var(--alfa-primary-hover);
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.9rem;
+    border-color: var(--alfa-border);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control::placeholder {
+    color: var(--alfa-text-muted);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--alfa-primary);
+    box-shadow: 0 0 0 .2rem rgba(45, 78, 215, 0.15);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+}
+
+.form-check-input {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--alfa-primary);
+    border-color: var(--alfa-primary);
+}
+
+.card,
+.modal-content {
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.list-group-item {
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table {
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table thead th {
+    background-color: var(--alfa-surface-subtle);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table tbody tr {
+    background-color: var(--alfa-surface);
+}
+
+.table tbody tr + tr {
+    border-top: 1px solid var(--alfa-border);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: var(--alfa-surface-subtle);
+}
+
+.table-hover > tbody > tr:hover {
+    color: var(--alfa-text);
+    background-color: var(--alfa-primary-soft);
 }
 
 .al-navbar {
@@ -151,6 +234,12 @@ a:hover {
     border-color: transparent;
 }
 
+.btn-soft-theme.is-dark {
+    background-color: var(--alfa-primary);
+    color: #0f111a;
+    border-color: var(--alfa-primary);
+}
+
 .dropdown-menu {
     border-radius: 0.75rem;
     border: 1px solid var(--alfa-border);
@@ -215,42 +304,47 @@ a:hover {
     color: var(--alfa-text);
 }
 
-.kanban-filtros {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 1rem;
+.filtros-compactos > [class*='col-'] {
+    min-width: 160px;
 }
 
-.kanban-col {
-    border: 1px dashed var(--alfa-border);
-    border-radius: 1rem;
-    padding: 0.75rem;
-    background-color: var(--alfa-surface-subtle);
-    min-height: 160px;
+.status-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+}
+
+.status-grupo {
+    flex: 1 1 180px;
+    min-width: 180px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    transition: background-color 0.25s ease, border-color 0.25s ease;
+    gap: 0.5rem;
 }
 
-.kanban-col-title {
-    font-size: 0.8rem;
+.status-grupo-titulo {
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--alfa-text-muted);
     font-weight: 700;
 }
 
+.status-grupo-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .kanban-chip {
     display: inline-flex;
     align-items: center;
-    justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.35rem 0.75rem;
     background-color: var(--alfa-chip-bg);
     border-radius: 999px;
     border: 1px solid transparent;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--alfa-text-muted);
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
@@ -265,19 +359,7 @@ a:hover {
 
 .kanban-chip .count {
     font-variant-numeric: tabular-nums;
-    opacity: 0.75;
-}
-
-.filtro-datas .form-control {
-    border-radius: 0.9rem;
-    border-color: var(--alfa-border);
-    background-color: var(--alfa-surface);
-    color: var(--alfa-text);
-}
-
-.filtro-datas .form-control:focus {
-    border-color: var(--alfa-primary);
-    box-shadow: 0 0 0 .2rem rgba(45, 78, 215, 0.15);
+    opacity: 0.7;
 }
 
 .processos-painel {
@@ -421,11 +503,11 @@ main.container {
 }
 
 footer {
-    background-color: transparent;
+    background-color: var(--alfa-surface);
     border-top: 1px solid var(--alfa-border);
     color: var(--alfa-text-muted);
 }
 
 html[data-theme="dark"] footer {
-    border-top-color: var(--alfa-border);
+    background-color: var(--alfa-surface);
 }

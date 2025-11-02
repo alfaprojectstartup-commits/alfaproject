@@ -53,42 +53,60 @@
 
     function initThemeToggle() {
         const storageKey = 'alfa-theme';
-        const trigger = document.querySelector('[data-theme-trigger]');
+        const trigger = document.querySelector('[data-theme-toggle]');
         const docEl = document.documentElement;
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        const applyDarkTheme = (button) => {
-            if (docEl.getAttribute('data-theme') === 'dark') return;
-            docEl.setAttribute('data-theme', 'dark');
+        const readStored = () => {
             try {
-                localStorage.setItem(storageKey, 'dark');
+                return localStorage.getItem(storageKey);
             } catch (err) {
-                console.warn('Não foi possível persistir a preferência de tema.', err);
-            }
-            if (button) {
-                button.disabled = true;
-                button.classList.add('disabled');
-                button.setAttribute('aria-pressed', 'true');
-                const label = button.querySelector('.label');
-                if (label) label.textContent = 'Tema escuro ativo';
+                console.warn('Não foi possível ler a preferência de tema.', err);
+                return null;
             }
         };
 
-        const stored = (() => {
+        const persistTheme = (theme) => {
             try {
-                return localStorage.getItem(storageKey);
-            } catch {
-                return null;
+                localStorage.setItem(storageKey, theme);
+            } catch (err) {
+                console.warn('Não foi possível persistir a preferência de tema.', err);
             }
-        })();
+        };
 
-        if (stored === 'dark') {
-            applyDarkTheme(trigger);
-        }
+        const updateButton = (theme) => {
+            if (!trigger) return;
+            const isDark = theme === 'dark';
+            trigger.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            trigger.classList.toggle('is-dark', isDark);
+            const icon = trigger.querySelector('[data-theme-icon]');
+            const label = trigger.querySelector('[data-theme-label]');
+            if (icon) icon.textContent = isDark ? '🌞' : '🌙';
+            if (label) label.textContent = isDark ? 'Tema claro' : 'Tema escuro';
+        };
+
+        const applyTheme = (theme, persist = true) => {
+            const normalized = theme === 'dark' ? 'dark' : 'light';
+            docEl.setAttribute('data-theme', normalized);
+            if (persist) persistTheme(normalized);
+            updateButton(normalized);
+        };
+
+        const stored = readStored();
+        const currentAttr = docEl.getAttribute('data-theme');
+        const initialTheme = (stored === 'dark' || stored === 'light')
+            ? stored
+            : (currentAttr === 'dark' || currentAttr === 'light')
+                ? currentAttr
+                : prefersDark ? 'dark' : 'light';
+
+        applyTheme(initialTheme, stored !== initialTheme);
 
         if (trigger) {
             trigger.addEventListener('click', () => {
-                if (trigger.disabled) return;
-                applyDarkTheme(trigger);
+                const activeTheme = docEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(nextTheme, true);
             });
         }
     }
@@ -115,12 +133,14 @@
         const startInput = root.querySelector('[data-filter-start]');
         const endInput = root.querySelector('[data-filter-end]');
         const resetButton = root.querySelector('[data-filter-reset]');
+        const searchInput = root.querySelector('[data-filter-search]');
         const emptyState = root.querySelector('[data-empty]');
 
         const filters = {
             statuses: new Set(),
             start: null,
-            end: null
+            end: null,
+            query: ''
         };
 
         const laneMatchers = [
@@ -137,6 +157,18 @@
                 laneBodies.set(col.dataset.lane || 'outros', body);
             });
         }
+
+        const normalizeText = (value) => {
+            if (!value) return '';
+            const text = value.toString();
+            if (typeof text.normalize === 'function') {
+                return text
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase();
+            }
+            return text.toLowerCase();
+        };
 
         const statusValues = Array.from(new Set(items
             .map(item => (item.dataset.status || '').trim())
@@ -207,8 +239,10 @@
                 filters.statuses.clear();
                 filters.start = null;
                 filters.end = null;
+                filters.query = '';
                 if (startInput) startInput.value = '';
                 if (endInput) endInput.value = '';
+                if (searchInput) searchInput.value = '';
                 if (board) {
                     board.querySelectorAll('.kanban-chip').forEach(chip => {
                         chip.setAttribute('data-active', 'false');
@@ -218,6 +252,16 @@
             });
         }
 
+        if (searchInput) {
+            const handleSearch = () => {
+                const raw = searchInput.value || '';
+                filters.query = normalizeText(raw.trim());
+                applyFilters();
+            };
+            searchInput.addEventListener('input', handleSearch);
+            searchInput.addEventListener('change', handleSearch);
+        }
+
         const applyFilters = () => {
             let visibleCount = 0;
 
@@ -225,11 +269,19 @@
                 const status = (item.dataset.status || '').trim();
                 const createdRaw = item.dataset.created;
                 const createdDate = createdRaw ? new Date(createdRaw) : null;
+                const title = (item.dataset.title || '').trim();
 
                 let visible = true;
 
                 if (filters.statuses.size > 0 && !filters.statuses.has(status)) {
                     visible = false;
+                }
+
+                if (visible && filters.query) {
+                    const normalizedTitle = normalizeText(title);
+                    if (!normalizedTitle.includes(filters.query)) {
+                        visible = false;
+                    }
                 }
 
                 if (visible && filters.start && createdDate instanceof Date && !Number.isNaN(createdDate.getTime())) {

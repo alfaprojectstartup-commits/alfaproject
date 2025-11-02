@@ -33,43 +33,48 @@ else
     <div id="processos-root" class="processos-painel" data-tab="@tab">
         <div class="card alfa-card mb-4" data-filtro-wrapper>
             <div class="card-body">
-                <div class="d-flex flex-column flex-xl-row gap-4">
-                    <div class="flex-grow-1">
-                        <h5 class="card-title mb-3">Filtros inspirados em Kanban</h5>
-                        <div class="kanban-filtros" data-status-board>
-                            <div class="kanban-col" data-lane="planejamento">
-                                <div class="kanban-col-title">Planejamento</div>
-                                <div class="kanban-col-body" data-lane-body></div>
-                            </div>
-                            <div class="kanban-col" data-lane="execucao">
-                                <div class="kanban-col-title">Em andamento</div>
-                                <div class="kanban-col-body" data-lane-body></div>
-                            </div>
-                            <div class="kanban-col" data-lane="revisao">
-                                <div class="kanban-col-title">Revisão</div>
-                                <div class="kanban-col-body" data-lane-body></div>
-                            </div>
-                            <div class="kanban-col" data-lane="concluido">
-                                <div class="kanban-col-title">Concluídos</div>
-                                <div class="kanban-col-body" data-lane-body></div>
-                            </div>
-                            <div class="kanban-col" data-lane="outros">
-                                <div class="kanban-col-title">Outros</div>
-                                <div class="kanban-col-body" data-lane-body></div>
-                            </div>
-                        </div>
+                <div class="row g-3 align-items-end filtros-compactos">
+                    <div class="col-12 col-lg">
+                        <label class="form-label small" for="filtro-busca">Buscar processo</label>
+                        <input id="filtro-busca"
+                               type="search"
+                               class="form-control"
+                               placeholder="Pesquisar pelo nome"
+                               data-filter-search />
                     </div>
-                    <div class="filtro-datas">
-                        <h5 class="card-title mb-3">Filtrar por datas</h5>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted" for="filtro-data-inicio">De</label>
-                            <input id="filtro-data-inicio" type="date" class="form-control" data-filter-start />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small text-muted" for="filtro-data-fim">Até</label>
-                            <input id="filtro-data-fim" type="date" class="form-control" data-filter-end />
-                        </div>
-                        <button type="button" class="btn btn-outline-primary w-100" data-filter-reset>Limpar filtros</button>
+                    <div class="col-12 col-sm-6 col-lg-auto">
+                        <label class="form-label small" for="filtro-data-inicio">De</label>
+                        <input id="filtro-data-inicio" type="date" class="form-control" data-filter-start />
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-auto">
+                        <label class="form-label small" for="filtro-data-fim">Até</label>
+                        <input id="filtro-data-fim" type="date" class="form-control" data-filter-end />
+                    </div>
+                    <div class="col-12 col-lg-auto d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary flex-grow-1 flex-lg-grow-0" data-filter-reset>Limpar filtros</button>
+                    </div>
+                </div>
+
+                <div class="status-filtros mt-4" data-status-board>
+                    <div class="status-grupo" data-lane="planejamento">
+                        <span class="status-grupo-titulo">Planejamento</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="execucao">
+                        <span class="status-grupo-titulo">Em andamento</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="revisao">
+                        <span class="status-grupo-titulo">Revisão</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="concluido">
+                        <span class="status-grupo-titulo">Concluídos</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="outros">
+                        <span class="status-grupo-titulo">Outros</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
                     </div>
                 </div>
             </div>
@@ -85,7 +90,8 @@ else
                    class="list-group-item list-group-item-action py-3 processo-item"
                    data-processo-item
                    data-status="@p.Status"
-                   data-created="@p.CriadoEm.ToString("o")">
+                   data-created="@p.CriadoEm.ToString("o")"
+                   data-title="@p.Titulo">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                         <div>
                             <strong class="d-block">@p.Titulo</strong>

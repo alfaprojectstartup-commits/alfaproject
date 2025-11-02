@@ -1,9 +1,7 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor Http
 @inject IConfiguration Config
 @using Microsoft.Extensions.Configuration
-@inject IHttpContextAccessor Http
-@inject IConfiguration Config
 
 @{
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
@@ -20,6 +18,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - Alfa</title>
+    <script>
+        (function () {
+            var storageKey = 'alfa-theme';
+            try {
+                var stored = window.localStorage.getItem(storageKey);
+                if (stored === 'dark' || stored === 'light') {
+                    document.documentElement.setAttribute('data-theme', stored);
+                }
+            } catch (err) {
+                console.warn('Não foi possível ler a preferência de tema do usuário.', err);
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
@@ -61,9 +72,9 @@
                     </li>
 
                     <li class="nav-item me-lg-3">
-                        <button type="button" class="btn btn-soft-theme btn-sm" data-theme-trigger>
-                            <span class="icon" aria-hidden="true">🌙</span>
-                            <span class="label">Ativar tema escuro</span>
+                        <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
+                            <span class="icon" data-theme-icon aria-hidden="true">🌙</span>
+                            <span class="label" data-theme-label>Tema escuro</span>
                         </button>
                     </li>
 
