@@ -1,4 +1,11 @@
-﻿namespace Alfa.Web.TagHelpers
+namespace Alfa.Web.TagHelpers
 {
-    public record FaseModelosDto(int Id, string Nome, int Ordem);
+    public class FaseModelosDto
+    {
+        public int Id { get; set; }
+
+        public string Nome { get; set; } = string.Empty;
+
+        public int Ordem { get; set; }
+    }
 }

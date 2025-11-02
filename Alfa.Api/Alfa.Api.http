@@ -1,6 +1,41 @@
 @Alfa.Api_HostAddress = http://localhost:5210
 
-GET {{Alfa.Api_HostAddress}}/weatherforecast/
+### Listar fases modelo
+GET {{Alfa.Api_HostAddress}}/api/fases/modelos
+EmpresaId: 1
 Accept: application/json
 
-###
+### Criar processo a partir de modelos
+POST {{Alfa.Api_HostAddress}}/api/processos
+Content-Type: application/json
+EmpresaId: 1
+
+{
+  "titulo": "Novo Processo via HTTP",
+  "faseModeloIds": [1]
+}
+
+### Detalhar processo (inclui fases/páginas/campos)
+GET {{Alfa.Api_HostAddress}}/api/processos/1
+EmpresaId: 1
+Accept: application/json
+
+### Responder campos de uma página
+POST {{Alfa.Api_HostAddress}}/api/respostas/pagina
+Content-Type: application/json
+EmpresaId: 1
+
+{
+  "faseInstanciaId": 1,
+  "paginaInstanciaId": 1,
+  "campos": [
+    {
+      "campoInstanciaId": 1,
+      "valorTexto": "Cliente Teste"
+    },
+    {
+      "campoInstanciaId": 2,
+      "valorTexto": "cliente@exemplo.com"
+    }
+  ]
+}

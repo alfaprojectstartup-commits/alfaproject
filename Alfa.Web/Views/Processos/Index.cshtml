@@ -1,28 +1,140 @@
-﻿@model IEnumerable<dynamic>
+﻿@model IReadOnlyList<Alfa.Web.Dtos.ProcessoListaItemViewModel>
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
+@using System
+@using System.Collections.Generic
+@using System.Linq
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Processos</h3>
-    <a asp-action="Novo" class="btn btn-primary">Novo processo</a>
+@{
+    ViewData["Title"] = "Processos";
+    var tab = (string?)(ViewBag.Tab ?? "ativos");
+}
+
+<div class="d-flex flex-column flex-lg-row justify-content-lg-between align-items-lg-center gap-3 mb-4">
+    <div>
+        <h3 class="mb-1">Processos</h3>
+        <p class="text-muted mb-0">Acompanhe o andamento dos processos e utilize filtros para encontrar o que precisa.</p>
+    </div>
+    <a asp-action="Novo" class="btn btn-primary btn-lg shadow-sm">Novo processo</a>
 </div>
 
-@if (!Model.Any())
+<ul class="nav nav-pills alfa-nav-pills mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link @(tab=="ativos"?"active":"")" asp-action="Index" asp-route-tab="ativos">Ativos</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link @(tab=="finalizados"?"active":"")" asp-action="Index" asp-route-tab="finalizados">Finalizados</a>
+    </li>
+</ul>
+
+@if (Model is null || !Model.Any())
 {
-    <div class="alert alert-info">Nenhum processo ainda.</div>
+    <div class="alert alert-info">Nenhum processo encontrado.</div>
 }
 else
 {
-    <div class="list-group">
-        @foreach (var p in Model)
-        {
-            <div class="list-group-item d-flex justify-content-between">
-                <div>
-                    <strong>@p.Titulo</strong>
-                    <div class="text-muted small">@p.Status</div>
+    <div id="processos-root" class="processos-painel" data-tab="@tab">
+        <div class="card alfa-card mb-4" data-filtro-wrapper>
+            <div class="card-body">
+                <div class="row g-3 align-items-end filtros-compactos">
+                    <div class="col-12 col-lg">
+                        <label class="form-label small" for="filtro-busca">Buscar processo</label>
+                        <input id="filtro-busca"
+                               type="search"
+                               class="form-control"
+                               placeholder="Pesquisar pelo nome"
+                               data-filter-search />
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-auto">
+                        <label class="form-label small" for="filtro-data-inicio">De</label>
+                        <input id="filtro-data-inicio" type="date" class="form-control" data-filter-start />
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-auto">
+                        <label class="form-label small" for="filtro-data-fim">Até</label>
+                        <input id="filtro-data-fim" type="date" class="form-control" data-filter-end />
+                    </div>
+                    <div class="col-12 col-lg-auto d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary flex-grow-1 flex-lg-grow-0" data-filter-reset>Limpar filtros</button>
+                    </div>
                 </div>
-                <progress-bar value="@(Convert.ToInt32(p.PorcentagemProgresso))"></progress-bar>
+
+                <div class="status-filtros mt-4" data-status-board>
+                    <div class="status-grupo" data-lane="planejamento">
+                        <span class="status-grupo-titulo">Planejamento</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="execucao">
+                        <span class="status-grupo-titulo">Em andamento</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="revisao">
+                        <span class="status-grupo-titulo">Revisão</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="concluido">
+                        <span class="status-grupo-titulo">Concluídos</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                    <div class="status-grupo" data-lane="outros">
+                        <span class="status-grupo-titulo">Outros</span>
+                        <div class="status-grupo-chips" data-lane-body></div>
+                    </div>
+                </div>
             </div>
-        }
+        </div>
+
+        <div class="alert alert-warning d-none" role="status" data-empty>A combinação de filtros não retornou processos.</div>
+
+        <div class="list-group shadow-sm processos-lista" data-processos-lista>
+            @foreach (var p in Model)
+            {
+                var usuarios = p.UsuariosAlteracao?
+                    .Where(u => !string.IsNullOrWhiteSpace(u))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(u => u, StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>();
+                var usuariosTexto = usuarios.Count > 0
+                    ? string.Join(", ", usuarios)
+                    : "Nenhum histórico de alterações disponível.";
+                var usuariosPesquisa = usuarios.Count > 0
+                    ? string.Join(" ", usuarios)
+                    : string.Empty;
+                <div class="list-group-item list-group-item-action processo-item position-relative"
+                     data-processo-item
+                     data-status="@p.Status"
+                     data-created="@p.CriadoEm.ToString("o")"
+                     data-title="@p.Titulo"
+                     data-users="@usuariosPesquisa">
+                    <div class="processo-item-content">
+                        <div class="processo-item-main">
+                            <div class="processo-item-info">
+                                <strong class="processo-item-title text-truncate">@p.Titulo</strong>
+                            </div>
+                            <div class="processo-item-meta text-muted small">
+                                <span class="badge rounded-pill status-badge flex-shrink-0">@p.Status</span>
+                                <span>Criado em @p.CriadoEm.ToString("dd/MM/yyyy")</span>
+                                <button type="button"
+                                        class="processo-info-trigger"
+                                        data-bs-toggle="popover"
+                                        data-bs-trigger="focus"
+                                        data-bs-placement="top"
+                                        data-bs-content="@usuariosTexto"
+                                        title="Histórico de alterações"
+                                        aria-label="Ver usuários que alteraram este processo">
+                                    i
+                                </button>
+                            </div>
+                        </div>
+                        <div class="processo-progress">
+                            <progress-bar value="@p.PorcentagemProgresso" small="true" label="@($"{p.PorcentagemProgresso}%")"></progress-bar>
+                        </div>
+                    </div>
+                    <a asp-action="Detalhes"
+                       asp-route-id="@p.Id"
+                       class="stretched-link"
+                       aria-label="Ver detalhes do processo @p.Titulo"></a>
+                </div>
+            }
+        </div>
     </div>
 }

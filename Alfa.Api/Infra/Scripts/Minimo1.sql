@@ -14,8 +14,8 @@ BEGIN
   CREATE TABLE UsuariosFuncoes (
     Id         INT IDENTITY(1,1) PRIMARY KEY,
     Funcao     NVARCHAR(50) NOT NULL,
-	EmpresaId  INT NOT NULL,
-	CONSTRAINT FK_UsuariosFuncoes_Empresas_Id FOREIGN KEY (EmpresaId) REFERENCES Empresas(Id)
+    EmpresaId  INT NOT NULL,
+    CONSTRAINT FK_UsuariosFuncoes_Empresas_Id FOREIGN KEY (EmpresaId) REFERENCES Empresas(Id)
   );
   CREATE INDEX Index_UsuariosFuncoes_Empresas ON UsuariosFuncoes(EmpresaId, Id);
 END
@@ -47,18 +47,18 @@ BEGIN
   );
 END
 
--- Fases
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='Fases')
+-- FaseModelos
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='FaseModelos')
 BEGIN
-  CREATE TABLE Fases(
+  CREATE TABLE FaseModelos(
     Id         INT IDENTITY(1,1) PRIMARY KEY,
     EmpresaId  INT NOT NULL,
-    Nome       NVARCHAR(100) NOT NULL,
+    Titulo     NVARCHAR(100) NOT NULL,
     Ordem      INT NOT NULL,
-    Ativo      BIT NOT NULL CONSTRAINT DF_Fases_Ativo DEFAULT(1),
-    CONSTRAINT FK_Fases_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
+    Ativo      BIT NOT NULL CONSTRAINT DF_FaseModelos_Ativo DEFAULT(1),
+    CONSTRAINT FK_FaseModelos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
   );
-  CREATE INDEX Index_Fases_Empresas_Ordem ON Fases(EmpresaId, Ordem);
+  CREATE INDEX Index_FaseModelos_Empresas_Ordem ON FaseModelos(EmpresaId, Ordem);
 END
 
 -- PaginaModelos
@@ -71,9 +71,9 @@ BEGIN
     Titulo        NVARCHAR(150) NOT NULL,
     Ordem         INT NOT NULL,
     CONSTRAINT FK_PaginaModelos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-    CONSTRAINT FK_PaginaModelos_Fases_Id FOREIGN KEY(FaseModeloId) REFERENCES Fases(Id)
+    CONSTRAINT FK_PaginaModelos_FaseModelos_Id FOREIGN KEY(FaseModeloId) REFERENCES FaseModelos(Id)
   );
-  CREATE INDEX Index_PaginaModelos_Fases_Empresas_Ordem ON PaginaModelos(EmpresaId, FaseModeloId, Ordem);
+  CREATE INDEX Index_PaginaModelos_FaseModelos_Empresas_Ordem ON PaginaModelos(EmpresaId, FaseModeloId, Ordem);
 END
 
 -- CampoModelos
@@ -92,7 +92,8 @@ BEGIN
     Min             DECIMAL(18,4) NULL,
     Max             DECIMAL(18,4) NULL,
     Decimals        INT NULL,
-    Mask            NVARCHAR(50) NULL,
+    Mascara         NVARCHAR(50) NULL,
+    Ajuda           NVARCHAR(250) NULL,
     Ordem           INT NOT NULL,
     Ativo           BIT NOT NULL CONSTRAINT DF_CampoModelos_Ativo DEFAULT(1),
     CONSTRAINT FK_CampoModelos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
@@ -122,93 +123,122 @@ END
 IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='ProcessoStatus')
 BEGIN
   CREATE TABLE ProcessoStatus(
-    Id         INT IDENTITY(1,1) PRIMARY KEY,
-    Status     NVARCHAR(100) NOT NULL,
-	EmpresaId  INT NOT NULL,
+    Id        INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId INT NOT NULL,
+    Status    NVARCHAR(100) NOT NULL,
     CONSTRAINT FK_ProcessoStatus_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
   );
   CREATE INDEX Index_ProcessoStatus_Empresas ON ProcessoStatus(EmpresaId, Id);
 END
 
--- Processos
+-- Processos (instâncias)
 IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='Processos')
 BEGIN
   CREATE TABLE Processos(
-    Id            		 INT IDENTITY(1,1) PRIMARY KEY,
-    EmpresaId     		 INT NOT NULL,
-    Titulo        		 NVARCHAR(200) NOT NULL,
-    Status               INT NOT NULL,
+    Id                    INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId             INT NOT NULL,
+    Titulo                NVARCHAR(200) NOT NULL,
+    StatusId              INT NOT NULL,
     PorcentagemProgresso  INT NOT NULL CONSTRAINT DF_Processos_PorcentagemProgresso DEFAULT(0),
-    CriadoEm      		 DATETIME2 NOT NULL CONSTRAINT DF_Processos_CriadoEm DEFAULT(SYSDATETIME()),
+    CriadoEm              DATETIME2 NOT NULL CONSTRAINT DF_Processos_CriadoEm DEFAULT(SYSDATETIME()),
     CONSTRAINT FK_Processos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-	CONSTRAINT FK_Processos_ProcessoStatus_Id FOREIGN KEY(Status) REFERENCES ProcessoStatus(Id)
+    CONSTRAINT FK_Processos_ProcessoStatus_Id FOREIGN KEY(StatusId) REFERENCES ProcessoStatus(Id)
   );
   CREATE INDEX Index_Processos_Empresas ON Processos(EmpresaId, Id DESC);
+END
+
+-- ProcessoHistoricos
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='ProcessoHistoricos')
+BEGIN
+  CREATE TABLE ProcessoHistoricos(
+    Id           INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId    INT NOT NULL,
+    ProcessoId   INT NOT NULL,
+    UsuarioId    INT NULL,
+    UsuarioNome  NVARCHAR(250) NOT NULL,
+    Descricao    NVARCHAR(400) NULL,
+    CriadoEm     DATETIME2 NOT NULL CONSTRAINT DF_ProcessoHistoricos_CriadoEm DEFAULT(SYSDATETIME()),
+    CONSTRAINT FK_ProcessoHistoricos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
+    CONSTRAINT FK_ProcessoHistoricos_Processos_Id FOREIGN KEY(ProcessoId) REFERENCES Processos(Id),
+    CONSTRAINT FK_ProcessoHistoricos_Usuarios_Id FOREIGN KEY(UsuarioId) REFERENCES Usuarios(Id)
+  );
+  CREATE INDEX Index_ProcessoHistoricos_Processos ON ProcessoHistoricos(EmpresaId, ProcessoId, CriadoEm DESC);
 END
 
 -- FaseStatus
 IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='FaseStatus')
 BEGIN
   CREATE TABLE FaseStatus(
-    Id         INT IDENTITY(1,1) PRIMARY KEY,
-    Status     NVARCHAR(100) NOT NULL,
-	EmpresaId  INT NOT NULL,
+    Id        INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId INT NOT NULL,
+    Status    NVARCHAR(100) NOT NULL,
     CONSTRAINT FK_FaseStatus_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
   );
   CREATE INDEX Index_FaseStatus_Empresas ON FaseStatus(EmpresaId, Id);
 END
 
--- Fases
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='Fases')
+-- FaseInstancias
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='FaseInstancias')
 BEGIN
-  CREATE TABLE Fases(
-    Id            		  INT IDENTITY(1,1) PRIMARY KEY,
-    EmpresaId     		  INT NOT NULL,
-    ProcessoId    		  INT NOT NULL,
-    FaseModeloId  		  INT NOT NULL,
-    NomeFase      		  NVARCHAR(100) NOT NULL,
-    Ordem         		  INT NOT NULL,
-    Status        		  INT NOT NULL,
-    PorcentagemProgresso  INT NOT NULL CONSTRAINT DF_Fases_PorcentagemProgresso DEFAULT(0),
-    CONSTRAINT FK_Fases_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-    CONSTRAINT FK_Fases_Processos_Id FOREIGN KEY(ProcessoId) REFERENCES Processos(Id),
-    CONSTRAINT FK_Fases_Fases_Id FOREIGN KEY(FaseModeloId) REFERENCES Fases(Id),
-	CONSTRAINT FK_Fases_FaseStatus_Id FOREIGN KEY(Status) REFERENCES FaseStatus(Id)
+  CREATE TABLE FaseInstancias(
+    Id                    INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId             INT NOT NULL,
+    ProcessoId            INT NOT NULL,
+    FaseModeloId          INT NOT NULL,
+    Titulo                NVARCHAR(100) NOT NULL,
+    Ordem                 INT NOT NULL,
+    StatusId              INT NOT NULL,
+    PorcentagemProgresso  INT NOT NULL CONSTRAINT DF_FaseInstancias_PorcentagemProgresso DEFAULT(0),
+    CriadoEm              DATETIME2 NOT NULL CONSTRAINT DF_FaseInstancias_CriadoEm DEFAULT(SYSDATETIME()),
+    CONSTRAINT FK_FaseInstancias_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
+    CONSTRAINT FK_FaseInstancias_Processos_Id FOREIGN KEY(ProcessoId) REFERENCES Processos(Id),
+    CONSTRAINT FK_FaseInstancias_FaseModelos_Id FOREIGN KEY(FaseModeloId) REFERENCES FaseModelos(Id),
+    CONSTRAINT FK_FaseInstancias_FaseStatus_Id FOREIGN KEY(StatusId) REFERENCES FaseStatus(Id)
   );
-  CREATE INDEX Index_Fases_Processos_Empresas_Ordem ON Fases(EmpresaId, ProcessoId, Ordem);
+  CREATE INDEX Index_FaseInstancias_Processos_Empresas_Ordem ON FaseInstancias(EmpresaId, ProcessoId, Ordem);
 END
 
--- PaginaRespostas
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='PaginaRespostas')
+-- PaginaInstancias
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='PaginaInstancias')
 BEGIN
-  CREATE TABLE PaginaRespostas(
+  CREATE TABLE PaginaInstancias(
     Id               INT IDENTITY(1,1) PRIMARY KEY,
     EmpresaId        INT NOT NULL,
-    FaseId           INT NOT NULL,
+    FaseInstanciaId  INT NOT NULL,
     PaginaModeloId   INT NOT NULL,
-    CriadoEm         DATETIME2 NOT NULL CONSTRAINT DF_PaginaRespostas_CriadoEm DEFAULT(SYSDATETIME()),
-    CONSTRAINT FK_PaginaRespostas_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-    CONSTRAINT FK_PaginaRespostas_Fases_Id FOREIGN KEY(FaseId) REFERENCES Fases(Id),
-    CONSTRAINT FK_PaginaRespostas_PaginaModelos_Id FOREIGN KEY(PaginaModeloId) REFERENCES PaginaModelos(Id)
+    Titulo           NVARCHAR(150) NOT NULL,
+    Ordem            INT NOT NULL,
+    Concluida        BIT NOT NULL CONSTRAINT DF_PaginaInstancias_Concluida DEFAULT(0),
+    CONSTRAINT FK_PaginaInstancias_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
+    CONSTRAINT FK_PaginaInstancias_FaseInstancias_Id FOREIGN KEY(FaseInstanciaId) REFERENCES FaseInstancias(Id),
+    CONSTRAINT FK_PaginaInstancias_PaginaModelos_Id FOREIGN KEY(PaginaModeloId) REFERENCES PaginaModelos(Id)
   );
-  CREATE INDEX Index_PaginaRespostas_PaginaModelos_Empresas ON PaginaRespostas(EmpresaId, FaseId, PaginaModeloId);
+  CREATE INDEX Index_PaginaInstancias_FaseInstancias_Empresas_Ordem ON PaginaInstancias(EmpresaId, FaseInstanciaId, Ordem);
 END
 
--- CampoRespostas
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='CampoRespostas')
+-- CampoInstancias (também armazena respostas)
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='CampoInstancias')
 BEGIN
-  CREATE TABLE CampoRespostas(
+  CREATE TABLE CampoInstancias(
     Id                INT IDENTITY(1,1) PRIMARY KEY,
     EmpresaId         INT NOT NULL,
-    PaginaRespostaId  INT NOT NULL,
-    CampoModeloId 	  INT NOT NULL,
+    PaginaInstanciaId INT NOT NULL,
+    CampoModeloId     INT NOT NULL,
+    NomeCampo         NVARCHAR(120) NOT NULL,
+    Rotulo            NVARCHAR(150) NOT NULL,
+    Tipo              NVARCHAR(30) NOT NULL,
+    Obrigatorio       BIT NOT NULL,
+    Ordem             INT NOT NULL,
+    Placeholder       NVARCHAR(150) NULL,
+    Mascara           NVARCHAR(50) NULL,
+    Ajuda             NVARCHAR(250) NULL,
     ValorTexto        NVARCHAR(MAX) NULL,
-    ValorNumero    	  DECIMAL(18,4) NULL,
-    ValorData      	  DATETIME2 NULL,
+    ValorNumero       DECIMAL(18,4) NULL,
+    ValorData         DATETIME2 NULL,
     ValorBool         BIT NULL,
-    CONSTRAINT FK_CampoRespostas_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
-    CONSTRAINT FK_CampoRespostas_PaginaRespostas_Id FOREIGN KEY(PaginaRespostaId) REFERENCES PaginaRespostas(Id),
-    CONSTRAINT FK_CampoRespostas_CampoModelos_Id FOREIGN KEY(CampoModeloId) REFERENCES CampoModelos(Id)
+    CONSTRAINT FK_CampoInstancias_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
+    CONSTRAINT FK_CampoInstancias_PaginaInstancias_Id FOREIGN KEY(PaginaInstanciaId) REFERENCES PaginaInstancias(Id),
+    CONSTRAINT FK_CampoInstancias_CampoModelos_Id FOREIGN KEY(CampoModeloId) REFERENCES CampoModelos(Id)
   );
-  CREATE INDEX Index_CampoRespostas_PaginaRespostas_CampoModelos_Empresas ON CampoRespostas(EmpresaId, PaginaRespostaId, CampoModeloId);
+  CREATE INDEX Index_CampoInstancias_PaginaInstancias_Empresas_Ordem ON CampoInstancias(EmpresaId, PaginaInstanciaId, Ordem);
 END

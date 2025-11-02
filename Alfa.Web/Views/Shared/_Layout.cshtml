@@ -1,8 +1,16 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @inject IHttpContextAccessor Http
+@inject IConfiguration Config
+@using Microsoft.Extensions.Configuration
+
 @{
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
+    var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
+    var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
+    var apiBase = string.IsNullOrWhiteSpace(apiBaseSetting)
+        ? string.Empty
+        : string.Concat(apiBaseSetting.TrimEnd('/'), "/api");
 }
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -10,14 +18,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - Alfa</title>
+    <script>
+        (function () {
+            var storageKey = 'alfa-theme';
+            try {
+                var stored = window.localStorage.getItem(storageKey);
+                if (stored === 'dark' || stored === 'light') {
+                    document.documentElement.setAttribute('data-theme', stored);
+                }
+            } catch (err) {
+                console.warn('Não foi possível ler a preferência de tema do usuário.', err);
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-    <header class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+<body data-empresa-id="@empresaId" data-api-base="@apiBase">
+    <header class="navbar navbar-expand-lg al-navbar shadow-sm sticky-top">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" asp-controller="Processos" asp-action="Index">
-                <img src="~/img/logo.svg" alt="Alfa" height="28" class="me-2">
+                <img src="~/img/logo.svg" alt="Alfa" height="28" class="me-2 logo-mark">
                 <span class="fw-semibold">Alfa</span>
             </a>
 
@@ -50,7 +71,14 @@
                         </ul>
                     </li>
 
-                    <li class="nav-item ms-lg-3">
+                    <li class="nav-item me-lg-3">
+                        <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
+                            <span class="icon" data-theme-icon aria-hidden="true">🌙</span>
+                            <span class="label" data-theme-label>Tema escuro</span>
+                        </button>
+                    </li>
+
+                    <li class="nav-item ms-lg-2">
                         <span class="navbar-text small text-muted me-2">Bem-vindo, @nome</span>
                         <a class="btn btn-outline-secondary btn-sm" href="/logout">Sair</a>
                     </li>
@@ -69,6 +97,8 @@
         }
         @RenderBody()
     </main>
+
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3"></div>
 
     <footer class="border-top mt-auto py-3">
         <div class="container d-flex justify-content-between small text-muted">

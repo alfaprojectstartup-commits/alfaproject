@@ -1,10 +1,12 @@
-﻿using Alfa.Api.Dtos;
+using System.Collections.Generic;
+using Alfa.Api.Dtos;
 
 namespace Alfa.Api.Repositorios.Interfaces
 {
     public interface ICampoRepositorio
     {
-        Task<IEnumerable<CampoModeloDto>> ListarPorPaginaAsync(int empresaId, int PaginaModelosId);
-        Task<IEnumerable<CampoOpcaoDto>> ListarOpcoesAsync(int empresaId, int fieldTemplateId);
+        Task<IEnumerable<CampoModeloDto>> ListarPorPaginaModeloAsync(int empresaId, int paginaModeloId);
+        Task<IEnumerable<CampoOpcaoDto>> ListarOpcoesAsync(int empresaId, int campoModeloId);
+        Task<IEnumerable<CampoModeloDto>> ListarCatalogoAsync(int empresaId);
     }
 }
