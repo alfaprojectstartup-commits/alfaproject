@@ -119,14 +119,28 @@
                                                         <label class="form-label">Tipo</label>
                                                         <select class="form-select" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo">
                                                             <option value="">Selecione um tipo</option>
+
                                                             @foreach (var modelo in catalogoCampos)
                                                             {
-                                                                var selected = string.Equals(modelo.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase) ? "selected" : string.Empty;
-                                                                <option value="@modelo.Tipo" @selected>@modelo.Rotulo (@modelo.Tipo)</option>
+                                                                var isSelected = string.Equals(modelo.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase);
+
+                                                                if (isSelected)
+                                                                {
+                                                                    <option value="@modelo.Tipo" selected="selected">
+                                                                        @modelo.Rotulo (@modelo.Tipo)
+                                                                    </option>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <option value="@modelo.Tipo">
+                                                                        @modelo.Rotulo (@modelo.Tipo)
+                                                                    </option>
+                                                                }
                                                             }
-                                                            @if (!string.IsNullOrWhiteSpace(tipoAtual) && !possuiCatalogo)
+
+                                                            @if (!string.IsNullOrWhiteSpace(tipoAtual) && !catalogoCampos.Any(x => x.Tipo == tipoAtual))
                                                             {
-                                                                <option value="@tipoAtual" selected>@tipoAtual</option>
+                                                                <option value="@tipoAtual" selected="selected">@tipoAtual</option>
                                                             }
                                                         </select>
                                                     </div>

@@ -59,14 +59,29 @@
                     <select class="form-select" data-field-input id="campo_@Model?.Id">
                         @if (Model?.Obrigatorio != true)
                         {
-                            <option value="">@(string.IsNullOrWhiteSpace(Model?.Placeholder) ? "Selecione" : Model.Placeholder)</option>
+                            var textoPlaceholder = string.IsNullOrWhiteSpace(Model?.Placeholder)
+                            ? "Selecione"
+                            : Model.Placeholder;
+
+                            <option value="">@textoPlaceholder</option>
                         }
+
                         @foreach (var opcao in opcoes)
                         {
                             var valorOpcao = opcao.Valor ?? opcao.Texto;
-                            <option value="@valorOpcao" @(valorAtual == valorOpcao ? "selected" : string.Empty)>@opcao.Texto</option>
+                            var isSelected = string.Equals(valorAtual, valorOpcao, StringComparison.Ordinal);
+
+                            if (isSelected)
+                            {
+                                <option value="@valorOpcao" selected="selected">@opcao.Texto</option>
+                            }
+                            else
+                            {
+                                <option value="@valorOpcao">@opcao.Texto</option>
+                            }
                         }
-                    </select>;
+                    </select>
+
                 }
                 break;
             default:
