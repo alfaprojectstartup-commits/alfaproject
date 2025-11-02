@@ -1,6 +1,9 @@
 ﻿@model IReadOnlyList<Alfa.Web.Dtos.ProcessoListaItemViewModel>
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
+@using System
+@using System.Collections.Generic
+@using System.Linq
 
 @{
     ViewData["Title"] = "Processos";
@@ -85,26 +88,52 @@ else
         <div class="list-group shadow-sm processos-lista" data-processos-lista>
             @foreach (var p in Model)
             {
-                <a asp-action="Detalhes"
-                   asp-route-id="@p.Id"
-                   class="list-group-item list-group-item-action processo-item"
-                   data-processo-item
-                   data-status="@p.Status"
-                   data-created="@p.CriadoEm.ToString("o")"
-                   data-title="@p.Titulo">
+                var usuarios = p.UsuariosAlteracao?
+                    .Where(u => !string.IsNullOrWhiteSpace(u))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(u => u, StringComparer.OrdinalIgnoreCase)
+                    .ToList() ?? new List<string>();
+                var usuariosTexto = usuarios.Count > 0
+                    ? string.Join(", ", usuarios)
+                    : "Nenhum histórico de alterações disponível.";
+                var usuariosPesquisa = usuarios.Count > 0
+                    ? string.Join(" ", usuarios)
+                    : string.Empty;
+                <div class="list-group-item list-group-item-action processo-item position-relative"
+                     data-processo-item
+                     data-status="@p.Status"
+                     data-created="@p.CriadoEm.ToString("o")"
+                     data-title="@p.Titulo"
+                     data-users="@usuariosPesquisa">
                     <div class="processo-item-content">
-                        <div class="processo-item-info">
-                            <strong class="processo-item-title">@p.Titulo</strong>
-                            <div class="d-flex gap-2 align-items-center flex-wrap text-muted small">
-                                <span class="badge rounded-pill status-badge">@p.Status</span>
+                        <div class="processo-item-main">
+                            <div class="processo-item-info">
+                                <strong class="processo-item-title text-truncate">@p.Titulo</strong>
+                            </div>
+                            <div class="processo-item-meta text-muted small">
+                                <span class="badge rounded-pill status-badge flex-shrink-0">@p.Status</span>
                                 <span>Criado em @p.CriadoEm.ToString("dd/MM/yyyy")</span>
+                                <button type="button"
+                                        class="processo-info-trigger"
+                                        data-bs-toggle="popover"
+                                        data-bs-trigger="focus"
+                                        data-bs-placement="top"
+                                        data-bs-content="@usuariosTexto"
+                                        title="Histórico de alterações"
+                                        aria-label="Ver usuários que alteraram este processo">
+                                    i
+                                </button>
                             </div>
                         </div>
                         <div class="processo-progress">
                             <progress-bar value="@p.PorcentagemProgresso" small="true" label="@($"{p.PorcentagemProgresso}%")"></progress-bar>
                         </div>
                     </div>
-                </a>
+                    <a asp-action="Detalhes"
+                       asp-route-id="@p.Id"
+                       class="stretched-link"
+                       aria-label="Ver detalhes do processo @p.Titulo"></a>
+                </div>
             }
         </div>
     </div>

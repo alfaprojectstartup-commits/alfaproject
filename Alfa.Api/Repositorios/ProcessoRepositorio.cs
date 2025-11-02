@@ -35,21 +35,54 @@ public class ProcessoRepositorio : IProcessoRepositorio
             p.Titulo,
             ps.Status,
             p.PorcentagemProgresso,
-            p.CriadoEm
+            p.CriadoEm,
+            hist.UsuariosConcatenados
         FROM Processos p
         JOIN ProcessoStatus ps ON ps.Id = p.StatusId
+        OUTER APPLY (
+            SELECT STRING_AGG(n.UsuarioNome, '||') WITHIN GROUP (ORDER BY n.UsuarioNome) AS UsuariosConcatenados
+            FROM (
+                SELECT DISTINCT COALESCE(u.Nome, ph.UsuarioNome) AS UsuarioNome
+                FROM ProcessoHistoricos ph
+                LEFT JOIN Usuarios u
+                       ON u.Id = ph.UsuarioId
+                WHERE ph.EmpresaId = p.EmpresaId
+                  AND ph.ProcessoId = p.Id
+            ) n
+        ) hist
         WHERE p.EmpresaId = @EmpresaId
           AND (@Status IS NULL OR ps.Status = @Status)
         ORDER BY p.Id DESC
         OFFSET (@Page - 1) * @PageSize ROWS
         FETCH NEXT @PageSize ROWS ONLY;";
 
-        var items = await conn.QueryAsync<ProcessoListItemDto>(itensSql, new
+        var rows = await conn.QueryAsync<ProcessoListItemRow>(itensSql, new
         {
             EmpresaId = empresaId,
             Status = status,
             Page = page < 1 ? 1 : page,
             PageSize = pageSize < 1 ? 10 : pageSize
+        });
+
+        var items = rows.Select(row =>
+        {
+            var usuarios = string.IsNullOrWhiteSpace(row.UsuariosConcatenados)
+                ? new List<string>()
+                : row.UsuariosConcatenados
+                    .Split(new[] { "||" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(u => u.Trim())
+                    .Where(u => !string.IsNullOrWhiteSpace(u))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(u => u, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+            return new ProcessoListItemDto(
+                row.Id,
+                row.Titulo,
+                row.Status,
+                row.PorcentagemProgresso,
+                row.CriadoEm,
+                usuarios);
         });
 
         return (total, items);
@@ -371,6 +404,21 @@ public class ProcessoRepositorio : IProcessoRepositorio
 
         var sql = $"UPDATE Processos SET {string.Join(",", setClauses)} WHERE EmpresaId=@empresaId AND Id=@processoId";
         await cn.ExecuteAsync(sql, parameters);
+    }
+
+    private class ProcessoListItemRow
+    {
+        public int Id { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public string Status { get; set; } = string.Empty;
+
+        public int PorcentagemProgresso { get; set; }
+
+        public DateTime CriadoEm { get; set; }
+
+        public string? UsuariosConcatenados { get; set; }
     }
 
     private class TemplateRow

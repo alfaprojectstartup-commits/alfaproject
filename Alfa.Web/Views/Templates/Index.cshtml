@@ -30,7 +30,7 @@
 }
 else
 {
-    <div class="accordion" id="fasesAccordion">
+    <div class="accordion alfa-accordion" id="fasesAccordion">
         @{
             var index = 0;
         }        
@@ -39,7 +39,7 @@ else
             var collapseId = $"fase_{fase.Id}";
             var headingId = $"fase_heading_{fase.Id}";
             var paginaCount = fase.Paginas?.Count ?? 0;
-            <div class="accordion-item mb-3 shadow-sm border-0">
+            <div class="accordion-item">
                 <h2 class="accordion-header" id="@headingId">
                     <button class="accordion-button @(index == 0 ? string.Empty : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="@(index == 0 ? "true" : "false")" aria-controls="@collapseId">
                         <div class="w-100 d-flex justify-content-between align-items-center gap-3">

@@ -47,6 +47,9 @@
         const tooltipTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggers.forEach(el => new bootstrap.Tooltip(el));
 
+        const popoverTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggers.forEach(el => new bootstrap.Popover(el, { container: 'body' }));
+
         initThemeToggle();
         Alfa.initProcessosLista?.(document.getElementById('processos-root'));
     });
@@ -270,6 +273,7 @@
                 const createdRaw = item.dataset.created;
                 const createdDate = createdRaw ? new Date(createdRaw) : null;
                 const title = (item.dataset.title || '').trim();
+                const users = (item.dataset.users || '').trim();
 
                 let visible = true;
 
@@ -279,7 +283,8 @@
 
                 if (visible && filters.query) {
                     const normalizedTitle = normalizeText(title);
-                    if (!normalizedTitle.includes(filters.query)) {
+                    const normalizedUsers = normalizeText(users);
+                    if (!normalizedTitle.includes(filters.query) && !normalizedUsers.includes(filters.query)) {
                         visible = false;
                     }
                 }
