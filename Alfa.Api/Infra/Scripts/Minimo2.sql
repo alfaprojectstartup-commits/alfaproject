@@ -22,6 +22,7 @@ BEGIN
 END
 
 DECLARE @FuncaoAdminId INT = (SELECT TOP 1 Id FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Administrador');
+DECLARE @FuncaoVendedorId INT = (SELECT TOP 1 Id FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Vendedor');
 
 -- ===============================
 -- Inserir Usuário Admin
@@ -34,12 +35,37 @@ END
 
 DECLARE @UsuarioAdminId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'admin@empresa.com');
 
+IF NOT EXISTS(SELECT 1 FROM Usuarios WHERE Email=N'marina@empresa.com')
+BEGIN
+    INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId, Ativo)
+    VALUES (N'Marina Souza', N'marina@empresa.com', N'hashficticio', @FuncaoVendedorId, 1);
+END
+
+IF NOT EXISTS(SELECT 1 FROM Usuarios WHERE Email=N'joao@empresa.com')
+BEGIN
+    INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId, Ativo)
+    VALUES (N'João Batista', N'joao@empresa.com', N'hashficticio', @FuncaoVendedorId, 1);
+END
+
+DECLARE @UsuarioMarinaId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'marina@empresa.com');
+DECLARE @UsuarioJoaoId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'joao@empresa.com');
+
 -- ===============================
 -- Vincular Usuário à Empresa
 -- ===============================
 IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioAdminId AND EmpresaId=@EmpresaId)
 BEGIN
     INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioAdminId, @EmpresaId);
+END
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioMarinaId AND EmpresaId=@EmpresaId)
+BEGIN
+    INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioMarinaId, @EmpresaId);
+END
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioJoaoId AND EmpresaId=@EmpresaId)
+BEGIN
+    INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioJoaoId, @EmpresaId);
 END
 
 -- ===============================
@@ -124,6 +150,15 @@ BEGIN
 END
 
 DECLARE @ProcessoId INT = (SELECT TOP 1 Id FROM Processos WHERE EmpresaId=@EmpresaId AND Titulo=N'Processo de Teste');
+
+IF NOT EXISTS(SELECT 1 FROM ProcessoHistoricos WHERE EmpresaId=@EmpresaId AND ProcessoId=@ProcessoId)
+BEGIN
+    INSERT INTO ProcessoHistoricos (EmpresaId, ProcessoId, UsuarioId, UsuarioNome, Descricao, CriadoEm)
+    VALUES
+        (@EmpresaId, @ProcessoId, @UsuarioAdminId, N'Admin', N'Criou o processo', DATEADD(DAY, -5, SYSDATETIME())),
+        (@EmpresaId, @ProcessoId, @UsuarioMarinaId, N'Marina Souza', N'Atualizou o status para "Em andamento"', DATEADD(DAY, -2, SYSDATETIME())),
+        (@EmpresaId, @ProcessoId, @UsuarioJoaoId, N'João Batista', N'Realizou ajustes finais', DATEADD(DAY, -1, SYSDATETIME()));
+END
 
 -- ===============================
 -- Garantir Fase Instanciada

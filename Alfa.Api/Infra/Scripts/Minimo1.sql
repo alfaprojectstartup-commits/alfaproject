@@ -147,6 +147,24 @@ BEGIN
   CREATE INDEX Index_Processos_Empresas ON Processos(EmpresaId, Id DESC);
 END
 
+-- ProcessoHistoricos
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='ProcessoHistoricos')
+BEGIN
+  CREATE TABLE ProcessoHistoricos(
+    Id           INT IDENTITY(1,1) PRIMARY KEY,
+    EmpresaId    INT NOT NULL,
+    ProcessoId   INT NOT NULL,
+    UsuarioId    INT NULL,
+    UsuarioNome  NVARCHAR(250) NOT NULL,
+    Descricao    NVARCHAR(400) NULL,
+    CriadoEm     DATETIME2 NOT NULL CONSTRAINT DF_ProcessoHistoricos_CriadoEm DEFAULT(SYSDATETIME()),
+    CONSTRAINT FK_ProcessoHistoricos_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id),
+    CONSTRAINT FK_ProcessoHistoricos_Processos_Id FOREIGN KEY(ProcessoId) REFERENCES Processos(Id),
+    CONSTRAINT FK_ProcessoHistoricos_Usuarios_Id FOREIGN KEY(UsuarioId) REFERENCES Usuarios(Id)
+  );
+  CREATE INDEX Index_ProcessoHistoricos_Processos ON ProcessoHistoricos(EmpresaId, ProcessoId, CriadoEm DESC);
+END
+
 -- FaseStatus
 IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='FaseStatus')
 BEGIN

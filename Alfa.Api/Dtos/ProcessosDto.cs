@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Alfa.Api.Dtos
 {
@@ -9,13 +10,20 @@ namespace Alfa.Api.Dtos
         {
         }
 
-        public ProcessoListItemDto(int id, string titulo, string status, int porcentagemProgresso, DateTime criadoEm)
+        public ProcessoListItemDto(
+            int id,
+            string titulo,
+            string status,
+            int porcentagemProgresso,
+            DateTime criadoEm,
+            IEnumerable<string>? usuariosAlteracao = null)
         {
             Id = id;
             Titulo = titulo;
             Status = status;
             PorcentagemProgresso = porcentagemProgresso;
             CriadoEm = criadoEm;
+            UsuariosAlteracao = usuariosAlteracao?.ToList() ?? new List<string>();
         }
 
         public int Id { get; set; }
@@ -27,6 +35,8 @@ namespace Alfa.Api.Dtos
         public int PorcentagemProgresso { get; set; }
 
         public DateTime CriadoEm { get; set; }
+
+        public List<string> UsuariosAlteracao { get; set; } = new();
     }
 
     public class ProcessoDetalheDto
