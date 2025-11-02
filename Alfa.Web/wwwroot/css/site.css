@@ -1,17 +1,271 @@
-/* Menu: dropdown abre com hover em desktops e tem transição suave */
-@media (min-width: 992px) {
-    .dropdown-hover:hover > .dropdown-menu {
-        display: block;
-        margin-top: 0;
-    }
+:root {
+    --alfa-body-bg: #f5f7fb;
+    --alfa-surface: #ffffff;
+    --alfa-surface-subtle: #f3f6ff;
+    --alfa-primary: #2d4ed7;
+    --alfa-primary-hover: #253fbb;
+    --alfa-primary-soft: rgba(45, 78, 215, 0.12);
+    --alfa-text: #1b233d;
+    --alfa-text-muted: #6b7290;
+    --alfa-border: rgba(27, 35, 61, 0.12);
+    --alfa-border-strong: rgba(27, 35, 61, 0.2);
+    --alfa-navbar-bg: rgba(255, 255, 255, 0.9);
+    --alfa-navbar-border: rgba(27, 35, 61, 0.06);
+    --alfa-shadow-sm: 0 16px 40px rgba(20, 34, 66, 0.08);
+    --alfa-shadow-xs: 0 4px 12px rgba(24, 39, 75, 0.08);
+    --alfa-chip-bg: rgba(45, 78, 215, 0.08);
+    --alfa-chip-bg-active: rgba(45, 78, 215, 0.2);
+    --alfa-chip-text-active: #243da1;
+    --alfa-accent-gradient: linear-gradient(135deg, rgba(45, 78, 215, 0.9), rgba(94, 132, 255, 0.9));
+    --alfa-badge-bg: #eef1ff;
 }
 
-/* Fade sutil do dropdown */
+html[data-theme="dark"] {
+    --alfa-body-bg: #0f111a;
+    --alfa-surface: #161a29;
+    --alfa-surface-subtle: #1d2236;
+    --alfa-primary: #6c8fff;
+    --alfa-primary-hover: #8aa5ff;
+    --alfa-primary-soft: rgba(108, 143, 255, 0.18);
+    --alfa-text: #f1f4ff;
+    --alfa-text-muted: #c0c5dd;
+    --alfa-border: rgba(255, 255, 255, 0.08);
+    --alfa-border-strong: rgba(255, 255, 255, 0.18);
+    --alfa-navbar-bg: rgba(22, 26, 41, 0.92);
+    --alfa-navbar-border: rgba(255, 255, 255, 0.06);
+    --alfa-shadow-sm: 0 20px 45px rgba(5, 10, 20, 0.5);
+    --alfa-shadow-xs: 0 6px 14px rgba(5, 10, 20, 0.4);
+    --alfa-chip-bg: rgba(108, 143, 255, 0.16);
+    --alfa-chip-bg-active: rgba(108, 143, 255, 0.32);
+    --alfa-chip-text-active: #dbe4ff;
+    --alfa-accent-gradient: linear-gradient(135deg, rgba(108, 143, 255, 0.9), rgba(45, 63, 132, 0.9));
+    --alfa-badge-bg: rgba(108, 143, 255, 0.18);
+}
+
+body {
+    background-color: var(--alfa-body-bg);
+    color: var(--alfa-text);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.25s ease, color 0.25s ease;
+    min-height: 100vh;
+}
+
+.text-muted {
+    color: var(--alfa-text-muted) !important;
+}
+
+label,
+.form-label,
+.form-check-label {
+    color: var(--alfa-text);
+}
+
+a {
+    color: var(--alfa-primary);
+}
+
+a:hover {
+    color: var(--alfa-primary-hover);
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.9rem;
+    border-color: var(--alfa-border);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control::placeholder {
+    color: var(--alfa-text-muted);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--alfa-primary);
+    box-shadow: 0 0 0 .2rem rgba(45, 78, 215, 0.15);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+}
+
+.form-check-input {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+}
+
+.form-check-input:checked {
+    background-color: var(--alfa-primary);
+    border-color: var(--alfa-primary);
+}
+
+.card,
+.modal-content {
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+.list-group-item {
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table {
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table thead th {
+    background-color: var(--alfa-surface-subtle);
+    color: var(--alfa-text);
+    border-color: var(--alfa-border);
+}
+
+.table tbody tr {
+    background-color: var(--alfa-surface);
+}
+
+.table tbody tr + tr {
+    border-top: 1px solid var(--alfa-border);
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background-color: var(--alfa-surface-subtle);
+}
+
+.table-hover > tbody > tr:hover {
+    color: var(--alfa-text);
+    background-color: var(--alfa-primary-soft);
+}
+
+.al-navbar {
+    background: var(--alfa-navbar-bg);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--alfa-navbar-border);
+    transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.al-navbar .navbar-brand {
+    color: var(--alfa-text);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.al-navbar .navbar-brand .logo-mark {
+    filter: drop-shadow(0 4px 8px rgba(35, 52, 121, 0.15));
+}
+
+.al-navbar .nav-link {
+    color: var(--alfa-text-muted);
+    font-weight: 500;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.9rem;
+}
+
+.al-navbar .nav-link:hover,
+.al-navbar .nav-link:focus {
+    color: var(--alfa-text);
+    background-color: var(--alfa-primary-soft);
+}
+
+.al-navbar .nav-link.active {
+    color: var(--alfa-primary);
+    background: var(--alfa-primary-soft);
+}
+
+.btn {
+    border-radius: 0.75rem;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--alfa-accent-gradient);
+    border: none;
+    box-shadow: var(--alfa-shadow-xs);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background: linear-gradient(135deg, var(--alfa-primary-hover), var(--alfa-primary));
+    box-shadow: 0 14px 30px rgba(45, 78, 215, 0.22);
+}
+
+.btn-outline-secondary {
+    border-color: var(--alfa-border);
+    color: var(--alfa-text);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: var(--alfa-primary-soft);
+    border-color: var(--alfa-primary);
+    color: var(--alfa-primary);
+}
+
+.btn-soft-theme {
+    background-color: transparent;
+    border: 1px solid var(--alfa-border);
+    color: var(--alfa-text);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.btn-soft-theme:hover,
+.btn-soft-theme:focus {
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+    border-color: var(--alfa-primary);
+}
+
+.btn-soft-theme.disabled,
+.btn-soft-theme:disabled {
+    opacity: 0.6;
+    cursor: default;
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+    border-color: transparent;
+}
+
+.btn-soft-theme.is-dark {
+    background-color: var(--alfa-primary);
+    color: #0f111a;
+    border-color: var(--alfa-primary);
+}
+
+.dropdown-menu {
+    border-radius: 0.75rem;
+    border: 1px solid var(--alfa-border);
+    box-shadow: var(--alfa-shadow-xs);
+    background-color: var(--alfa-surface);
+    color: var(--alfa-text);
+    padding: 0.5rem;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+.dropdown-item {
+    border-radius: 0.6rem;
+    font-weight: 500;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+}
+
 .dropdown-fade {
     opacity: 0;
     transform: translateY(6px);
     transition: opacity .15s ease, transform .15s ease;
-    display: block; /* permite a animação; visibilidade controlada pela classe .show */
+    display: block;
     visibility: hidden;
     pointer-events: none;
 }
@@ -23,18 +277,145 @@
     pointer-events: auto;
 }
 
-/* Active link discreto */
-.navbar .nav-link.active {
+.alfa-nav-pills .nav-link {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--alfa-text-muted);
     font-weight: 600;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
 }
 
-/* Cards/listas com micro hover */
+.alfa-nav-pills .nav-link.active {
+    border-color: var(--alfa-primary);
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+}
+
+.alfa-card {
+    border: 1px solid var(--alfa-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--alfa-shadow-sm);
+    background-color: var(--alfa-surface);
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.alfa-card .card-title {
+    font-weight: 700;
+    color: var(--alfa-text);
+}
+
+.filtros-compactos > [class*='col-'] {
+    min-width: 160px;
+}
+
+.status-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+}
+
+.status-grupo {
+    flex: 1 1 180px;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.status-grupo-titulo {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--alfa-text-muted);
+    font-weight: 700;
+}
+
+.status-grupo-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.kanban-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background-color: var(--alfa-chip-bg);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 0.8rem;
+    color: var(--alfa-text-muted);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kanban-chip[data-active="true"] {
+    background-color: var(--alfa-chip-bg-active);
+    color: var(--alfa-chip-text-active);
+    border-color: rgba(45, 78, 215, 0.24);
+    box-shadow: inset 0 0 0 1px rgba(45, 78, 215, 0.22);
+}
+
+.kanban-chip .count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+}
+
+.processos-painel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.processos-lista .list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--alfa-border);
+    background-color: var(--alfa-surface);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+}
+
+.processos-lista .list-group-item:last-child {
+    border-bottom-left-radius: 1.2rem;
+    border-bottom-right-radius: 1.2rem;
+    border-bottom: none;
+}
+
+.processos-lista .list-group-item:first-child {
+    border-top-left-radius: 1.2rem;
+    border-top-right-radius: 1.2rem;
+}
+
+.processos-lista .list-group-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--alfa-shadow-xs);
+    border-color: var(--alfa-primary-soft);
+}
+
+.processos-lista .badge {
+    background-color: var(--alfa-badge-bg) !important;
+}
+
+.status-badge {
+    background-color: var(--alfa-badge-bg) !important;
+    color: var(--alfa-primary);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+}
+
+html[data-theme="dark"] .status-badge {
+    color: var(--alfa-text);
+}
+
 .list-group-item {
     transition: background-color .12s ease;
 }
 
 .list-group-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--alfa-surface-subtle);
 }
 
 .progress-sm {
@@ -46,6 +427,10 @@
     border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+html[data-theme="dark"] .fase-card .list-group-item {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
 .fase-card .list-group-item:first-child {
     border-top: 0;
 }
@@ -54,6 +439,11 @@
     background-color: #eef5ff;
     color: #0d6efd;
     font-weight: 600;
+}
+
+html[data-theme="dark"] .fase-card .list-group-item.active {
+    background-color: rgba(108, 143, 255, 0.18);
+    color: var(--alfa-primary);
 }
 
 #processo-detalhes .page-state-icon {
@@ -67,4 +457,57 @@
 
 .toast.alfa-toast {
     min-width: 260px;
+}
+
+.toast.alfa-toast .btn-close {
+    filter: invert(1);
+}
+
+html[data-theme="dark"] .toast.alfa-toast {
+    background-color: #1e2537;
+    color: #f1f4ff;
+}
+
+.navbar-text,
+.text-muted {
+    color: var(--alfa-text-muted) !important;
+}
+
+.badge.bg-secondary-subtle {
+    color: var(--alfa-text-muted);
+}
+
+html[data-theme="dark"] .badge.bg-secondary-subtle {
+    color: var(--alfa-text);
+}
+
+.alert {
+    border-radius: 1rem;
+    border-width: 1px;
+}
+
+html[data-theme="dark"] .alert-warning {
+    background-color: rgba(255, 207, 102, 0.12);
+    color: #fddf9d;
+    border-color: rgba(255, 207, 102, 0.3);
+}
+
+html[data-theme="dark"] .alert-info {
+    background-color: rgba(96, 164, 255, 0.12);
+    color: #c9dcff;
+    border-color: rgba(96, 164, 255, 0.24);
+}
+
+main.container {
+    max-width: 1080px;
+}
+
+footer {
+    background-color: var(--alfa-surface);
+    border-top: 1px solid var(--alfa-border);
+    color: var(--alfa-text-muted);
+}
+
+html[data-theme="dark"] footer {
+    background-color: var(--alfa-surface);
 }

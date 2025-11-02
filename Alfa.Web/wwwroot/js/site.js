@@ -46,7 +46,70 @@
     document.addEventListener('DOMContentLoaded', () => {
         const tooltipTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggers.forEach(el => new bootstrap.Tooltip(el));
+
+        initThemeToggle();
+        Alfa.initProcessosLista?.(document.getElementById('processos-root'));
     });
+
+    function initThemeToggle() {
+        const storageKey = 'alfa-theme';
+        const trigger = document.querySelector('[data-theme-toggle]');
+        const docEl = document.documentElement;
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        const readStored = () => {
+            try {
+                return localStorage.getItem(storageKey);
+            } catch (err) {
+                console.warn('Não foi possível ler a preferência de tema.', err);
+                return null;
+            }
+        };
+
+        const persistTheme = (theme) => {
+            try {
+                localStorage.setItem(storageKey, theme);
+            } catch (err) {
+                console.warn('Não foi possível persistir a preferência de tema.', err);
+            }
+        };
+
+        const updateButton = (theme) => {
+            if (!trigger) return;
+            const isDark = theme === 'dark';
+            trigger.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+            trigger.classList.toggle('is-dark', isDark);
+            const icon = trigger.querySelector('[data-theme-icon]');
+            const label = trigger.querySelector('[data-theme-label]');
+            if (icon) icon.textContent = isDark ? '🌞' : '🌙';
+            if (label) label.textContent = isDark ? 'Tema claro' : 'Tema escuro';
+        };
+
+        const applyTheme = (theme, persist = true) => {
+            const normalized = theme === 'dark' ? 'dark' : 'light';
+            docEl.setAttribute('data-theme', normalized);
+            if (persist) persistTheme(normalized);
+            updateButton(normalized);
+        };
+
+        const stored = readStored();
+        const currentAttr = docEl.getAttribute('data-theme');
+        const initialTheme = (stored === 'dark' || stored === 'light')
+            ? stored
+            : (currentAttr === 'dark' || currentAttr === 'light')
+                ? currentAttr
+                : prefersDark ? 'dark' : 'light';
+
+        applyTheme(initialTheme, stored !== initialTheme);
+
+        if (trigger) {
+            trigger.addEventListener('click', () => {
+                const activeTheme = docEl.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                applyTheme(nextTheme, true);
+            });
+        }
+    }
 
     const empresaId = () => document.body ? document.body.dataset.empresaId : undefined;
     const apiBaseUrl = () => document.body ? document.body.dataset.apiBase : undefined;
@@ -58,6 +121,187 @@
             return `${normalizedBase}/${normalizedPath}`;
         }
         return path;
+    };
+
+    Alfa.initProcessosLista = function (root) {
+        if (!root) return;
+
+        const items = Array.from(root.querySelectorAll('[data-processo-item]'));
+        if (!items.length) return;
+
+        const board = root.querySelector('[data-status-board]');
+        const startInput = root.querySelector('[data-filter-start]');
+        const endInput = root.querySelector('[data-filter-end]');
+        const resetButton = root.querySelector('[data-filter-reset]');
+        const searchInput = root.querySelector('[data-filter-search]');
+        const emptyState = root.querySelector('[data-empty]');
+
+        const filters = {
+            statuses: new Set(),
+            start: null,
+            end: null,
+            query: ''
+        };
+
+        const laneMatchers = [
+            { key: 'planejamento', patterns: [/backlog/i, /planej/i, /novo/i, /aguard/i, /entrada/i] },
+            { key: 'execucao', patterns: [/andamento/i, /execu/i, /progresso/i, /iniciado/i, /curso/i] },
+            { key: 'revisao', patterns: [/revis/i, /aprov/i, /pendente/i, /anal[ií]se/i, /bloque/i] },
+            { key: 'concluido', patterns: [/conclu/i, /finaliz/i, /complet/i, /encerr/i] }
+        ];
+
+        const laneBodies = new Map();
+        if (board) {
+            board.querySelectorAll('[data-lane]').forEach(col => {
+                const body = col.querySelector('[data-lane-body]');
+                laneBodies.set(col.dataset.lane || 'outros', body);
+            });
+        }
+
+        const normalizeText = (value) => {
+            if (!value) return '';
+            const text = value.toString();
+            if (typeof text.normalize === 'function') {
+                return text
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .toLowerCase();
+            }
+            return text.toLowerCase();
+        };
+
+        const statusValues = Array.from(new Set(items
+            .map(item => (item.dataset.status || '').trim())
+            .filter(Boolean)))
+            .sort((a, b) => a.localeCompare(b));
+
+        const resolveLane = (status) => {
+            for (const lane of laneMatchers) {
+                if (lane.patterns.some(re => re.test(status))) return lane.key;
+            }
+            return 'outros';
+        };
+
+        if (board) {
+            statusValues.forEach(status => {
+                const laneKey = resolveLane(status);
+                const body = laneBodies.get(laneKey) || laneBodies.get('outros');
+                if (!body) return;
+
+                const count = items.filter(item => (item.dataset.status || '').trim() === status).length;
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'kanban-chip';
+                chip.dataset.status = status;
+                chip.setAttribute('data-active', 'false');
+                chip.innerHTML = `<span class="text">${status}</span><span class="count">${count}</span>`;
+                chip.addEventListener('click', () => {
+                    const active = chip.getAttribute('data-active') === 'true';
+                    if (active) {
+                        chip.setAttribute('data-active', 'false');
+                        filters.statuses.delete(status);
+                    } else {
+                        chip.setAttribute('data-active', 'true');
+                        filters.statuses.add(status);
+                    }
+                    applyFilters();
+                });
+                body.appendChild(chip);
+            });
+        }
+
+        const parseDate = (value, endOfDay = false) => {
+            if (!value) return null;
+            const date = new Date(`${value}T00:00:00`);
+            if (Number.isNaN(date.getTime())) return null;
+            if (endOfDay) {
+                date.setHours(23, 59, 59, 999);
+            }
+            return date;
+        };
+
+        if (startInput) {
+            startInput.addEventListener('change', () => {
+                filters.start = parseDate(startInput.value);
+                applyFilters();
+            });
+        }
+
+        if (endInput) {
+            endInput.addEventListener('change', () => {
+                filters.end = parseDate(endInput.value, true);
+                applyFilters();
+            });
+        }
+
+        if (resetButton) {
+            resetButton.addEventListener('click', () => {
+                filters.statuses.clear();
+                filters.start = null;
+                filters.end = null;
+                filters.query = '';
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                if (searchInput) searchInput.value = '';
+                if (board) {
+                    board.querySelectorAll('.kanban-chip').forEach(chip => {
+                        chip.setAttribute('data-active', 'false');
+                    });
+                }
+                applyFilters();
+            });
+        }
+
+        if (searchInput) {
+            const handleSearch = () => {
+                const raw = searchInput.value || '';
+                filters.query = normalizeText(raw.trim());
+                applyFilters();
+            };
+            searchInput.addEventListener('input', handleSearch);
+            searchInput.addEventListener('change', handleSearch);
+        }
+
+        const applyFilters = () => {
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const status = (item.dataset.status || '').trim();
+                const createdRaw = item.dataset.created;
+                const createdDate = createdRaw ? new Date(createdRaw) : null;
+                const title = (item.dataset.title || '').trim();
+
+                let visible = true;
+
+                if (filters.statuses.size > 0 && !filters.statuses.has(status)) {
+                    visible = false;
+                }
+
+                if (visible && filters.query) {
+                    const normalizedTitle = normalizeText(title);
+                    if (!normalizedTitle.includes(filters.query)) {
+                        visible = false;
+                    }
+                }
+
+                if (visible && filters.start && createdDate instanceof Date && !Number.isNaN(createdDate.getTime())) {
+                    if (createdDate < filters.start) visible = false;
+                }
+
+                if (visible && filters.end && createdDate instanceof Date && !Number.isNaN(createdDate.getTime())) {
+                    if (createdDate > filters.end) visible = false;
+                }
+
+                item.classList.toggle('d-none', !visible);
+                if (visible) visibleCount += 1;
+            });
+
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', visibleCount > 0);
+            }
+        };
+
+        applyFilters();
     };
 
     Alfa.initProcessoDetalhes = function (root) {
