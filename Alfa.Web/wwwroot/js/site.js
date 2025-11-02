@@ -46,7 +46,52 @@
     document.addEventListener('DOMContentLoaded', () => {
         const tooltipTriggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggers.forEach(el => new bootstrap.Tooltip(el));
+
+        initThemeToggle();
+        Alfa.initProcessosLista?.(document.getElementById('processos-root'));
     });
+
+    function initThemeToggle() {
+        const storageKey = 'alfa-theme';
+        const trigger = document.querySelector('[data-theme-trigger]');
+        const docEl = document.documentElement;
+
+        const applyDarkTheme = (button) => {
+            if (docEl.getAttribute('data-theme') === 'dark') return;
+            docEl.setAttribute('data-theme', 'dark');
+            try {
+                localStorage.setItem(storageKey, 'dark');
+            } catch (err) {
+                console.warn('Não foi possível persistir a preferência de tema.', err);
+            }
+            if (button) {
+                button.disabled = true;
+                button.classList.add('disabled');
+                button.setAttribute('aria-pressed', 'true');
+                const label = button.querySelector('.label');
+                if (label) label.textContent = 'Tema escuro ativo';
+            }
+        };
+
+        const stored = (() => {
+            try {
+                return localStorage.getItem(storageKey);
+            } catch {
+                return null;
+            }
+        })();
+
+        if (stored === 'dark') {
+            applyDarkTheme(trigger);
+        }
+
+        if (trigger) {
+            trigger.addEventListener('click', () => {
+                if (trigger.disabled) return;
+                applyDarkTheme(trigger);
+            });
+        }
+    }
 
     const empresaId = () => document.body ? document.body.dataset.empresaId : undefined;
     const apiBaseUrl = () => document.body ? document.body.dataset.apiBase : undefined;
@@ -58,6 +103,153 @@
             return `${normalizedBase}/${normalizedPath}`;
         }
         return path;
+    };
+
+    Alfa.initProcessosLista = function (root) {
+        if (!root) return;
+
+        const items = Array.from(root.querySelectorAll('[data-processo-item]'));
+        if (!items.length) return;
+
+        const board = root.querySelector('[data-status-board]');
+        const startInput = root.querySelector('[data-filter-start]');
+        const endInput = root.querySelector('[data-filter-end]');
+        const resetButton = root.querySelector('[data-filter-reset]');
+        const emptyState = root.querySelector('[data-empty]');
+
+        const filters = {
+            statuses: new Set(),
+            start: null,
+            end: null
+        };
+
+        const laneMatchers = [
+            { key: 'planejamento', patterns: [/backlog/i, /planej/i, /novo/i, /aguard/i, /entrada/i] },
+            { key: 'execucao', patterns: [/andamento/i, /execu/i, /progresso/i, /iniciado/i, /curso/i] },
+            { key: 'revisao', patterns: [/revis/i, /aprov/i, /pendente/i, /anal[ií]se/i, /bloque/i] },
+            { key: 'concluido', patterns: [/conclu/i, /finaliz/i, /complet/i, /encerr/i] }
+        ];
+
+        const laneBodies = new Map();
+        if (board) {
+            board.querySelectorAll('[data-lane]').forEach(col => {
+                const body = col.querySelector('[data-lane-body]');
+                laneBodies.set(col.dataset.lane || 'outros', body);
+            });
+        }
+
+        const statusValues = Array.from(new Set(items
+            .map(item => (item.dataset.status || '').trim())
+            .filter(Boolean)))
+            .sort((a, b) => a.localeCompare(b));
+
+        const resolveLane = (status) => {
+            for (const lane of laneMatchers) {
+                if (lane.patterns.some(re => re.test(status))) return lane.key;
+            }
+            return 'outros';
+        };
+
+        if (board) {
+            statusValues.forEach(status => {
+                const laneKey = resolveLane(status);
+                const body = laneBodies.get(laneKey) || laneBodies.get('outros');
+                if (!body) return;
+
+                const count = items.filter(item => (item.dataset.status || '').trim() === status).length;
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'kanban-chip';
+                chip.dataset.status = status;
+                chip.setAttribute('data-active', 'false');
+                chip.innerHTML = `<span class="text">${status}</span><span class="count">${count}</span>`;
+                chip.addEventListener('click', () => {
+                    const active = chip.getAttribute('data-active') === 'true';
+                    if (active) {
+                        chip.setAttribute('data-active', 'false');
+                        filters.statuses.delete(status);
+                    } else {
+                        chip.setAttribute('data-active', 'true');
+                        filters.statuses.add(status);
+                    }
+                    applyFilters();
+                });
+                body.appendChild(chip);
+            });
+        }
+
+        const parseDate = (value, endOfDay = false) => {
+            if (!value) return null;
+            const date = new Date(`${value}T00:00:00`);
+            if (Number.isNaN(date.getTime())) return null;
+            if (endOfDay) {
+                date.setHours(23, 59, 59, 999);
+            }
+            return date;
+        };
+
+        if (startInput) {
+            startInput.addEventListener('change', () => {
+                filters.start = parseDate(startInput.value);
+                applyFilters();
+            });
+        }
+
+        if (endInput) {
+            endInput.addEventListener('change', () => {
+                filters.end = parseDate(endInput.value, true);
+                applyFilters();
+            });
+        }
+
+        if (resetButton) {
+            resetButton.addEventListener('click', () => {
+                filters.statuses.clear();
+                filters.start = null;
+                filters.end = null;
+                if (startInput) startInput.value = '';
+                if (endInput) endInput.value = '';
+                if (board) {
+                    board.querySelectorAll('.kanban-chip').forEach(chip => {
+                        chip.setAttribute('data-active', 'false');
+                    });
+                }
+                applyFilters();
+            });
+        }
+
+        const applyFilters = () => {
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const status = (item.dataset.status || '').trim();
+                const createdRaw = item.dataset.created;
+                const createdDate = createdRaw ? new Date(createdRaw) : null;
+
+                let visible = true;
+
+                if (filters.statuses.size > 0 && !filters.statuses.has(status)) {
+                    visible = false;
+                }
+
+                if (visible && filters.start && createdDate instanceof Date && !Number.isNaN(createdDate.getTime())) {
+                    if (createdDate < filters.start) visible = false;
+                }
+
+                if (visible && filters.end && createdDate instanceof Date && !Number.isNaN(createdDate.getTime())) {
+                    if (createdDate > filters.end) visible = false;
+                }
+
+                item.classList.toggle('d-none', !visible);
+                if (visible) visibleCount += 1;
+            });
+
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', visibleCount > 0);
+            }
+        };
+
+        applyFilters();
     };
 
     Alfa.initProcessoDetalhes = function (root) {

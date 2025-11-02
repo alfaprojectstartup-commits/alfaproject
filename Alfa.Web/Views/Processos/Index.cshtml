@@ -7,15 +7,15 @@
     var tab = (string?)(ViewBag.Tab ?? "ativos");
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex flex-column flex-lg-row justify-content-lg-between align-items-lg-center gap-3 mb-4">
     <div>
-        <h3 class="mb-0">Processos</h3>
-        <p class="text-muted mb-0">Acompanhe o andamento dos processos e acesse suas fases.</p>
+        <h3 class="mb-1">Processos</h3>
+        <p class="text-muted mb-0">Acompanhe o andamento dos processos e utilize filtros para encontrar o que precisa.</p>
     </div>
-    <a asp-action="Novo" class="btn btn-primary">Novo processo</a>
+    <a asp-action="Novo" class="btn btn-primary btn-lg shadow-sm">Novo processo</a>
 </div>
 
-<ul class="nav nav-pills mb-3" role="tablist">
+<ul class="nav nav-pills alfa-nav-pills mb-4" role="tablist">
     <li class="nav-item" role="presentation">
         <a class="nav-link @(tab=="ativos"?"active":"")" asp-action="Index" asp-route-tab="ativos">Ativos</a>
     </li>
@@ -30,20 +30,76 @@
 }
 else
 {
-    <div class="list-group shadow-sm">
-        @foreach (var p in Model)
-        {
-            <a asp-action="Detalhes" asp-route-id="@p.Id" class="list-group-item list-group-item-action py-3">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <strong class="d-block">@p.Titulo</strong>
-                        <span class="badge rounded-pill bg-secondary">@p.Status</span>
+    <div id="processos-root" class="processos-painel" data-tab="@tab">
+        <div class="card alfa-card mb-4" data-filtro-wrapper>
+            <div class="card-body">
+                <div class="d-flex flex-column flex-xl-row gap-4">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title mb-3">Filtros inspirados em Kanban</h5>
+                        <div class="kanban-filtros" data-status-board>
+                            <div class="kanban-col" data-lane="planejamento">
+                                <div class="kanban-col-title">Planejamento</div>
+                                <div class="kanban-col-body" data-lane-body></div>
+                            </div>
+                            <div class="kanban-col" data-lane="execucao">
+                                <div class="kanban-col-title">Em andamento</div>
+                                <div class="kanban-col-body" data-lane-body></div>
+                            </div>
+                            <div class="kanban-col" data-lane="revisao">
+                                <div class="kanban-col-title">Revisão</div>
+                                <div class="kanban-col-body" data-lane-body></div>
+                            </div>
+                            <div class="kanban-col" data-lane="concluido">
+                                <div class="kanban-col-title">Concluídos</div>
+                                <div class="kanban-col-body" data-lane-body></div>
+                            </div>
+                            <div class="kanban-col" data-lane="outros">
+                                <div class="kanban-col-title">Outros</div>
+                                <div class="kanban-col-body" data-lane-body></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex-grow-1 ms-lg-4">
-                        <progress-bar value="@p.PorcentagemProgresso" small="true" label="@($"{p.PorcentagemProgresso}%")"></progress-bar>
+                    <div class="filtro-datas">
+                        <h5 class="card-title mb-3">Filtrar por datas</h5>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="filtro-data-inicio">De</label>
+                            <input id="filtro-data-inicio" type="date" class="form-control" data-filter-start />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted" for="filtro-data-fim">Até</label>
+                            <input id="filtro-data-fim" type="date" class="form-control" data-filter-end />
+                        </div>
+                        <button type="button" class="btn btn-outline-primary w-100" data-filter-reset>Limpar filtros</button>
                     </div>
                 </div>
-            </a>
-        }
+            </div>
+        </div>
+
+        <div class="alert alert-warning d-none" role="status" data-empty>A combinação de filtros não retornou processos.</div>
+
+        <div class="list-group shadow-sm processos-lista" data-processos-lista>
+            @foreach (var p in Model)
+            {
+                <a asp-action="Detalhes"
+                   asp-route-id="@p.Id"
+                   class="list-group-item list-group-item-action py-3 processo-item"
+                   data-processo-item
+                   data-status="@p.Status"
+                   data-created="@p.CriadoEm.ToString("o")">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <strong class="d-block">@p.Titulo</strong>
+                            <div class="d-flex gap-2 align-items-center flex-wrap text-muted small">
+                                <span class="badge rounded-pill status-badge">@p.Status</span>
+                                <span>Criado em @p.CriadoEm.ToString("dd/MM/yyyy")</span>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-lg-4">
+                            <progress-bar value="@p.PorcentagemProgresso" small="true" label="@($"{p.PorcentagemProgresso}%")"></progress-bar>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
     </div>
 }

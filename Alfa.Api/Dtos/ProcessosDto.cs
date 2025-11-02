@@ -9,12 +9,13 @@ namespace Alfa.Api.Dtos
         {
         }
 
-        public ProcessoListItemDto(int id, string titulo, string status, int porcentagemProgresso)
+        public ProcessoListItemDto(int id, string titulo, string status, int porcentagemProgresso, DateTime criadoEm)
         {
             Id = id;
             Titulo = titulo;
             Status = status;
             PorcentagemProgresso = porcentagemProgresso;
+            CriadoEm = criadoEm;
         }
 
         public int Id { get; set; }
@@ -24,6 +25,8 @@ namespace Alfa.Api.Dtos
         public string Status { get; set; } = string.Empty;
 
         public int PorcentagemProgresso { get; set; }
+
+        public DateTime CriadoEm { get; set; }
     }
 
     public class ProcessoDetalheDto
