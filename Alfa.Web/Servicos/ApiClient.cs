@@ -35,6 +35,9 @@ public class ApiClient
     public Task<HttpResponseMessage> RegistrarRespostasAsync(int processoId, PaginaRespostaInput payload)
         => _http.PostAsJsonAsync($"api/processos/{processoId}/respostas", payload);
 
+    public Task<List<ProcessoPadraoModeloViewModel>?> GetProcessoPadraoModelosAsync()
+        => _http.GetFromJsonAsync<List<ProcessoPadraoModeloViewModel>>("api/processos/padroes");
+
     public Task<List<FaseModelosViewModel>?> GetFaseTemplatesAsync()
         => _http.GetFromJsonAsync<List<FaseModelosViewModel>>("api/fases/modelos");
 

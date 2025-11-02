@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
@@ -38,10 +39,13 @@ public class ProcessosController : Controller
             .OrderBy(f => f.Ordem)
             .ToList();
 
+        var processosPadrao = await _api.GetProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
+        var padroesValidos = FiltrarPadroesValidos(processosPadrao, fasesAtivas);
+
         var vm = new NovoProcessoVm
         {
             FasesDisponiveis = fasesAtivas,
-            ProcessosPadrao = ConstruirProcessosPadrao(fasesAtivas)
+            ProcessosPadrao = padroesValidos
         };
         return View(vm);
     }
@@ -55,7 +59,9 @@ public class ProcessosController : Controller
             .ToList();
 
         vm.FasesDisponiveis = fasesDisponiveis;
-        vm.ProcessosPadrao = ConstruirProcessosPadrao(fasesDisponiveis);
+        var processosPadrao = await _api.GetProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
+        var padroesValidos = FiltrarPadroesValidos(processosPadrao, fasesDisponiveis);
+        vm.ProcessosPadrao = padroesValidos;
 
         if (!ModelState.IsValid)
         {
@@ -71,11 +77,15 @@ public class ProcessosController : Controller
 
         if (vm.ProcessoPadraoSelecionadoId.HasValue)
         {
-            var selecionado = vm.ProcessosPadrao
+            var selecionado = padroesValidos
                 .FirstOrDefault(p => p.Id == vm.ProcessoPadraoSelecionadoId.Value);
             if (selecionado is not null)
             {
-                vm.FasesSelecionadasIds = selecionado.FaseModeloIds.ToList();
+                var faseDisponivelIds = new HashSet<int>(fasesDisponiveis.Select(f => f.Id));
+                vm.FasesSelecionadasIds = selecionado.FaseModeloIds
+                    .Where(faseDisponivelIds.Contains)
+                    .Distinct()
+                    .ToList();
             }
         }
 
@@ -114,37 +124,34 @@ public class ProcessosController : Controller
         return View(processo);
     }
 
-    private static List<ProcessoPadraoViewModel> ConstruirProcessosPadrao(List<FaseModelosViewModel> fases)
+    private static List<ProcessoPadraoModeloViewModel> FiltrarPadroesValidos(
+        IEnumerable<ProcessoPadraoModeloViewModel> padroes,
+        IEnumerable<FaseModelosViewModel> fasesDisponiveis)
     {
-        var padroes = new List<ProcessoPadraoViewModel>();
-        if (fases is null || fases.Count == 0)
+        if (padroes is null) return new List<ProcessoPadraoModeloViewModel>();
+
+        var faseIds = new HashSet<int>(fasesDisponiveis?.Select(f => f.Id) ?? Enumerable.Empty<int>());
+        if (faseIds.Count == 0)
         {
-            return padroes;
+            return new List<ProcessoPadraoModeloViewModel>();
         }
 
-        var completo = new ProcessoPadraoViewModel
-        {
-            Id = 1,
-            Titulo = "Processo completo",
-            Descricao = "Inclui todas as fases disponíveis nesta empresa.",
-            FaseModeloIds = fases.Select(f => f.Id).ToList()
-        };
-        padroes.Add(completo);
-
-        var fasesIniciais = fases.Take(Math.Min(3, fases.Count)).ToList();
-        if (fasesIniciais.Count > 0 && fasesIniciais.Count < fases.Count)
-        {
-            padroes.Add(new ProcessoPadraoViewModel
+        return padroes
+            .Select(p => new ProcessoPadraoModeloViewModel
             {
-                Id = 2,
-                Titulo = "Onboarding rápido",
-                Descricao = "Seleção das primeiras fases para processos ágeis.",
-                FaseModeloIds = fasesIniciais.Select(f => f.Id).ToList()
-            });
-        }
-
-        return padroes;
+                Id = p.Id,
+                Titulo = p.Titulo,
+                Descricao = p.Descricao,
+                FaseModeloIds = p.FaseModeloIds?
+                    .Where(faseIds.Contains)
+                    .Distinct()
+                    .ToList() ?? new List<int>()
+            })
+            .Where(p => p.FaseModeloIds.Count > 0)
+            .OrderBy(p => p.Titulo, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
+
 }
 
 public class NovoProcessoVm
@@ -157,16 +164,8 @@ public class NovoProcessoVm
 
     public List<FaseModelosViewModel> FasesDisponiveis { get; set; } = new();
 
-    public List<ProcessoPadraoViewModel> ProcessosPadrao { get; set; } = new();
+    public List<ProcessoPadraoModeloViewModel> ProcessosPadrao { get; set; } = new();
 
     public int? ProcessoPadraoSelecionadoId { get; set; }
-}
-
-public class ProcessoPadraoViewModel
-{
-    public int Id { get; set; }
-    public string Titulo { get; set; } = string.Empty;
-    public string? Descricao { get; set; }
-    public IReadOnlyList<int> FaseModeloIds { get; set; } = Array.Empty<int>();
 }
 

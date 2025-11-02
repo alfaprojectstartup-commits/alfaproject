@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace Alfa.Api.Dtos
@@ -106,5 +107,41 @@ namespace Alfa.Api.Dtos
         public string? Titulo { get; set; }
 
         public string? Status { get; set; }
+    }
+
+    public class ProcessoPadraoModeloDto
+    {
+        public ProcessoPadraoModeloDto()
+        {
+        }
+
+        public ProcessoPadraoModeloDto(int id, string titulo, string? descricao, IReadOnlyCollection<int> faseModeloIds)
+        {
+            Id = id;
+            Titulo = titulo;
+            Descricao = descricao;
+            FaseModeloIds = faseModeloIds?.ToArray() ?? Array.Empty<int>();
+        }
+
+        public int Id { get; set; }
+
+        public string Titulo { get; set; } = string.Empty;
+
+        public string? Descricao { get; set; }
+
+        public IReadOnlyCollection<int> FaseModeloIds { get; set; } = Array.Empty<int>();
+    }
+
+    public class ProcessoPadraoModeloInputDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Titulo { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Descricao { get; set; }
+
+        [MinLength(1, ErrorMessage = "Selecione ao menos uma fase para o padrão.")]
+        public IList<int> FaseModeloIds { get; set; } = new List<int>();
     }
 }
