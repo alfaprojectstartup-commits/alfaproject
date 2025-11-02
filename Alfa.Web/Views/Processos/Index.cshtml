@@ -17,7 +17,7 @@
     </div>
     <a asp-action="Novo" class="btn btn-primary btn-lg shadow-sm">Novo processo</a>
 </div>
-
+@* 
 <ul class="nav nav-pills alfa-nav-pills mb-4" role="tablist">
     <li class="nav-item" role="presentation">
         <a class="nav-link @(tab=="ativos"?"active":"")" asp-action="Index" asp-route-tab="ativos">Ativos</a>
@@ -25,7 +25,7 @@
     <li class="nav-item" role="presentation">
         <a class="nav-link @(tab=="finalizados"?"active":"")" asp-action="Index" asp-route-tab="finalizados">Finalizados</a>
     </li>
-</ul>
+</ul> *@
 
 @if (Model is null || !Model.Any())
 {
