@@ -16,6 +16,7 @@ namespace Alfa.Api.Configuracoes
         {
             // Repositorios
             services.AddScoped<IProcessoRepositorio, ProcessoRepositorio>();
+            services.AddScoped<IProcessoPadraoRepositorio, ProcessoPadraoRepositorio>();
             services.AddScoped<IFaseRepositorio, FaseRepositorio>();
             services.AddScoped<IPaginaRepositorio, PaginaRepositorio>();
             services.AddScoped<ICampoRepositorio, CampoRepositorio>();

@@ -11,5 +11,7 @@ namespace Alfa.Api.Aplicacao.Interfaces
         Task RegistrarResposta(int empresaId, int processoId, PaginaRespostaDto dto);
         Task<int?> ObterProcessoIdDaFase(int empresaId, int faseInstanciaId);
         Task RecalcularProgressoProcesso(int empresaId, int processoId);
+        Task<IEnumerable<ProcessoPadraoModeloDto>> ListarPadroesAsync(int empresaId);
+        Task<int> CriarPadraoAsync(int empresaId, ProcessoPadraoModeloInputDto dto);
     }
 }

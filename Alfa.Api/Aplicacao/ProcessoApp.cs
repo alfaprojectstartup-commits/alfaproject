@@ -12,12 +12,18 @@ namespace Alfa.Api.Aplicacao
         private readonly IProcessoRepositorio _procRepo;
         private readonly IFaseRepositorio _faseRepo;
         private readonly IRespostaRepositorio _respostaRepo;
+        private readonly IProcessoPadraoRepositorio _padraoRepo;
 
-        public ProcessoApp(IProcessoRepositorio p, IFaseRepositorio f, IRespostaRepositorio r)
+        public ProcessoApp(
+            IProcessoRepositorio processoRepositorio,
+            IFaseRepositorio faseRepositorio,
+            IRespostaRepositorio respostaRepositorio,
+            IProcessoPadraoRepositorio padraoRepositorio)
         {
-            _procRepo = p;
-            _faseRepo = f;
-            _respostaRepo = r;
+            _procRepo = processoRepositorio;
+            _faseRepo = faseRepositorio;
+            _respostaRepo = respostaRepositorio;
+            _padraoRepo = padraoRepositorio;
         }
 
         public Task<(int total, IEnumerable<ProcessoListItemDto> items)> Listar(int emp, int page, int pageSize, string? status)
@@ -28,6 +34,12 @@ namespace Alfa.Api.Aplicacao
 
         public Task<int> Criar(int emp, ProcessoCriarDto dto)
             => _procRepo.CriarAsync(emp, dto.Titulo, dto.FaseModeloIds);
+
+        public Task<IEnumerable<ProcessoPadraoModeloDto>> ListarPadroesAsync(int empresaId)
+            => _padraoRepo.ListarAsync(empresaId);
+
+        public Task<int> CriarPadraoAsync(int empresaId, ProcessoPadraoModeloInputDto dto)
+            => _padraoRepo.CriarAsync(empresaId, dto);
 
         public Task<IEnumerable<FaseInstanciaDto>> ListarFases(int empresaId, int processoId)
             => _faseRepo.ListarInstanciasAsync(empresaId, processoId);

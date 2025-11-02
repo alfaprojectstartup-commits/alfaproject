@@ -24,6 +24,22 @@ public class ProcessosController : ControllerBase
         return Ok(new PaginadoResultadoDto<ProcessoListItemDto>(total, items));
     }
 
+    [HttpGet("padroes")]
+    public async Task<ActionResult<IEnumerable<ProcessoPadraoModeloDto>>> ListarPadroes()
+    {
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var padroes = await _app.ListarPadroesAsync(emp);
+        return Ok(padroes);
+    }
+
+    [HttpPost("padroes")]
+    public async Task<ActionResult> CriarPadrao([FromBody] ProcessoPadraoModeloInputDto dto)
+    {
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var id = await _app.CriarPadraoAsync(emp, dto);
+        return CreatedAtAction(nameof(ListarPadroes), new { id }, new { id });
+    }
+
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ProcessoDetalheDto>> Obter(int id)
     {
