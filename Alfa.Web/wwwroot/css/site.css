@@ -154,6 +154,33 @@ a:hover {
     background-color: var(--alfa-primary-soft);
 }
 
+.progress {
+    height: 1.25rem;
+    border-radius: 0.75rem;
+    background-color: var(--alfa-surface-subtle);
+    overflow: hidden;
+}
+
+.progress-sm {
+    height: 0.9rem;
+}
+
+.progress .progress-bar {
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    letter-spacing: 0.01em;
+    color: #fff;
+}
+
+.progress-sm .progress-bar {
+    font-size: 0.7rem;
+}
+
 .al-navbar {
     background: var(--alfa-navbar-bg);
     backdrop-filter: blur(14px);
@@ -199,6 +226,10 @@ a:hover {
     background: var(--alfa-accent-gradient);
     border: none;
     box-shadow: var(--alfa-shadow-xs);
+}
+
+.btn-outline-primary {
+    border-width: 2px;
 }
 
 .btn-primary:hover,
@@ -251,6 +282,106 @@ a:hover {
     background-color: var(--alfa-primary);
     color: #0f111a;
     border-color: var(--alfa-primary);
+}
+
+.processo-tabs .nav-link {
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--alfa-text-muted);
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.processo-tabs .nav-link.active {
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+}
+
+.badge.bg-primary-soft {
+    background-color: rgba(45, 78, 215, 0.1);
+    color: var(--alfa-primary);
+}
+
+.option-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+.option-card {
+    display: block;
+    border: 1.5px solid var(--alfa-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    background-color: var(--alfa-surface);
+    color: inherit;
+    box-shadow: var(--alfa-shadow-xs);
+    min-height: 100%;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.option-card:hover {
+    border-color: var(--alfa-primary);
+    box-shadow: var(--alfa-shadow-sm);
+    transform: translateY(-2px);
+}
+
+.option-input:checked + .option-card {
+    border-color: var(--alfa-primary);
+    border-style: solid;
+    box-shadow: 0 12px 30px rgba(45, 78, 215, 0.18);
+}
+
+.option-card .option-indicator {
+    display: inline-flex;
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    border: 2px solid var(--alfa-border);
+    position: relative;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.option-input:checked + .option-card .option-indicator::after {
+    content: '\2713';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: #fff;
+}
+
+.option-input:checked + .option-card .option-indicator {
+    background: var(--alfa-accent-gradient);
+    border-color: transparent;
+}
+
+.option-badge {
+    background-color: var(--alfa-primary-soft);
+    color: var(--alfa-primary);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+}
+
+.option-card.suggested {
+    border-style: dashed;
+    border-color: var(--alfa-primary);
+    background: rgba(45, 78, 215, 0.08);
+}
+
+.option-card p {
+    line-height: 1.4;
+}
+
+.option-card h6 {
+    font-weight: 600;
 }
 
 .dropdown-menu {

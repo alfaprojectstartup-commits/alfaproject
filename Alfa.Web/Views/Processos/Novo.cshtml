@@ -6,37 +6,117 @@
 }
 
 <h4 class="mb-3">Novo processo</h4>
-<form method="post" class="needs-validation" novalidate>
+<form method="post" class="needs-validation" novalidate id="novo-processo-form">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="mb-3">
-        <label asp-for="Titulo" class="form-label"></label>
-        <input asp-for="Titulo" class="form-control" />
-        <span asp-validation-for="Titulo" class="text-danger"></span>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12 col-lg-8">
+                    <label asp-for="Titulo" class="form-label"></label>
+                    <input asp-for="Titulo" class="form-control" placeholder="Informe um título para o novo processo" />
+                    <span asp-validation-for="Titulo" class="text-danger"></span>
+                </div>
+                <div class="col-12 col-lg-4 d-flex align-items-end">
+                    <div class="text-muted small">
+                        Defina um nome que facilite identificar o fluxo ou cliente deste processo.
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-4">
-        <label class="form-label">Fases a incluir</label>
-        @if (Model.FasesDisponiveis is null || !Model.FasesDisponiveis.Any())
-        {
-            <div class="alert alert-warning mb-0">Nenhum modelo de fase disponível.</div>
-        }
-        else
-        {
-            <div class="row g-3">
-                @foreach (var fase in Model.FasesDisponiveis)
-                {
-                    <div class="col-md-6">
-                        <div class="form-check border rounded px-3 py-2 h-100">
-                            <input class="form-check-input" type="checkbox" name="FasesSelecionadasIds" value="@fase.Id" id="fase_@fase.Id" @(Model.FasesSelecionadasIds.Contains(fase.Id) ? "checked" : "") />
-                            <label class="form-check-label" for="fase_@fase.Id">
-                                <strong>@fase.Titulo</strong>
-                                <small class="d-block text-muted">Ordem: @fase.Ordem</small>
-                            </label>
-                        </div>
-                    </div>
-                }
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                <div>
+                    <h5 class="mb-1">Escolha como deseja montar o processo</h5>
+                    <p class="text-muted mb-0">Selecione um padrão sugerido ou personalize escolhendo fase a fase.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" id="novo-padrao-btn">Novo padrão</button>
+                </div>
             </div>
-        }
+
+            <ul class="nav nav-pills nav-fill processo-tabs mt-4" id="processoTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="processo-tab-padrao" data-bs-toggle="tab" data-bs-target="#tab-processos-padrao" type="button" role="tab" aria-controls="tab-processos-padrao" aria-selected="true">
+                        Processos padrão
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="processo-tab-manual" data-bs-toggle="tab" data-bs-target="#tab-selecao-fases" type="button" role="tab" aria-controls="tab-selecao-fases" aria-selected="false">
+                        Seleção de fases
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content pt-4" id="processoTabsContent">
+                <div class="tab-pane fade show active" id="tab-processos-padrao" role="tabpanel" aria-labelledby="processo-tab-padrao">
+                    @if (Model.ProcessosPadrao is null || !Model.ProcessosPadrao.Any())
+                    {
+                        <div class="alert alert-info mb-0">
+                            Nenhum processo padrão disponível no momento. Utilize a aba de seleção manual para montar um novo fluxo.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3" data-padroes-container>
+                            @foreach (var padrao in Model.ProcessosPadrao)
+                            {
+                                var padraoId = $"padrao_{padrao.Id}";
+                                <div class="col-md-6 col-xl-4">
+                                    <input type="radio" class="option-input" data-padrao-input name="ProcessoPadraoSelecionadoId" value="@padrao.Id" id="@padraoId" @(Model.ProcessoPadraoSelecionadoId == padrao.Id ? "checked" : string.Empty) />
+                                    <label class="option-card h-100" for="@padraoId" data-padrao-card data-fase-ids="@string.Join(',', padrao.FaseModeloIds)">
+                                        <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                                            <div>
+                                                <span class="badge bg-primary-soft text-primary">Padrão</span>
+                                            </div>
+                                            <div class="form-check form-check-inline ms-auto">
+                                                <span class="option-indicator" aria-hidden="true"></span>
+                                            </div>
+                                        </div>
+                                        <h6 class="mb-2">@padrao.Titulo</h6>
+                                        @if (!string.IsNullOrWhiteSpace(padrao.Descricao))
+                                        {
+                                            <p class="text-muted small mb-3">@padrao.Descricao</p>
+                                        }
+                                        <div class="d-flex flex-wrap gap-2 small text-muted">
+                                            <span class="badge rounded-pill bg-light text-muted border">@(padrao.FaseModeloIds.Count) fases</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="tab-pane fade" id="tab-selecao-fases" role="tabpanel" aria-labelledby="processo-tab-manual">
+                    @if (Model.FasesDisponiveis is null || !Model.FasesDisponiveis.Any())
+                    {
+                        <div class="alert alert-warning mb-0">Nenhum modelo de fase disponível.</div>
+                    }
+                    else
+                    {
+                        <div class="row g-3" data-fases-container>
+                            @foreach (var fase in Model.FasesDisponiveis)
+                            {
+                                var faseId = $"fase_{fase.Id}";
+                                <div class="col-md-6 col-xl-4">
+                                    <input class="option-input" data-fase-input type="checkbox" name="FasesSelecionadasIds" value="@fase.Id" id="@faseId" @(Model.FasesSelecionadasIds.Contains(fase.Id) ? "checked" : string.Empty) />
+                                    <label class="option-card h-100" data-fase-card data-fase-id="@fase.Id" for="@faseId">
+                                        <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                                            <div class="option-badge">Fase</div>
+                                            <span class="text-muted small">Ordem @fase.Ordem</span>
+                                        </div>
+                                        <h6 class="mb-2">@fase.Titulo</h6>
+                                        <p class="text-muted small mb-0">Inclua esta fase para capturar as informações configuradas no template.</p>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="d-flex gap-2">
@@ -47,4 +127,104 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const padraoInputs = Array.from(document.querySelectorAll('[data-padrao-input]'));
+            const faseInputs = Array.from(document.querySelectorAll('[data-fase-input]'));
+            const faseCards = Array.from(document.querySelectorAll('[data-fase-card]'));
+
+            function limparPadroes() {
+                padraoInputs.forEach(input => {
+                    input.checked = false;
+                });
+                destacarFases();
+            }
+
+            function limparFases() {
+                faseInputs.forEach(input => {
+                    input.checked = false;
+                });
+            }
+
+            function destacarFases(faseIds) {
+                const ids = new Set((faseIds || []).map(id => parseInt(id, 10)));
+                faseCards.forEach(card => {
+                    const id = parseInt(card.dataset.faseId, 10);
+                    if (ids.has(id)) {
+                        card.classList.add('suggested');
+                    } else {
+                        card.classList.remove('suggested');
+                    }
+                });
+            }
+
+            padraoInputs.forEach(input => {
+                input.addEventListener('change', function () {
+                    if (!this.checked) {
+                        destacarFases();
+                        return;
+                    }
+
+                    limparFases();
+                    const card = this.nextElementSibling;
+                    if (card && card.dataset.faseIds) {
+                        const lista = card.dataset.faseIds.split(',').filter(Boolean);
+                        destacarFases(lista);
+                    }
+                });
+            });
+
+            faseInputs.forEach(input => {
+                input.addEventListener('change', function () {
+                    if (this.checked) {
+                        limparPadroes();
+                    }
+                    if (!padraoInputs.some(r => r.checked)) {
+                        destacarFases();
+                    }
+                });
+            });
+
+            const tabs = document.querySelectorAll('#processoTabs [data-bs-toggle="tab"]');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function (event) {
+                    if (event.target.id === 'processo-tab-manual') {
+                        destacarFases();
+                    }
+                });
+            });
+
+            const novoPadraoBtn = document.querySelector('#novo-padrao-btn');
+            if (novoPadraoBtn) {
+                novoPadraoBtn.addEventListener('click', () => {
+                    const manualTab = document.querySelector('#processo-tab-manual');
+                    if (manualTab) {
+                        if (window.bootstrap && typeof window.bootstrap.Tab === 'function') {
+                            const tab = new window.bootstrap.Tab(manualTab);
+                            tab.show();
+                        } else {
+                            manualTab.classList.add('active');
+                            const targetId = manualTab.getAttribute('data-bs-target');
+                            if (targetId) {
+                                document.querySelectorAll('#processoTabsContent .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+                                const pane = document.querySelector(targetId);
+                                if (pane) {
+                                    pane.classList.add('show', 'active');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const padraoInicial = padraoInputs.find(input => input.checked);
+            if (padraoInicial) {
+                const card = padraoInicial.nextElementSibling;
+                if (card && card.dataset.faseIds) {
+                    limparFases();
+                    destacarFases(card.dataset.faseIds.split(',').filter(Boolean));
+                }
+            }
+        });
+    </script>
 }
