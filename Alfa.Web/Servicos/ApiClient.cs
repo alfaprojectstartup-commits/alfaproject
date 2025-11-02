@@ -38,6 +38,9 @@ public class ApiClient
     public Task<List<ProcessoPadraoModeloViewModel>?> GetProcessoPadraoModelosAsync()
         => _http.GetFromJsonAsync<List<ProcessoPadraoModeloViewModel>>("api/processos/padroes");
 
+    public Task<HttpResponseMessage> CriarProcessoPadraoAsync(ProcessoPadraoModeloInput payload)
+        => _http.PostAsJsonAsync("api/processos/padroes", payload);
+
     public Task<List<FaseModelosViewModel>?> GetFaseTemplatesAsync()
         => _http.GetFromJsonAsync<List<FaseModelosViewModel>>("api/fases/modelos");
 

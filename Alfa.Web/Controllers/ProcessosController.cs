@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
@@ -106,6 +109,66 @@ public class ProcessosController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CriarPadrao([FromBody] ProcessoPadraoModeloInput payload)
+    {
+        if (payload is null)
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        var titulo = payload.Titulo?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(titulo))
+        {
+            return BadRequest(new { message = "Informe um título para o padrão." });
+        }
+
+        var descricao = string.IsNullOrWhiteSpace(payload.Descricao) ? null : payload.Descricao!.Trim();
+        var fases = payload.FaseModeloIds?
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList() ?? new List<int>();
+
+        if (fases.Count == 0)
+        {
+            return BadRequest(new { message = "Selecione ao menos uma fase." });
+        }
+
+        var input = new ProcessoPadraoModeloInput
+        {
+            Titulo = titulo,
+            Descricao = descricao,
+            FaseModeloIds = fases
+        };
+
+        HttpResponseMessage? resp;
+        try
+        {
+            resp = await _api.CriarProcessoPadraoAsync(input);
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(500, new { message = "Não foi possível salvar o padrão.", detail = ex.Message });
+        }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync();
+            return StatusCode((int)resp.StatusCode, new { message = "Falha ao salvar padrão.", detail = body });
+        }
+
+        var criado = await resp.Content.ReadFromJsonAsync<CreatedResourceDto>() ?? new CreatedResourceDto();
+
+        return Ok(new
+        {
+            id = criado.Id,
+            titulo = input.Titulo,
+            descricao = input.Descricao,
+            faseModeloIds = input.FaseModeloIds
+        });
+    }
+
     [HttpGet]
     public async Task<IActionResult> Detalhes(int id)
     {
@@ -167,5 +230,11 @@ public class NovoProcessoVm
     public List<ProcessoPadraoModeloViewModel> ProcessosPadrao { get; set; } = new();
 
     public int? ProcessoPadraoSelecionadoId { get; set; }
+}
+
+public class CreatedResourceDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
 }
 

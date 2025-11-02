@@ -1,4 +1,5 @@
-﻿@model NovoProcessoVm
+﻿@using System.Linq
+@model NovoProcessoVm
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
@@ -7,6 +8,7 @@
 
 <h4 class="mb-3">Novo processo</h4>
 <form method="post" class="needs-validation" novalidate id="novo-processo-form">
+    @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -27,15 +29,15 @@
 
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
-                <div>
-                    <h5 class="mb-1">Escolha como deseja montar o processo</h5>
-                    <p class="text-muted mb-0">Selecione um padrão sugerido ou personalize escolhendo fase a fase.</p>
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                    <div>
+                        <h5 class="mb-1">Escolha como deseja montar o processo</h5>
+                        <p class="text-muted mb-0">Selecione um padrão sugerido ou personalize escolhendo fase a fase.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="novo-padrao-btn" data-salvar-padrao-trigger>Salvar novo padrão</button>
+                    </div>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-outline-primary" id="novo-padrao-btn">Novo padrão</button>
-                </div>
-            </div>
 
             <ul class="nav nav-pills nav-fill processo-tabs mt-4" id="processoTabs" role="tablist">
                 <li class="nav-item" role="presentation">
@@ -52,16 +54,13 @@
 
             <div class="tab-content pt-4" id="processoTabsContent">
                 <div class="tab-pane fade show active" id="tab-processos-padrao" role="tabpanel" aria-labelledby="processo-tab-padrao">
-                    @if (Model.ProcessosPadrao is null || !Model.ProcessosPadrao.Any())
-                    {
-                        <div class="alert alert-info mb-0">
+                    @{ var possuiPadroes = Model.ProcessosPadrao is not null && Model.ProcessosPadrao.Any(); }
+                    <div data-padroes-wrapper>
+                        <div class="alert alert-info mb-3 @(possuiPadroes ? "d-none" : string.Empty)" data-sem-padroes>
                             Nenhum processo padrão disponível no momento. Utilize a aba de seleção manual para montar um novo fluxo.
                         </div>
-                    }
-                    else
-                    {
-                        <div class="row g-3" data-padroes-container>
-                            @foreach (var padrao in Model.ProcessosPadrao)
+                        <div class="row g-3 @(possuiPadroes ? string.Empty : "d-none")" data-padroes-container>
+                            @foreach (var padrao in Model.ProcessosPadrao ?? Enumerable.Empty<ProcessoPadraoModeloViewModel>())
                             {
                                 var padraoId = $"padrao_{padrao.Id}";
                                 <div class="col-md-6 col-xl-4">
@@ -87,7 +86,7 @@
                                 </div>
                             }
                         </div>
-                    }
+                    </div>
                 </div>
                 <div class="tab-pane fade" id="tab-selecao-fases" role="tabpanel" aria-labelledby="processo-tab-manual">
                     @if (Model.FasesDisponiveis is null || !Model.FasesDisponiveis.Any())
@@ -113,6 +112,18 @@
                                 </div>
                             }
                         </div>
+                        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mt-4">
+                            <div class="text-muted small">Selecione as fases desejadas e salve como um padrão reutilizável.</div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-primary" data-salvar-padrao-trigger>Salvar seleção como padrão</button>
+                            </div>
+                        </div>
+                        <div class="alert alert-info d-none mt-3" role="alert" data-alert-sem-fases>
+                            Selecione ao menos uma fase para criar um novo padrão.
+                        </div>
+                        <div class="alert alert-success d-none mt-3" role="alert" data-alert-padrao-sucesso>
+                            Novo padrão criado e disponível na aba de processos padrão.
+                        </div>
                     }
                 </div>
             </div>
@@ -125,29 +136,101 @@
     </div>
 </form>
 
+<div class="modal fade" id="novoPadraoModal" tabindex="-1" aria-labelledby="novoPadraoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="novoPadraoForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="novoPadraoModalLabel">Salvar novo padrão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="novoPadraoTitulo" class="form-label">Nome do padrão</label>
+                        <input type="text" class="form-control" id="novoPadraoTitulo" name="titulo" placeholder="Informe um nome para o padrão" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="novoPadraoDescricao" class="form-label">Descrição (opcional)</label>
+                        <textarea class="form-control" id="novoPadraoDescricao" name="descricao" rows="3" placeholder="Descreva quando utilizar este padrão"></textarea>
+                    </div>
+                    <div class="alert alert-danger d-none" role="alert" data-modal-error></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" data-modal-submit>Salvar padrão</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const padraoInputs = Array.from(document.querySelectorAll('[data-padrao-input]'));
-            const faseInputs = Array.from(document.querySelectorAll('[data-fase-input]'));
             const faseCards = Array.from(document.querySelectorAll('[data-fase-card]'));
+            const salvarPadraoTriggers = Array.from(document.querySelectorAll('[data-salvar-padrao-trigger]'));
+            const manualAlert = document.querySelector('[data-alert-sem-fases]');
+            const sucessoAlert = document.querySelector('[data-alert-padrao-sucesso]');
+            const padroesContainer = document.querySelector('[data-padroes-container]');
+            const semPadroesAlert = document.querySelector('[data-sem-padroes]');
+            const tokenInput = document.querySelector('#novo-processo-form input[name="__RequestVerificationToken"]');
+            const criarPadraoUrl = '@Url.Action("CriarPadrao", "Processos")';
+            const modalElement = document.getElementById('novoPadraoModal');
+            const modalForm = document.getElementById('novoPadraoForm');
+            const modalTituloInput = modalElement ? modalElement.querySelector('#novoPadraoTitulo') : null;
+            const modalDescricaoInput = modalElement ? modalElement.querySelector('#novoPadraoDescricao') : null;
+            const modalError = modalElement ? modalElement.querySelector('[data-modal-error]') : null;
+            const modalSubmitButton = modalElement ? modalElement.querySelector('[data-modal-submit]') : null;
+            let alertaTimeoutId;
+            let sucessoTimeoutId;
+            let modalInstance = null;
+
+            if (modalElement && window.bootstrap && typeof window.bootstrap.Modal === 'function') {
+                modalInstance = new window.bootstrap.Modal(modalElement);
+            }
+
+            function escapeHtml(texto) {
+                if (typeof texto !== 'string') {
+                    return '';
+                }
+                return texto
+                    .replace(/[&<>"']/g, function (caractere) {
+                        switch (caractere) {
+                            case '&': return '&amp;';
+                            case '<': return '&lt;';
+                            case '>': return '&gt;';
+                            case '"': return '&quot;';
+                            case "'": return '&#39;';
+                            default: return caractere;
+                        }
+                    });
+            }
+
+            function getPadraoInputs() {
+                return Array.from(document.querySelectorAll('[data-padrao-input]'));
+            }
+
+            function getFaseInputs() {
+                return Array.from(document.querySelectorAll('[data-fase-input]'));
+            }
 
             function limparPadroes() {
-                padraoInputs.forEach(input => {
+                getPadraoInputs().forEach(input => {
                     input.checked = false;
                 });
                 destacarFases();
             }
 
             function limparFases() {
-                faseInputs.forEach(input => {
+                getFaseInputs().forEach(input => {
                     input.checked = false;
                 });
             }
 
             function destacarFases(faseIds) {
-                const ids = new Set((faseIds || []).map(id => parseInt(id, 10)));
+                const lista = Array.isArray(faseIds) ? faseIds : [];
+                const ids = new Set(lista.map(id => parseInt(id, 10)).filter(Number.isFinite));
                 faseCards.forEach(card => {
                     const id = parseInt(card.dataset.faseId, 10);
                     if (ids.has(id)) {
@@ -158,31 +241,184 @@
                 });
             }
 
-            padraoInputs.forEach(input => {
-                input.addEventListener('change', function () {
-                    if (!this.checked) {
+            function ativarManualTab() {
+                const manualTab = document.querySelector('#processo-tab-manual');
+                if (!manualTab) {
+                    return;
+                }
+                if (window.bootstrap && typeof window.bootstrap.Tab === 'function') {
+                    const tab = new window.bootstrap.Tab(manualTab);
+                    tab.show();
+                } else {
+                    document.querySelectorAll('#processoTabs [data-bs-toggle="tab"]').forEach(btn => btn.classList.remove('active'));
+                    manualTab.classList.add('active');
+                    const targetId = manualTab.getAttribute('data-bs-target');
+                    if (targetId) {
+                        document.querySelectorAll('#processoTabsContent .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+                        const pane = document.querySelector(targetId);
+                        if (pane) {
+                            pane.classList.add('show', 'active');
+                        }
+                    }
+                }
+            }
+
+            function ocultarManualAlert() {
+                if (!manualAlert) {
+                    return;
+                }
+                manualAlert.classList.add('d-none');
+                if (alertaTimeoutId) {
+                    clearTimeout(alertaTimeoutId);
+                    alertaTimeoutId = undefined;
+                }
+            }
+
+            function mostrarManualAlert() {
+                if (!manualAlert) {
+                    return;
+                }
+                manualAlert.classList.remove('d-none');
+                if (alertaTimeoutId) {
+                    clearTimeout(alertaTimeoutId);
+                }
+                alertaTimeoutId = window.setTimeout(() => {
+                    manualAlert.classList.add('d-none');
+                }, 5000);
+            }
+
+            function mostrarSucesso() {
+                if (!sucessoAlert) {
+                    return;
+                }
+                sucessoAlert.classList.remove('d-none');
+                if (sucessoTimeoutId) {
+                    clearTimeout(sucessoTimeoutId);
+                }
+                sucessoTimeoutId = window.setTimeout(() => {
+                    sucessoAlert.classList.add('d-none');
+                }, 5000);
+            }
+
+            function setModalError(message) {
+                if (!modalError) {
+                    return;
+                }
+                if (!message) {
+                    modalError.classList.add('d-none');
+                    modalError.textContent = '';
+                } else {
+                    modalError.textContent = message;
+                    modalError.classList.remove('d-none');
+                }
+            }
+
+            function abrirModalPadrao() {
+                setModalError();
+                if (modalTituloInput) {
+                    modalTituloInput.value = '';
+                }
+                if (modalDescricaoInput) {
+                    modalDescricaoInput.value = '';
+                }
+
+                if (modalInstance) {
+                    modalInstance.show();
+                } else if (modalElement) {
+                    modalElement.classList.add('show');
+                    modalElement.style.display = 'block';
+                }
+
+                if (modalTituloInput) {
+                    setTimeout(() => modalTituloInput.focus(), 200);
+                }
+            }
+
+            function fecharModalPadrao() {
+                if (modalInstance) {
+                    modalInstance.hide();
+                } else if (modalElement) {
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = 'none';
+                }
+            }
+
+            function adicionarPadraoCard(padrao) {
+                if (!padrao || !padrao.id || !padroesContainer) {
+                    return;
+                }
+
+                if (semPadroesAlert) {
+                    semPadroesAlert.classList.add('d-none');
+                }
+                padroesContainer.classList.remove('d-none');
+
+                const faseIds = Array.isArray(padrao.faseModeloIds) ? padrao.faseModeloIds : [];
+                const padraoId = `padrao_${padrao.id}`;
+                getPadraoInputs().forEach(input => {
+                    input.checked = false;
+                });
+                const tituloCard = escapeHtml(padrao.titulo ?? '');
+                const descricaoCard = escapeHtml(padrao.descricao ?? '');
+                const cardHtml = `
+<div class="col-md-6 col-xl-4">
+    <input type="radio" class="option-input" data-padrao-input name="ProcessoPadraoSelecionadoId" value="${padrao.id}" id="${padraoId}" checked />
+    <label class="option-card h-100" for="${padraoId}" data-padrao-card data-fase-ids="${faseIds.join(',')}">
+        <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+            <div>
+                <span class="badge bg-primary-soft text-primary">Padrão</span>
+            </div>
+            <div class="form-check form-check-inline ms-auto">
+                <span class="option-indicator" aria-hidden="true"></span>
+            </div>
+        </div>
+        <h6 class="mb-2">${tituloCard}</h6>
+        ${descricaoCard ? `<p class="text-muted small mb-3">${descricaoCard}</p>` : ''}
+        <div class="d-flex flex-wrap gap-2 small text-muted">
+            <span class="badge rounded-pill bg-light text-muted border">${faseIds.length} fases</span>
+        </div>
+    </label>
+</div>`;
+
+                padroesContainer.insertAdjacentHTML('beforeend', cardHtml);
+
+                const novoRadio = document.getElementById(padraoId);
+                limparFases();
+                destacarFases(faseIds);
+                if (novoRadio) {
+                    novoRadio.focus();
+                }
+            }
+
+            document.addEventListener('change', (event) => {
+                const target = event.target;
+                if (!target) {
+                    return;
+                }
+
+                if (target.matches('[data-padrao-input]')) {
+                    const radio = target;
+                    if (!radio.checked) {
                         destacarFases();
                         return;
                     }
 
                     limparFases();
-                    const card = this.nextElementSibling;
+                    const card = radio.nextElementSibling;
                     if (card && card.dataset.faseIds) {
                         const lista = card.dataset.faseIds.split(',').filter(Boolean);
                         destacarFases(lista);
                     }
-                });
-            });
+                }
 
-            faseInputs.forEach(input => {
-                input.addEventListener('change', function () {
-                    if (this.checked) {
+                if (target.matches('[data-fase-input]')) {
+                    ocultarManualAlert();
+                    if (target.checked) {
                         limparPadroes();
-                    }
-                    if (!padraoInputs.some(r => r.checked)) {
+                    } else if (!getFaseInputs().some(input => input.checked)) {
                         destacarFases();
                     }
-                });
+                }
             });
 
             const tabs = document.querySelectorAll('#processoTabs [data-bs-toggle="tab"]');
@@ -194,30 +430,97 @@
                 });
             });
 
-            const novoPadraoBtn = document.querySelector('#novo-padrao-btn');
-            if (novoPadraoBtn) {
-                novoPadraoBtn.addEventListener('click', () => {
-                    const manualTab = document.querySelector('#processo-tab-manual');
-                    if (manualTab) {
-                        if (window.bootstrap && typeof window.bootstrap.Tab === 'function') {
-                            const tab = new window.bootstrap.Tab(manualTab);
-                            tab.show();
-                        } else {
-                            manualTab.classList.add('active');
-                            const targetId = manualTab.getAttribute('data-bs-target');
-                            if (targetId) {
-                                document.querySelectorAll('#processoTabsContent .tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
-                                const pane = document.querySelector(targetId);
-                                if (pane) {
-                                    pane.classList.add('show', 'active');
+            salvarPadraoTriggers.forEach(botao => {
+                botao.addEventListener('click', () => {
+                    const fasesSelecionadas = getFaseInputs().filter(input => input.checked);
+                    if (fasesSelecionadas.length === 0) {
+                        ativarManualTab();
+                        mostrarManualAlert();
+                        return;
+                    }
+                    abrirModalPadrao();
+                });
+            });
+
+            if (modalForm && modalSubmitButton) {
+                modalForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    setModalError();
+
+                    const fasesSelecionadas = getFaseInputs().filter(input => input.checked).map(input => parseInt(input.value, 10)).filter(Number.isFinite);
+                    if (fasesSelecionadas.length === 0) {
+                        fecharModalPadrao();
+                        ativarManualTab();
+                        mostrarManualAlert();
+                        return;
+                    }
+
+                    const titulo = modalTituloInput ? modalTituloInput.value.trim() : '';
+                    if (!titulo) {
+                        setModalError('Informe um nome para o padrão.');
+                        if (modalTituloInput) {
+                            modalTituloInput.focus();
+                        }
+                        return;
+                    }
+
+                    const descricao = modalDescricaoInput ? modalDescricaoInput.value.trim() : '';
+                    const payload = {
+                        titulo: titulo,
+                        descricao: descricao.length ? descricao : null,
+                        faseModeloIds: fasesSelecionadas
+                    };
+
+                    if (modalSubmitButton) {
+                        modalSubmitButton.disabled = true;
+                    }
+
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (tokenInput && tokenInput.value) {
+                        headers['RequestVerificationToken'] = tokenInput.value;
+                    }
+
+                    try {
+                        const response = await fetch(criarPadraoUrl, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            let mensagem = 'Não foi possível salvar o padrão.';
+                            try {
+                                const erro = await response.json();
+                                if (erro && erro.message) {
+                                    mensagem = erro.message;
                                 }
+                            } catch (e) {
+                                // ignore json parse errors
                             }
+                            setModalError(mensagem);
+                            return;
+                        }
+
+                        const resultado = await response.json();
+                        fecharModalPadrao();
+                        adicionarPadraoCard({
+                            id: resultado?.id ?? 0,
+                            titulo: resultado?.titulo ?? titulo,
+                            descricao: resultado?.descricao ?? (descricao.length ? descricao : ''),
+                            faseModeloIds: Array.isArray(resultado?.faseModeloIds) ? resultado.faseModeloIds : fasesSelecionadas
+                        });
+                        mostrarSucesso();
+                    } catch (error) {
+                        setModalError('Falha ao salvar padrão. Tente novamente.');
+                    } finally {
+                        if (modalSubmitButton) {
+                            modalSubmitButton.disabled = false;
                         }
                     }
                 });
             }
 
-            const padraoInicial = padraoInputs.find(input => input.checked);
+            const padraoInicial = getPadraoInputs().find(input => input.checked);
             if (padraoInicial) {
                 const card = padraoInicial.nextElementSibling;
                 if (card && card.dataset.faseIds) {
