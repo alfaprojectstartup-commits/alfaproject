@@ -1,6 +1,6 @@
-﻿namespace Alfa.Api.Dtos
+﻿namespace Alfa.Web.Dtos
 {
-    public class LoginTokenDto
+    public class UsuarioAutenticadoDto
     {
         public required string Email { get; set; }
         public required int FuncaoId { get; set; }

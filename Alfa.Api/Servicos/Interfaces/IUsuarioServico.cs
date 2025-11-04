@@ -5,7 +5,7 @@ namespace Alfa.Api.Servicos.Interfaces
 {
     public interface IUsuarioServico
     {
-        Task<LoginTokenDto?> Login(LoginDto login);
+        Task<UsuarioAutenticadoDto?> Login(UsuarioLoginDto login);
         Task<UsuarioModel?> BuscarUsuarioPorEmailAsync(string email);
         Task CadastrarUsuarioAsync(UsuarioRegistroDto usuario);
     }

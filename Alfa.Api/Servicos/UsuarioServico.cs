@@ -17,7 +17,7 @@ namespace Alfa.Api.Servicos
             _tokenServico = tokenServico;
         }
 
-        public async Task<LoginTokenDto?> Login(LoginDto login)
+        public async Task<UsuarioAutenticadoDto?> Login(UsuarioLoginDto login)
         {
             try
             {
@@ -27,7 +27,7 @@ namespace Alfa.Api.Servicos
                     return null;
                 }
 
-                return new LoginTokenDto
+                return new UsuarioAutenticadoDto
                 {
                     Email = usuarioExistente.Email,
                     FuncaoId = usuarioExistente.FuncaoId,

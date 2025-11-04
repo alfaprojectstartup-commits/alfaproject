@@ -2,6 +2,28 @@
 @inject IHttpContextAccessor Http
 @inject IConfiguration Config
 @using Microsoft.Extensions.Configuration
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authorization
+
+@* <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <!-- ... -->
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ms-auto">
+            @if (User?.Identity?.IsAuthenticated ?? false)
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Usuario" asp-action="Logout">Sair</a>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Usuario" asp-action="Login">Entrar</a>
+                </li>
+            }
+        </ul>
+    </div>
+</nav> *@
 
 @{
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";

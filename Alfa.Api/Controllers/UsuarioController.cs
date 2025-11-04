@@ -16,7 +16,7 @@ namespace Alfa.Api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto login)
+        public async Task<IActionResult> Login([FromBody] UsuarioLoginDto login)
         {
             var logado = await _usuarioServico.Login(login);
             if (logado == null)
@@ -28,7 +28,7 @@ namespace Alfa.Api.Controllers
         }
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> Register([FromBody] UsuarioRegistroDto usuarioRegistro)
+        public async Task<IActionResult> Registrar([FromBody] UsuarioRegistroDto usuarioRegistro)
         {
             await _usuarioServico.CadastrarUsuarioAsync(usuarioRegistro);
             return Created();
