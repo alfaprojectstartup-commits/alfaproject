@@ -1,6 +1,8 @@
 using Alfa.Web.Configuration;
 using Alfa.Web.Servicos;
+using Alfa.Web.Servicos.Handlers;
 using Alfa.Web.Servicos.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,21 +12,34 @@ var builder = WebApplication.CreateBuilder(args);
 // ===== configuração da URL base da sua API (opcional) =====
 builder.Configuration["ApiBaseUrl"] = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:5001"; // ajuste
 
-// ===== HttpClient para chamar a API =====
-builder.Services.AddHttpClient("Api", client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
+builder.Services.AddHttpContextAccessor();
 
 // ===== registrar o serviço de autenticação que criamos =====
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
+builder.Services.AddTransient<JwtCookieHandler>();
+
+
+// ===== HttpClient para chamar a API =====
+builder.Services.AddHttpClient("AlfaApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<JwtCookieHandler>();
+
 
 // ===== Authentication: JWT Bearer que lê o token do cookie "JwtToken" =====
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.LoginPath = "/Usuario/Login";
+    options.LogoutPath = "/Usuario/Logout";
+    options.AccessDeniedPath = "/Usuario/AcessoNegado";
+    options.ExpireTimeSpan = TimeSpan.FromHours(4);
 })
 .AddJwtBearer(options =>
 {
@@ -83,6 +98,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

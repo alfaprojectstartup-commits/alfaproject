@@ -14,7 +14,7 @@ namespace Alfa.Web.Servicos
 
         public async Task<UsuarioAutenticadoDto?> LoginAsync(UsuarioLoginDto login)
         {
-            var client = _httpFactory.CreateClient("Api");
+            var client = _httpFactory.CreateClient("AlfaApi");
             var resp = await client.PostAsJsonAsync("/api/usuario/login", login);
 
             if (!resp.IsSuccessStatusCode) {
@@ -27,7 +27,7 @@ namespace Alfa.Web.Servicos
 
         public async Task<(bool Success, string? Error)> RegistrarAsync(UsuarioRegistroDto registro)
         {
-            var client = _httpFactory.CreateClient("Api");
+            var client = _httpFactory.CreateClient("AlfaApi");
             var resp = await client.PostAsJsonAsync("/api/usuario/registrar", registro);
 
             if (resp.IsSuccessStatusCode)

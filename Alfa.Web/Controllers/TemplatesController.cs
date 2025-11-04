@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alfa.Web.Controllers;
 
+[Authorize]
 public class TemplatesController : Controller
 {
     private readonly ApiClient _apiClient;

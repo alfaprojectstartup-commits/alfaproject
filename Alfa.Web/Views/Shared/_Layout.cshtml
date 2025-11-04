@@ -4,29 +4,12 @@
 @using Microsoft.Extensions.Configuration
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authorization
-
-@* <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <!-- ... -->
-    <div class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-            @if (User?.Identity?.IsAuthenticated ?? false)
-            {
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Usuario" asp-action="Logout">Sair</a>
-                </li>
-            }
-            else
-            {
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Usuario" asp-action="Login">Entrar</a>
-                </li>
-            }
-        </ul>
-    </div>
-</nav> *@
+@using System.Security.Claims
 
 @{
-    var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
+    var nomeUsuario = User.Identity?.IsAuthenticated == true
+    ? User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value
+    : null;
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
     var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
     var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
@@ -101,7 +84,7 @@
                     </li>
 
                     <li class="nav-item ms-lg-2">
-                        <span class="navbar-text small text-muted me-2">Bem-vindo, @nome</span>
+                        <span class="navbar-text small text-muted me-2">Bem-vindo, @nomeUsuario</span>
                         <a class="btn btn-outline-secondary btn-sm" href="/logout">Sair</a>
                     </li>
                 </ul>
