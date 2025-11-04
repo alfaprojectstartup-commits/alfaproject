@@ -21,41 +21,37 @@ namespace Alfa.Web.Controllers
             return View();
         }
 
-        // POST: /Usuario/Login
+        //// POST: /Usuario/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(UsuarioLoginDto model, string? returnUrl = null)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-            if (!ModelState.IsValid) {
+            if (!ModelState.IsValid)
+            {
                 return View(model);
-            } 
+            }
 
             var auth = await _usuarioServico.LoginAsync(model);
             if (auth == null || string.IsNullOrEmpty(auth.Token))
             {
-                ModelState.AddModelError("", "Credenciais inválidas.");
+                ModelState.AddModelError(string.Empty, "Credenciais inválidas. Verifique e tente novamente.");
                 return View(model);
             }
 
-            // salvar token em cookie seguro
-            var cookieOptions = new CookieOptions
-            {
+            var cookieOptions = new CookieOptions { 
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddHours(1) // ajustar conforme expiracao do token
+                Expires = DateTimeOffset.UtcNow.AddHours(8)
             };
             Response.Cookies.Append("JwtToken", auth.Token, cookieOptions);
 
-            // opcional: podemos criar ClaimsPrincipal local a partir do token (se parsearmos)
-            // Por simplicidade, apenas redirecionamos
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
                 
-            return RedirectToAction("Index", "Home"); // rota após login
+            return RedirectToAction("Index", "Home");
         }
 
         // GET: /Usuario/Registrar
