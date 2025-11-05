@@ -18,7 +18,11 @@
     </ol>
 </nav>
 
-<div id="processo-detalhes" data-processo-details data-processo-id="@Model.Id">
+<form id="preenchimento-externo-antiforgery" class="d-none" method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+<div id="processo-detalhes" data-processo-details data-processo-id="@Model.Id" data-link-preenchimento-url="@Url.Action("LinkPreenchimentoExterno", "Processos")">
     <div class="d-flex flex-wrap gap-3 align-items-start mb-4">
         <div class="flex-grow-1">
             <h2 class="h4 mb-1">@Model.Titulo</h2>
@@ -79,9 +83,18 @@
                                     <h5 class="card-title mb-1">@pagina.Titulo</h5>
                                     <div class="text-muted small">Fase: @fase.Titulo</div>
                                 </div>
-                                <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary") align-self-center" data-page-complete-badge="@pagina.Id">
-                                    @(pagina.Concluida ? "Página concluída" : "Página pendente")
-                                </span>
+                                <div class="d-flex flex-column flex-sm-row gap-2 align-items-sm-center">
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-sm"
+                                            data-link-preenchimento
+                                            data-fase-id="@fase.Id"
+                                            data-page-id="@pagina.Id">
+                                        Preenchimento externo
+                                    </button>
+                                    <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary") align-self-center" data-page-complete-badge="@pagina.Id">
+                                        @(pagina.Concluida ? "Página concluída" : "Página pendente")
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
