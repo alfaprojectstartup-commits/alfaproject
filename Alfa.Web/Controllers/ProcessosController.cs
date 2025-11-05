@@ -14,13 +14,17 @@ using System.ComponentModel.DataAnnotations;
 
 public class ProcessosController : Controller
 {
+    private const string ProcessoPurpose = "ProcessosController.ProcessoId";
+
     private readonly ApiClient _api;
     private readonly PreenchimentoExternoTokenService _tokenService;
+    private readonly IUrlProtector _urlProtector;
 
-    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService)
+    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService, IUrlProtector urlProtector)
     {
         _api = api;
         _tokenService = tokenService;
+        _urlProtector = urlProtector;
     }
 
     public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
@@ -33,11 +37,20 @@ public class ProcessosController : Controller
               items = Enumerable.Empty<ProcessoListaItemViewModel>()
           };
 
+        var itens = res.items.ToList();
+        foreach (var processo in itens)
+        {
+            if (processo.Id > 0)
+            {
+                processo.Token = EncodeProcessoId(processo.Id);
+            }
+        }
+
         ViewBag.Tab = tab;
         ViewBag.Page = page;
         ViewBag.PageSize = 10;
         ViewBag.Total = res.total;
-        return View(res.items.ToList());
+        return View(itens);
     }
 
     [HttpGet]
@@ -177,8 +190,13 @@ public class ProcessosController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Detalhes(int id)
+    public async Task<IActionResult> Detalhes(string token)
     {
+        if (!TryDecodeProcessoId(token, out var id))
+        {
+            return NotFound();
+        }
+
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
         if (processo.Fases is null) processo.Fases = new List<FaseInstanciaViewModel>();
@@ -193,6 +211,10 @@ public class ProcessosController : Controller
         }
         return View(processo);
     }
+
+    private string EncodeProcessoId(int id) => _urlProtector.Encode(ProcessoPurpose, id);
+
+    private bool TryDecodeProcessoId(string? token, out int id) => _urlProtector.TryDecode(ProcessoPurpose, token, out id);
 
     [HttpPost]
     [ValidateAntiForgeryToken]

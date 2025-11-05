@@ -13,6 +13,7 @@ public static class ServiceCollectionExtensions
         services.AddDataProtection();
         services.AddTransient<EmpresaHeaderHandler>();
         services.AddSingleton<PreenchimentoExternoTokenService>();
+        services.AddSingleton<IUrlProtector, UrlProtector>();
 
         services.AddHttpClient<ApiClient>(c =>
         {
