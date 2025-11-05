@@ -10,7 +10,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddAlfaWeb(this IServiceCollection services, IConfiguration cfg)
     {
         services.AddHttpContextAccessor();
+        services.AddDataProtection();
         services.AddTransient<EmpresaHeaderHandler>();
+        services.AddSingleton<PreenchimentoExternoTokenService>();
 
         services.AddHttpClient<ApiClient>(c =>
         {
