@@ -65,6 +65,15 @@ namespace Alfa.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Registrar(UsuarioRegistroDto model)
         {
+            var empresaIdClaim = User.FindFirst("empresaId")?.Value;
+
+            if (!int.TryParse(empresaIdClaim, out var empresaId))
+            {
+                return Forbid();
+            }
+
+            model.EmpresaId = empresaId;
+
             if (!ModelState.IsValid) return View(model);
 
             var (success, error) = await _usuarioServico.RegistrarAsync(model);

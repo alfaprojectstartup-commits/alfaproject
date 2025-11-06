@@ -22,7 +22,8 @@ builder.Services.AddTransient<JwtCookieHandler>();
 // ===== HttpClient para chamar a API =====
 builder.Services.AddHttpClient("AlfaApi", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"]);
+    var baseAddress = builder.Configuration["ApiBaseUrl"];
+    client.BaseAddress = new Uri(baseAddress is not null ? baseAddress : "");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<JwtCookieHandler>();

@@ -21,6 +21,6 @@ namespace Alfa.Web.Dtos
         [DataType(DataType.Password)]
         public required string ConfirmarSenha { get; set; }
 
-        public required int FuncaoId { get; set; } = 3; // padrão para usuário comum
+        public required int EmpresaId { get; set; }
     }
 }
