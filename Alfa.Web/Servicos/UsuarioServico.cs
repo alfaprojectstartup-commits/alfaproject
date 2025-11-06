@@ -14,7 +14,7 @@ namespace Alfa.Web.Servicos
 
         public async Task<UsuarioAutenticadoDto?> LoginAsync(UsuarioLoginDto login)
         {
-            var client = _httpFactory.CreateClient("AlfaApi");
+            var client = _httpFactory.CreateClient("AlfaApiLogin");
             var resp = await client.PostAsJsonAsync("/api/usuario/login", login);
 
             if (!resp.IsSuccessStatusCode) {

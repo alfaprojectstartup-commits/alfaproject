@@ -11,10 +11,12 @@ namespace Alfa.Web.Controllers
     public class UsuarioController : Controller
     {
         private readonly IUsuarioServico _usuarioServico;
+        private readonly IPermissaoUiService _permissaoUiServico;
 
-        public UsuarioController(IUsuarioServico usuarioServico)
+        public UsuarioController(IUsuarioServico usuarioServico, IPermissaoUiService permissaoUiServico)
         {
             _usuarioServico = usuarioServico;
+            _permissaoUiServico = permissaoUiServico;
         }
 
         // GET: /Usuario/Login
@@ -49,7 +51,8 @@ namespace Alfa.Web.Controllers
 
             ArmazenarTokenCookie(autenticacao.Token);
             await LogarUsuarioCookie(autenticacao.Token);
-
+            await _permissaoUiServico.ObterPermissoesAsync(autenticacao.Token);
+            
             return RedirectToAction("Index", "Home");
         }
 
@@ -90,10 +93,13 @@ namespace Alfa.Web.Controllers
 
         // GET: /Usuario/Logout
         [HttpGet]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
             Response.Cookies.Delete("JwtToken");
-            return RedirectToAction("Login");
+
+            return RedirectToAction("Login", "Usuario");
         }
 
         private void ArmazenarTokenCookie(string token)
@@ -103,7 +109,7 @@ namespace Alfa.Web.Controllers
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddHours(8)
+                //Expires = DateTimeOffset.UtcNow.AddHours(8) // comentar somente em local, para o token expirar junto com a sessão
             };
             Response.Cookies.Append("JwtToken", token, cookieOptions);
         }

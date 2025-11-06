@@ -1,10 +1,13 @@
 using Alfa.Web.Configuration;
+using Alfa.Web.Dtos;
+using Alfa.Web.Filtros;
 using Alfa.Web.Servicos;
 using Alfa.Web.Servicos.Handlers;
 using Alfa.Web.Servicos.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,16 +21,28 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
 
+builder.Services.AddScoped<IPermissaoUiService, PermissaoUiServico>();
 
 // ===== HttpClient para chamar a API =====
+builder.Services.AddHttpClient("AlfaApiLogin", client =>
+{
+    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurada.");
+    client.BaseAddress = new Uri(baseAddress is not null ? baseAddress : "");
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 builder.Services.AddHttpClient("AlfaApi", client =>
 {
-    var baseAddress = builder.Configuration["ApiBaseUrl"];
+    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurada.");
     client.BaseAddress = new Uri(baseAddress is not null ? baseAddress : "");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<JwtCookieHandler>();
 
+
+// Configurações JWT
+var configuracoesJwt = builder.Configuration.GetSection("ConfiguracoesJwt").Get<TokenJwtDto>()!;
+builder.Services.AddSingleton(configuracoesJwt);
 
 // ===== Authentication: JWT Bearer que lê o token do cookie "JwtToken" =====
 builder.Services.AddAuthentication(options =>
@@ -51,11 +66,14 @@ builder.Services.AddAuthentication(options =>
     // Se você tem a chave pública ou validação, configure aqui:
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false, // ajustar conforme sua API
-        ValidateAudience = false,
-        ValidateIssuerSigningKey = false,
-        ValidateLifetime = true
-        // Se você tem a chave simétrica, setar IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("chave..."))
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = configuracoesJwt.Issuer,
+        ValidAudience = configuracoesJwt.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuracoesJwt.Key)),
+        NameClaimType = "nome"
     };
 
     // Puxar o token do cookie:
@@ -72,17 +90,31 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// Evita páginas serem cacheadas pelo navegador, evitando probleams ao clicar na seta "voltar" do navegador
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add(new FiltroCache());
+});
+
 builder.Services.AddAuthorization();
 
-builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation(); // Adicionar depois validação de ambiente para AddRazorRuntimeCompilation(), só usar em ambiente de dev
-
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(o =>
+if (builder.Environment.IsDevelopment())
 {
-    o.IdleTimeout = TimeSpan.FromHours(8);
-    o.Cookie.Name = ".Alfa.Session";
-    o.Cookie.HttpOnly = true;
-    o.Cookie.IsEssential = true;
+    builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
+}   
+else
+{
+    builder.Services.AddRazorPages();
+}
+    
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(8);
+    options.Cookie.Name = ".Alfa.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 builder.Services.AddAlfaWeb(builder.Configuration);
