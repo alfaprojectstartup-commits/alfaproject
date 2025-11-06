@@ -1,5 +1,6 @@
 ﻿using Alfa.Api.Dtos;
 using Alfa.Api.Servicos.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alfa.Api.Controllers
@@ -32,6 +33,21 @@ namespace Alfa.Api.Controllers
         {
             await _usuarioServico.CadastrarUsuarioAsync(usuarioRegistro);
             return Created();
+        }
+
+        [Authorize]
+        [HttpGet("permissoes")]
+        public async Task<IActionResult> ObterPermissoesUsuarios()
+        {
+            var usuarioIdClaim = User.FindFirst("usuarioId")?.Value;
+
+            if (!int.TryParse(usuarioIdClaim, out var usuarioId))
+            {
+                return Forbid();
+            }
+                
+            var permissoes = await _usuarioServico.ObterPermissoesPorUsuarioAsync(usuarioId);
+            return Ok(permissoes);
         }
 
     }

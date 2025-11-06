@@ -20,7 +20,7 @@ namespace Alfa.Api.Repositorios
         public async Task<UsuarioModel?> BuscarUsuarioPorEmailAsync(string email)
         {
             const string sql = @"
-                SELECT Id, Nome, Email, SenhaHash, FuncaoId, Ativo
+                SELECT Id, Nome, Email, SenhaHash, EmpresaId, Ativo
                 FROM Usuarios 
                 WHERE Email = @Email
             ";
@@ -31,11 +31,11 @@ namespace Alfa.Api.Repositorios
             return await _execucaoDb.QuerySingleAsync<UsuarioModel>(sql, parameters);
         }
 
-        public async Task CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro)
+        public async Task<int> CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro)
         {
             const string sql = @"
-                INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId)
-                VALUES (@Nome, @Email, @SenhaHash, @FuncaoId);
+                INSERT INTO Usuarios (Nome, Email, SenhaHash, EmpresaId)
+                VALUES (@Nome, @Email, @SenhaHash, @EmpresaId);
                 SELECT CAST(SCOPE_IDENTITY() as int);
             ";
 
@@ -43,7 +43,56 @@ namespace Alfa.Api.Repositorios
             parameters.Add("@Nome", usuarioRegistro.Nome, DbType.String);
             parameters.Add("@Email", usuarioRegistro.Email, DbType.String);
             parameters.Add("@SenhaHash", SenhaHash.HashSenha(usuarioRegistro.Email, usuarioRegistro.Senha), DbType.String);
-            parameters.Add("@FuncaoId", usuarioRegistro.FuncaoId, DbType.Int64);
+            parameters.Add("@EmpresaId", usuarioRegistro.EmpresaId, DbType.Int64);
+
+            return await _execucaoDb.ExecuteScalarAsync<int>(sql, parameters);
+        }
+
+        public async Task<IEnumerable<string>> ObterPermissoesPorUsuarioIdAsync(int usuarioId)
+        {
+            const string sql = @"
+                SELECT PE.Codigo
+                FROM Permissoes PE
+                INNER JOIN UsuariosPermissoes UP
+                    ON UP.PermissaoId = PE.Id
+                WHERE UP.UsuarioId = @UsuarioId;
+            ";
+
+            DynamicParameters parameters = new();
+            parameters.Add("@UsuarioId", usuarioId, DbType.Int64);
+
+            var resultado = await _execucaoDb.QueryAsync<string>(sql, parameters);
+            return resultado.Distinct().ToList();
+        }
+
+        public async Task ConcederPermissaoAsync(int usuarioId, int permissaoId, int? concedidoPor)
+        {
+            const string sql = @"
+                  IF NOT EXISTS (
+                    SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioId AND PermissaoId = @PermissaoId
+                  )
+                  INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoEm, ConcedidoPor)
+                  VALUES (@UsuarioId, @PermissaoId, SYSUTCDATETIME(), @ConcedidoPor);
+            ";
+
+            DynamicParameters parameters = new();
+            parameters.Add("@UsuarioId", usuarioId, DbType.Int64);
+            parameters.Add("@PermissaoId", permissaoId, DbType.Int64);
+            parameters.Add("@ConcedidoPor", concedidoPor, DbType.Int64);
+
+            await _execucaoDb.ExecuteAsync(sql, parameters);
+        }
+
+        public async Task RevogarPermissaoAsync(int usuarioId, int permissaoId)
+        {
+            const string sql = @"
+                DELETE FROM UsuariosPermissoes 
+                WHERE UsuarioId = @UsuarioId AND PermissaoId = @PermissaoId;
+            ";
+
+            DynamicParameters parameters = new();
+            parameters.Add("@UsuarioId", usuarioId, DbType.Int64);
+            parameters.Add("@PermissaoId", permissaoId, DbType.Int64);
 
             await _execucaoDb.ExecuteAsync(sql, parameters);
         }

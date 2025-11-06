@@ -8,18 +8,6 @@ BEGIN
   );
 END
 
--- Funções dos Usuários
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name = 'UsuariosFuncoes')
-BEGIN
-  CREATE TABLE UsuariosFuncoes (
-    Id         INT IDENTITY(1,1) PRIMARY KEY,
-    Funcao     NVARCHAR(50) NOT NULL,
-    EmpresaId  INT NOT NULL,
-    CONSTRAINT FK_UsuariosFuncoes_Empresas_Id FOREIGN KEY (EmpresaId) REFERENCES Empresas(Id)
-  );
-  CREATE INDEX Index_UsuariosFuncoes_Empresas ON UsuariosFuncoes(EmpresaId, Id);
-END
-
 -- Usuarios
 IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name = 'Usuarios')
 BEGIN
@@ -28,23 +16,38 @@ BEGIN
     Nome       NVARCHAR(250) NOT NULL,
     Email      NVARCHAR(250) NOT NULL,
     SenhaHash  NVARCHAR(200) NOT NULL,
-    FuncaoId   INT NOT NULL,
+	EmpresaId  INT NOT NULL,
     Ativo      BIT NOT NULL CONSTRAINT DF_Usuarios_Ativo DEFAULT(1),
     CONSTRAINT UQ_Usuarios_Email UNIQUE (Email),
-    CONSTRAINT FK_Usuarios_UsuariosFuncoes_Id FOREIGN KEY (FuncaoId) REFERENCES UsuariosFuncoes(Id)
+	CONSTRAINT FK_Usuarios_Empresas_Id FOREIGN KEY (EmpresaId) REFERENCES Empresas(Id)
   );
 END
 
--- Vínculo Usuário e Empresa
-IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='UsuariosEmpresas')
+-- Tabela de permissões
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='Permissoes')
 BEGIN
-  CREATE TABLE UsuariosEmpresas(
-    UsuarioId  INT NOT NULL,
-    EmpresaId  INT NOT NULL,
-    CONSTRAINT PK_UsuariosEmpresas PRIMARY KEY(UsuarioId, EmpresaId),
-    CONSTRAINT FK_UsuariosEmpresas_Usuarios_Id FOREIGN KEY(UsuarioId) REFERENCES Usuarios(Id),
-    CONSTRAINT FK_UsuariosEmpresas_Empresas_Id FOREIGN KEY(EmpresaId) REFERENCES Empresas(Id)
-  );
+	CREATE TABLE Permissoes (
+	  Id 		 INT IDENTITY(1,1) PRIMARY KEY,
+	  Codigo 	 NVARCHAR(100) NOT NULL UNIQUE,  -- ex: "CONFIG_SISTEMA", "PROCESSO_EDIT"
+	  Nome 		 NVARCHAR(200) NOT NULL,
+	  Descricao  NVARCHAR(500) NULL
+	);
+END
+
+-- Tabela de permissões dos usuários
+IF NOT EXISTS(SELECT 1 FROM sys.tables WHERE name='UsuariosPermissoes')
+BEGIN
+	CREATE TABLE UsuariosPermissoes (
+		UsuarioId     INT NOT NULL,
+		PermissaoId   INT NOT NULL,
+		ConcedidoEm   DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+		ConcedidoPor  INT NULL,
+		CONSTRAINT PK_UsuariosPermissoes PRIMARY KEY (UsuarioId, PermissaoId),
+		CONSTRAINT FK_UsuariosPermissoes_Usuarios_Id FOREIGN KEY (UsuarioId) REFERENCES Usuarios(Id),
+		CONSTRAINT FK_UsuariosPermissoes_Permissoes_Id FOREIGN KEY (PermissaoId) REFERENCES Permissoes(Id)
+	);
+	CREATE INDEX IX_UsuariosPermissoes_Usuario ON UsuariosPermissoes (UsuarioId);
+	CREATE INDEX IX_UsuariosPermissoes_Permissao ON UsuariosPermissoes (PermissaoId);
 END
 
 -- FaseModelos
