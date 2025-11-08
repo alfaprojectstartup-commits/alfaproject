@@ -318,23 +318,12 @@
         const sections = Array.from(root.querySelectorAll('[data-page-section]'));
 
         const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
-        const buildKeyVariants = (key) => {
-            if (!key) return [];
-            const camel = key.charAt(0).toLowerCase() + key.slice(1);
-            const snake = key
-                .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-                .replace(/__/g, '_')
-                .toLowerCase();
-            const lower = key.toLowerCase();
-            return Array.from(new Set([key, camel, snake, lower].filter(Boolean)));
-        };
+        const normalizeKey = (key) => !key ? key : key.charAt(0).toLowerCase() + key.slice(1);
         const readProp = (obj, key) => {
             if (!obj || !key) return undefined;
-            for (const variant of buildKeyVariants(key)) {
-                if (variant && own(obj, variant)) {
-                    return obj[variant];
-                }
-            }
+            if (own(obj, key)) return obj[key];
+            const camel = normalizeKey(key);
+            if (camel && own(obj, camel)) return obj[camel];
             return undefined;
         };
         const readArray = (obj, key) => {
@@ -343,26 +332,18 @@
         };
         const readNumber = (obj, key) => {
             const value = readProp(obj, key);
-            if (value == null) return undefined;
-            if (typeof value === 'number') {
-                return Number.isFinite(value) ? value : undefined;
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string' && value.trim() !== '') {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) return parsed;
             }
-            const normalized = String(value).trim().replace(',', '.');
-            if (normalized === '') return undefined;
-            const parsed = Number(normalized);
-            return Number.isFinite(parsed) ? parsed : undefined;
+            return undefined;
         };
         const readBoolean = (obj, key) => {
             const value = readProp(obj, key);
             if (typeof value === 'boolean') return value;
             if (typeof value === 'number') return value !== 0;
-            if (typeof value === 'string') {
-                const normalized = value.trim().toLowerCase();
-                if (normalized === 'true') return true;
-                if (normalized === 'false') return false;
-                if (normalized === '1') return true;
-                if (normalized === '0') return false;
-            }
+            if (typeof value === 'string') return value.toLowerCase() === 'true';
             return undefined;
         };
         const readText = (obj, key) => {
@@ -537,8 +518,7 @@
         function updateProcessSummary(data) {
             if (!data) return;
             const progressEl = root.querySelector('[data-progresso-processo]');
-            const progressoValor = readNumber(data, 'PorcentagemProgresso');
-            const progresso = Number.isFinite(progressoValor) ? Math.round(progressoValor) : 0;
+            const progresso = readNumber(data, 'PorcentagemProgresso') ?? 0;
             updateProgress(progressEl, progresso, `${progresso}%`);
             const status = root.querySelector('[data-status-processo]');
             const statusText = readText(data, 'Status');
@@ -555,8 +535,7 @@
                 const statusBadge = card.querySelector(`[data-fase-status="${faseId}"]`);
                 const faseStatus = readText(fase, 'Status');
                 if (statusBadge && typeof faseStatus === 'string') statusBadge.textContent = faseStatus;
-                const faseProgressoValor = readNumber(fase, 'PorcentagemProgresso');
-                const faseProgresso = Number.isFinite(faseProgressoValor) ? Math.round(faseProgressoValor) : 0;
+                const faseProgresso = readNumber(fase, 'PorcentagemProgresso') ?? 0;
                 updateProgress(card.querySelector(`#fase-progress-${faseId}`), faseProgresso, `${faseProgresso}%`);
 
                 readArray(fase, 'Paginas').forEach(pagina => {
