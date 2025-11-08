@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<PreenchimentoExternoTokenService>();
         services.AddSingleton<IUrlProtector, UrlProtector>();
 
+        services.AddSingleton<IProcessoPdfGenerator, ProcessoPdfGenerator>();
+
         services.AddHttpClient<ApiClient>(c =>
         {
             c.BaseAddress = new Uri(cfg["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurado"));

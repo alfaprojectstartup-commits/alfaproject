@@ -199,16 +199,7 @@ public class ProcessosController : Controller
 
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
-        if (processo.Fases is null) processo.Fases = new List<FaseInstanciaViewModel>();
-        processo.Fases = processo.Fases.OrderBy(f => f.Ordem).ToList();
-        foreach (var fase in processo.Fases)
-        {
-            fase.Paginas = fase.Paginas?.OrderBy(p => p.Ordem).ToList() ?? new List<PaginaInstanciaViewModel>();
-            foreach (var pagina in fase.Paginas)
-            {
-                pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
-            }
-        }
+        OrdenarProcesso(processo);
         return View(processo);
     }
 
@@ -324,6 +315,23 @@ public class ProcessosController : Controller
             .Where(p => p.FaseModeloIds.Count > 0)
             .OrderBy(p => p.Titulo, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static void OrdenarProcesso(ProcessoDetalheViewModel processo)
+    {
+        processo.Fases ??= new List<FaseInstanciaViewModel>();
+        processo.Fases = processo.Fases
+            .OrderBy(f => f.Ordem)
+            .ToList();
+
+        foreach (var fase in processo.Fases)
+        {
+            fase.Paginas = fase.Paginas?.OrderBy(p => p.Ordem).ToList() ?? new List<PaginaInstanciaViewModel>();
+            foreach (var pagina in fase.Paginas)
+            {
+                pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
+            }
+        }
     }
 
 }

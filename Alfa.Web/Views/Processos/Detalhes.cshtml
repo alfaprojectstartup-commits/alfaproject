@@ -29,6 +29,14 @@
             <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
         </div>
         <span class="badge rounded-pill status-badge align-self-center" data-status-processo>@Model.Status</span>
+        <div class="btn-group align-self-center">
+            <a asp-action="DownloadPdf"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary"
+               title="Baixar processo em PDF">
+                Baixar PDF
+            </a>
+        </div>
     </div>
 
     <div class="mb-4">
