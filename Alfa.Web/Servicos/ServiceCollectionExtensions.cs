@@ -12,6 +12,8 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddTransient<EmpresaHeaderHandler>();
 
+        services.AddSingleton<IProcessoPdfGenerator, ProcessoPdfGenerator>();
+
         services.AddHttpClient<ApiClient>(c =>
         {
             c.BaseAddress = new Uri(cfg["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurado"));
