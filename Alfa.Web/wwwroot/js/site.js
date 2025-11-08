@@ -320,6 +320,41 @@
         const linkEndpoint = root.dataset.linkPreenchimentoUrl;
         const antiforgeryInput = document.querySelector('#preenchimento-externo-antiforgery input[name="__RequestVerificationToken"]');
 
+        const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+        const normalizeKey = (key) => !key ? key : key.charAt(0).toLowerCase() + key.slice(1);
+        const readProp = (obj, key) => {
+            if (!obj || !key) return undefined;
+            if (own(obj, key)) return obj[key];
+            const camel = normalizeKey(key);
+            if (camel && own(obj, camel)) return obj[camel];
+            return undefined;
+        };
+        const readArray = (obj, key) => {
+            const value = readProp(obj, key);
+            return Array.isArray(value) ? value : [];
+        };
+        const readNumber = (obj, key) => {
+            const value = readProp(obj, key);
+            if (typeof value === 'number') return value;
+            if (typeof value === 'string' && value.trim() !== '') {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) return parsed;
+            }
+            return undefined;
+        };
+        const readBoolean = (obj, key) => {
+            const value = readProp(obj, key);
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value !== 0;
+            if (typeof value === 'string') return value.toLowerCase() === 'true';
+            return undefined;
+        };
+        const readText = (obj, key) => {
+            const value = readProp(obj, key);
+            if (value == null) return undefined;
+            return typeof value === 'string' ? value : String(value);
+        };
+
         function showPage(faseId, pageId) {
             selectors.forEach(btn => {
                 const active = btn.dataset.faseId === faseId && btn.dataset.pageId === pageId;
@@ -516,13 +551,17 @@
 
         function updateProgress(element, value, labelText) {
             if (!element) return;
-            const val = Math.max(0, Math.min(100, Math.round(value)));
+            const numericValue = typeof value === 'number' && Number.isFinite(value)
+                ? value
+                : Number(readNumber({ tmp: value }, 'tmp') ?? 0);
+            const val = Math.max(0, Math.min(100, Math.round(Number.isFinite(numericValue) ? numericValue : 0)));
             element.dataset.progressValue = String(val);
             const bar = element.querySelector('.progress-bar');
             if (!bar) return;
             bar.style.width = `${val}%`;
             bar.setAttribute('aria-valuenow', String(val));
             const hideLabel = element.dataset.progressHideLabel === 'true';
+            const label = typeof labelText === 'string' && labelText.trim() !== '' ? labelText : `${val}%`;
             if (hideLabel) {
                 let hidden = bar.querySelector('.visually-hidden');
                 if (!hidden) {
@@ -531,9 +570,9 @@
                     bar.textContent = '';
                     bar.appendChild(hidden);
                 }
-                hidden.textContent = labelText ?? `${val}%`;
+                hidden.textContent = label;
             } else {
-                bar.textContent = labelText ?? `${val}%`;
+                bar.textContent = label;
             }
             const variants = resolveVariantClasses(val);
             const classes = ['bg-success', 'bg-primary', 'bg-warning', 'bg-secondary', 'text-dark'];
@@ -542,67 +581,95 @@
         }
 
         function updateProcessSummary(data) {
+            if (!data) return;
             const progressEl = root.querySelector('[data-progresso-processo]');
-            updateProgress(progressEl, data.PorcentagemProgresso, `${data.PorcentagemProgresso}%`);
+            const progresso = readNumber(data, 'PorcentagemProgresso') ?? 0;
+            updateProgress(progressEl, progresso, `${progresso}%`);
             const status = root.querySelector('[data-status-processo]');
-            if (status) status.textContent = data.Status;
+            const statusText = readText(data, 'Status');
+            if (status && typeof statusText === 'string') status.textContent = statusText;
         }
 
         function updatePhaseCards(fases) {
+            if (!Array.isArray(fases)) return;
             fases.forEach(fase => {
-                const card = root.querySelector(`[data-fase-card="${fase.Id}"]`);
+                const faseId = readProp(fase, 'Id');
+                if (faseId == null) return;
+                const card = root.querySelector(`[data-fase-card="${faseId}"]`);
                 if (!card) return;
-                const statusBadge = card.querySelector(`[data-fase-status="${fase.Id}"]`);
-                if (statusBadge) statusBadge.textContent = fase.Status;
-                updateProgress(card.querySelector(`#fase-progress-${fase.Id}`), fase.PorcentagemProgresso, `${fase.PorcentagemProgresso}%`);
+                const statusBadge = card.querySelector(`[data-fase-status="${faseId}"]`);
+                const faseStatus = readText(fase, 'Status');
+                if (statusBadge && typeof faseStatus === 'string') statusBadge.textContent = faseStatus;
+                const faseProgresso = readNumber(fase, 'PorcentagemProgresso') ?? 0;
+                updateProgress(card.querySelector(`#fase-progress-${faseId}`), faseProgresso, `${faseProgresso}%`);
 
-                (fase.Paginas || []).forEach(pagina => {
-                    const selector = card.querySelector(`[data-page-selector][data-page-id="${pagina.Id}"]`);
+                readArray(fase, 'Paginas').forEach(pagina => {
+                    const paginaId = readProp(pagina, 'Id');
+                    if (paginaId == null) return;
+                    const concluida = readBoolean(pagina, 'Concluida') ?? false;
+                    const selector = card.querySelector(`[data-page-selector][data-page-id="${paginaId}"]`);
                     if (selector) {
                         const icon = selector.querySelector('[data-page-status]');
                         if (icon) {
-                            icon.textContent = pagina.Concluida ? '✔' : '•';
-                            icon.classList.toggle('text-success', pagina.Concluida);
-                            icon.classList.toggle('text-muted', !pagina.Concluida);
+                            icon.textContent = concluida ? '✔' : '•';
+                            icon.classList.toggle('text-success', concluida);
+                            icon.classList.toggle('text-muted', !concluida);
                         }
-                        selector.classList.toggle('completed', pagina.Concluida);
+                        selector.classList.toggle('completed', concluida);
                     }
 
-                    const badge = root.querySelector(`[data-page-complete-badge="${pagina.Id}"]`);
+                    const badge = root.querySelector(`[data-page-complete-badge="${paginaId}"]`);
                     if (badge) {
-                        badge.textContent = pagina.Concluida ? 'Página concluída' : 'Página pendente';
-                        badge.classList.toggle('bg-success', pagina.Concluida);
-                        badge.classList.toggle('bg-secondary', !pagina.Concluida);
+                        badge.textContent = concluida ? 'Página concluída' : 'Página pendente';
+                        badge.classList.toggle('bg-success', concluida);
+                        badge.classList.toggle('bg-secondary', !concluida);
                     }
                 });
             });
         }
 
         function updateFormFields(fases) {
+            if (!Array.isArray(fases)) return;
             fases.forEach(fase => {
-                (fase.Paginas || []).forEach(pagina => {
-                    const form = root.querySelector(`form[data-page-id="${pagina.Id}"]`);
+                readArray(fase, 'Paginas').forEach(pagina => {
+                    const paginaId = readProp(pagina, 'Id');
+                    if (paginaId == null) return;
+                    const form = root.querySelector(`form[data-page-id="${paginaId}"]`);
                     if (!form) return;
-                    (pagina.Campos || []).forEach(campo => {
-                        const wrapper = form.querySelector(`[data-campo-id="${campo.Id}"]`);
+                    readArray(pagina, 'Campos').forEach(campo => {
+                        const campoId = readProp(campo, 'Id');
+                        if (campoId == null) return;
+                        const wrapper = form.querySelector(`[data-campo-id="${campoId}"]`);
                         if (!wrapper) return;
                         const input = wrapper.querySelector('[data-field-input]');
                         if (!input) return;
                         switch (wrapper.dataset.tipo) {
                             case 'number':
-                                input.value = campo.ValorNumero != null ? String(campo.ValorNumero) : '';
+                                {
+                                    const valorNumero = readNumber(campo, 'ValorNumero');
+                                    input.value = valorNumero != null ? String(valorNumero) : '';
+                                }
                                 break;
                             case 'date':
-                                input.value = campo.ValorData ? campo.ValorData.substring(0, 10) : '';
+                                {
+                                    const valorData = readText(campo, 'ValorData');
+                                    input.value = valorData ? valorData.substring(0, 10) : '';
+                                }
                                 break;
                             case 'checkbox':
-                                input.checked = Boolean(campo.ValorBool);
+                                {
+                                    const valorBool = readBoolean(campo, 'ValorBool');
+                                    input.checked = Boolean(valorBool);
+                                }
                                 break;
                             case 'textarea':
                             case 'select':
                             case 'text':
                             default:
-                                input.value = campo.ValorTexto || '';
+                                {
+                                    const valorTexto = readText(campo, 'ValorTexto');
+                                    input.value = valorTexto != null ? String(valorTexto) : '';
+                                }
                                 break;
                         }
                     });
@@ -618,10 +685,9 @@
             if (!resp.ok) throw new Error('Erro ao atualizar processo');
             const data = await resp.json();
             updateProcessSummary(data);
-            if (Array.isArray(data.Fases)) {
-                updatePhaseCards(data.Fases);
-                updateFormFields(data.Fases);
-            }
+            const fases = readArray(data, 'Fases');
+            updatePhaseCards(fases);
+            updateFormFields(fases);
             if (focusPageId) {
                 const active = root.querySelector(`[data-page-selector][data-page-id="${focusPageId}"]`);
                 if (active) {
