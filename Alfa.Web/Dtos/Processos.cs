@@ -12,6 +12,7 @@ namespace Alfa.Web.Dtos
         public int PorcentagemProgresso { get; set; }
         public DateTime CriadoEm { get; set; }
         public List<string> UsuariosAlteracao { get; set; } = new();
+        public string Token { get; set; } = string.Empty;
     }
 
     public class PaginadoResultadoDto<T>

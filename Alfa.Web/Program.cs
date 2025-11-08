@@ -32,7 +32,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Processos}/{action=Index}/{id?}");
+    pattern: "{controller=Processos}/{action=Index}/{token?}");
 
 app.Run();
 

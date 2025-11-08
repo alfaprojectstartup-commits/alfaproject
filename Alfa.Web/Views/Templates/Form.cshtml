@@ -5,6 +5,7 @@
 @using Alfa.Web.Models
 @{
     var isEdit = Model?.Id.HasValue ?? false;
+    var faseToken = ViewBag.FaseToken as string ?? string.Empty;
     ViewData["Title"] = isEdit ? "Editar fase" : "Nova fase";
     var catalogoCampos = Model?.CatalogoCampos ?? new List<CampoModeloViewModel>();
 }
@@ -24,7 +25,7 @@
     </div>
 </div>
 
-<form asp-action="@(isEdit ? "Editar" : "Novo")" asp-route-id="@(isEdit ? Model?.Id : (int?)null)" method="post" id="template-form">
+<form asp-action="@(isEdit ? "Editar" : "Novo")" asp-route-token="@(isEdit ? faseToken : null)" method="post" id="template-form">
     @Html.AntiForgeryToken()
     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 

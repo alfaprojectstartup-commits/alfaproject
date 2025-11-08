@@ -316,6 +316,9 @@
 
         const selectors = Array.from(root.querySelectorAll('[data-page-selector]'));
         const sections = Array.from(root.querySelectorAll('[data-page-section]'));
+        const linkButtons = Array.from(root.querySelectorAll('[data-link-preenchimento]'));
+        const linkEndpoint = root.dataset.linkPreenchimentoUrl;
+        const antiforgeryInput = document.querySelector('#preenchimento-externo-antiforgery input[name="__RequestVerificationToken"]');
 
         const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
         const normalizeKey = (key) => !key ? key : key.charAt(0).toLowerCase() + key.slice(1);
@@ -367,6 +370,68 @@
         selectors.forEach(btn => {
             btn.addEventListener('click', () => {
                 showPage(btn.dataset.faseId, btn.dataset.pageId);
+            });
+        });
+
+        linkButtons.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!linkEndpoint) {
+                    Alfa.toast('Endpoint para geração de link não configurado.', 'danger');
+                    return;
+                }
+
+                const faseId = parseInt(btn.dataset.faseId || '0', 10);
+                const paginaId = parseInt(btn.dataset.pageId || '0', 10);
+                if (!faseId || !paginaId) return;
+
+                const originalText = btn.textContent;
+                btn.disabled = true;
+                btn.textContent = 'Gerando link...';
+
+                try {
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (antiforgeryInput && antiforgeryInput.value) {
+                        headers['RequestVerificationToken'] = antiforgeryInput.value;
+                    }
+
+                    const resp = await fetch(linkEndpoint, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({
+                            processoId,
+                            faseInstanciaId: faseId,
+                            paginaInstanciaId: paginaId
+                        })
+                    });
+
+                    if (!resp.ok) {
+                        throw new Error('Falha ao gerar link.');
+                    }
+
+                    const data = await resp.json();
+                    const link = data?.link;
+                    if (!link) {
+                        throw new Error('Resposta inválida.');
+                    }
+
+                    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                        try {
+                            await navigator.clipboard.writeText(link);
+                            Alfa.toast('Link copiado para a área de transferência.', 'success', 'Preenchimento externo');
+                        } catch (clipboardErr) {
+                            console.warn('Não foi possível copiar automaticamente.', clipboardErr);
+                            Alfa.toast(`Link gerado: <br><small>${link}</small>`, 'info', 'Preenchimento externo');
+                        }
+                    } else {
+                        Alfa.toast(`Link gerado: <br><small>${link}</small>`, 'info', 'Preenchimento externo');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    Alfa.toast('Não foi possível gerar o link público.', 'danger');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
             });
         });
 
@@ -486,13 +551,17 @@
 
         function updateProgress(element, value, labelText) {
             if (!element) return;
-            const val = Math.max(0, Math.min(100, Math.round(value)));
+            const numericValue = typeof value === 'number' && Number.isFinite(value)
+                ? value
+                : Number(readNumber({ tmp: value }, 'tmp') ?? 0);
+            const val = Math.max(0, Math.min(100, Math.round(Number.isFinite(numericValue) ? numericValue : 0)));
             element.dataset.progressValue = String(val);
             const bar = element.querySelector('.progress-bar');
             if (!bar) return;
             bar.style.width = `${val}%`;
             bar.setAttribute('aria-valuenow', String(val));
             const hideLabel = element.dataset.progressHideLabel === 'true';
+            const label = typeof labelText === 'string' && labelText.trim() !== '' ? labelText : `${val}%`;
             if (hideLabel) {
                 let hidden = bar.querySelector('.visually-hidden');
                 if (!hidden) {
@@ -501,9 +570,9 @@
                     bar.textContent = '';
                     bar.appendChild(hidden);
                 }
-                hidden.textContent = labelText ?? `${val}%`;
+                hidden.textContent = label;
             } else {
-                bar.textContent = labelText ?? `${val}%`;
+                bar.textContent = label;
             }
             const variants = resolveVariantClasses(val);
             const classes = ['bg-success', 'bg-primary', 'bg-warning', 'bg-secondary', 'text-dark'];
@@ -627,5 +696,97 @@
             }
             return data;
         }
+    };
+
+    Alfa.initPreenchimentoExterno = function (root) {
+        if (!root) return;
+        const processoId = parseInt(root.dataset.processoId || '0', 10);
+        const faseId = parseInt(root.dataset.faseId || '0', 10);
+        const paginaId = parseInt(root.dataset.paginaId || '0', 10);
+        const token = root.dataset.token || '';
+        if (!processoId || !faseId || !paginaId) return;
+
+        const form = root.querySelector('[data-preenchimento-externo-form]');
+        if (!form) return;
+
+        form.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+
+            const button = form.querySelector('button[type="submit"]');
+            const feedback = form.querySelector('[data-saving-feedback]');
+
+            if (feedback) feedback.hidden = false;
+            if (button) {
+                button.dataset.originalText = button.dataset.originalText || button.textContent;
+                button.textContent = button.dataset.loadingText || 'Enviando...';
+                button.disabled = true;
+            }
+
+            try {
+                const camposPayload = Array.from(form.querySelectorAll('[data-campo-id]')).map(wrapper => {
+                    const campoId = parseInt(wrapper.dataset.campoId || '0', 10);
+                    if (!campoId) return null;
+                    const tipo = wrapper.dataset.tipo || '';
+                    const input = wrapper.querySelector('[data-field-input]');
+                    if (!input) return null;
+
+                    const payload = { CampoInstanciaId: campoId, ValorTexto: null, ValorNumero: null, ValorData: null, ValorBool: null };
+                    switch (tipo) {
+                        case 'number': {
+                            const raw = input.value;
+                            if (raw !== '') {
+                                const parsed = parseFloat(raw);
+                                if (!Number.isNaN(parsed)) payload.ValorNumero = parsed;
+                            }
+                            break;
+                        }
+                        case 'date':
+                            payload.ValorData = input.value || null;
+                            break;
+                        case 'checkbox':
+                            payload.ValorBool = !!input.checked;
+                            break;
+                        case 'textarea':
+                        case 'select':
+                        case 'text':
+                        default:
+                            payload.ValorTexto = input.value ? input.value : null;
+                            break;
+                    }
+
+                    return payload;
+                }).filter(Boolean);
+
+                const payload = {
+                    FaseInstanciaId: faseId,
+                    PaginaInstanciaId: paginaId,
+                    Campos: camposPayload
+                };
+
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['X-Preenchimento-Token'] = token;
+
+                const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) {
+                    throw new Error('Falha ao enviar respostas');
+                }
+
+                Alfa.toast('Respostas enviadas com sucesso!', 'success');
+            } catch (err) {
+                console.error(err);
+                Alfa.toast('Não foi possível enviar as respostas. Tente novamente.', 'danger');
+            } finally {
+                if (feedback) feedback.hidden = true;
+                if (button) {
+                    button.textContent = button.dataset.originalText || 'Enviar respostas';
+                    button.disabled = false;
+                }
+            }
+        });
     };
 })();
