@@ -7,6 +7,13 @@
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
     var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
+    if ((!empresaId.HasValue || empresaId.Value <= 0) && ViewContext.ViewData.TryGetValue("EmpresaIdOverride", out var empresaOverride))
+    {
+        if (empresaOverride is int overrideInt && overrideInt > 0)
+        {
+            empresaId = overrideInt;
+        }
+    }
     var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
     var apiBase = string.IsNullOrWhiteSpace(apiBaseSetting)
         ? string.Empty

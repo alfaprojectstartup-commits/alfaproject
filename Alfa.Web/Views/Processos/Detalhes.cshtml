@@ -1,5 +1,6 @@
 ﻿@model Alfa.Web.Dtos.ProcessoDetalheViewModel
 @using System.Linq
+@using Microsoft.AspNetCore.Http
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
 
@@ -9,6 +10,8 @@
     var primeiraPagina = fases.SelectMany(f => f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
         .OrderBy(p => p.Ordem)
         .FirstOrDefault();
+    int? empresaId = Context.Session.GetInt32("EmpresaId");
+    int? empresaIdQuery = empresaId.HasValue && empresaId.Value > 0 ? empresaId.Value : null;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -24,7 +27,16 @@
             <h2 class="h4 mb-1">@Model.Titulo</h2>
             <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
         </div>
-        <span class="badge rounded-pill status-badge align-self-center" data-status-processo>@Model.Status</span>
+        <div class="d-flex flex-column align-items-end gap-2">
+            <span class="badge rounded-pill status-badge" data-status-processo>@Model.Status</span>
+            <a class="btn btn-outline-primary btn-sm"
+               asp-action="ExportarPdf"
+               asp-route-id="@Model.Id"
+               target="_blank"
+               rel="noopener"
+               data-bs-toggle="tooltip"
+               title="Baixar este processo em PDF">Exportar processo em PDF</a>
+        </div>
     </div>
 
     <div class="mb-4">
@@ -72,6 +84,12 @@
                 foreach (var pagina in fase.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
                 {
                     var isActive = primeiraPagina != null && primeiraPagina.Id == pagina.Id;
+                    var pageLink = Url.Action("Pagina", new { processoId = Model.Id, faseId = fase.Id, paginaId = pagina.Id, empresaId = empresaIdQuery }) ?? string.Empty;
+                    var baseUrl = $"{ViewContext.HttpContext.Request.Scheme}://{ViewContext.HttpContext.Request.Host}";
+                    var absoluteLink = string.IsNullOrWhiteSpace(pageLink)
+                        ? string.Empty
+                        : $"{baseUrl}{pageLink}";
+
                     <section class="card shadow-sm mb-4 page-section @(isActive ? string.Empty : "d-none")" data-page-section data-fase-id="@fase.Id" data-page-id="@pagina.Id">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -79,9 +97,28 @@
                                     <h5 class="card-title mb-1">@pagina.Titulo</h5>
                                     <div class="text-muted small">Fase: @fase.Titulo</div>
                                 </div>
-                                <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary") align-self-center" data-page-complete-badge="@pagina.Id">
-                                    @(pagina.Concluida ? "Página concluída" : "Página pendente")
-                                </span>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary")" data-page-complete-badge="@pagina.Id">
+                                        @(pagina.Concluida ? "Página concluída" : "Página pendente")
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(pageLink))
+                                    {
+                                        <div class="btn-group btn-group-sm" role="group" aria-label="Ações da página">
+                                            <a class="btn btn-outline-primary"
+                                               href="@pageLink"
+                                               target="_blank"
+                                               rel="noopener"
+                                               data-bs-toggle="tooltip"
+                                               title="Abrir esta página em uma nova aba">Abrir externamente</a>
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary"
+                                                    data-copy-link
+                                                    data-copy-url="@absoluteLink"
+                                                    data-bs-toggle="tooltip"
+                                                    title="Copiar link da página">Copiar link</button>
+                                        </div>
+                                    }
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">

@@ -1,0 +1,74 @@
+@model Alfa.Web.Models.PaginaExternaViewModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, Alfa.Web
+@using System.Collections.Generic
+
+@{
+    var pagina = Model.Pagina ?? new Alfa.Web.Dtos.PaginaInstanciaViewModel();
+    ViewData["Title"] = $"Página · {pagina.Titulo}";
+    var detalhesUrl = Url.Action("Detalhes", new { id = Model.ProcessoId });
+    var statusTexto = pagina.Concluida ? "Página concluída" : "Página pendente";
+    var statusClasse = pagina.Concluida ? "bg-success" : "bg-secondary";
+}
+
+<nav aria-label="breadcrumb" class="mb-3 small">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-action="Index">Processos</a></li>
+        <li class="breadcrumb-item">
+            <a asp-action="Detalhes" asp-route-id="@Model.ProcessoId">@Model.ProcessoTitulo</a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">@pagina.Titulo</li>
+    </ol>
+</nav>
+
+<div id="pagina-externa"
+     data-processo-id="@Model.ProcessoId"
+     data-fase-id="@Model.FaseId"
+     data-page-id="@pagina.Id">
+    <div class="d-flex flex-wrap gap-3 align-items-start mb-4">
+        <div class="flex-grow-1">
+            <h2 class="h4 mb-1">@pagina.Titulo</h2>
+            <div class="text-muted small">Processo: <a href="@detalhesUrl">@Model.ProcessoTitulo</a></div>
+            <div class="text-muted small">Fase: @Model.FaseTitulo</div>
+        </div>
+        <span class="badge @statusClasse align-self-center" data-page-complete-badge>@statusTexto</span>
+    </div>
+
+    <div class="alert alert-info small" role="alert">
+        Utilize esta página para coletar ou atualizar informações específicas sem navegar por todo o processo.
+    </div>
+
+    <section class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Respostas da página</h5>
+        </div>
+        <div class="card-body">
+            <form data-resposta-form data-fase-id="@Model.FaseId" data-page-id="@pagina.Id">
+                @foreach (var campo in pagina.Campos ?? new List<Alfa.Web.Dtos.CampoInstanciaViewModel>())
+                {
+                    @await Html.PartialAsync("Partials/_CampoInstancia", campo)
+                }
+
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <div class="text-muted small" data-saving-feedback hidden>Salvando...</div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-success" data-loading-text="Salvando...">Salvar respostas</button>
+                        <button type="button" class="btn btn-outline-secondary" data-recarregar-pagina>Recarregar</button>
+                        <a class="btn btn-outline-primary" asp-action="Detalhes" asp-route-id="@Model.ProcessoId">Ver processo completo</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const root = document.getElementById('pagina-externa');
+            if (root && window.Alfa && typeof window.Alfa.initPaginaExterna === 'function') {
+                window.Alfa.initPaginaExterna(root);
+            }
+        });
+    </script>
+}

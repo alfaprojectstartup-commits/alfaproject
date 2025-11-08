@@ -126,6 +126,158 @@
         return path;
     };
 
+    const applyCampoValor = (wrapper, campo) => {
+        if (!wrapper || !campo) return;
+        const input = wrapper.querySelector('[data-field-input]');
+        if (!input) return;
+        const tipo = (wrapper.dataset.tipo || '').toLowerCase();
+        switch (tipo) {
+            case 'number':
+                input.value = campo.ValorNumero != null ? String(campo.ValorNumero) : '';
+                break;
+            case 'date': {
+                const raw = campo.ValorData || '';
+                input.value = raw ? raw.substring(0, 10) : '';
+                break;
+            }
+            case 'checkbox':
+                input.checked = Boolean(campo.ValorBool);
+                break;
+            case 'textarea':
+            case 'select':
+            case 'text':
+            default:
+                input.value = campo.ValorTexto || '';
+                break;
+        }
+    };
+
+    function initRespostaForms(root, processoId, refreshCallback, options) {
+        if (!root || !processoId) return;
+
+        const {
+            mensagemSalvarSucesso = 'Respostas salvas com sucesso!',
+            mensagemSalvarErro = 'Não foi possível salvar as respostas. Tente novamente.',
+            mensagemReloadSucesso = 'Página atualizada com os dados mais recentes.',
+            mensagemReloadErro = 'Não foi possível recarregar os dados.'
+        } = options || {};
+
+        const refresh = typeof refreshCallback === 'function' ? refreshCallback : null;
+
+        const forms = Array.from(root.querySelectorAll('form[data-resposta-form]'));
+        forms.forEach(form => {
+            form.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                const faseId = parseInt(form.dataset.faseId || '', 10);
+                const paginaId = form.dataset.pageId;
+                const paginaIdNumero = parseInt(paginaId || '', 10);
+                if (Number.isNaN(faseId) || Number.isNaN(paginaIdNumero)) {
+                    Alfa.toast('Dados da página são inválidos.', 'danger');
+                    return;
+                }
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                const reloadButton = form.querySelector('[data-recarregar-pagina]');
+                const feedback = form.querySelector('[data-saving-feedback]');
+                if (feedback) feedback.hidden = false;
+                if (submitButton) {
+                    submitButton.dataset.originalText = submitButton.dataset.originalText || submitButton.textContent;
+                    submitButton.textContent = submitButton.dataset.loadingText || 'Salvando...';
+                    submitButton.disabled = true;
+                }
+                if (reloadButton) reloadButton.disabled = true;
+
+                try {
+                    const camposPayload = Array.from(form.querySelectorAll('[data-campo-id]')).map(wrapper => {
+                        const campoId = parseInt(wrapper.dataset.campoId || '', 10);
+                        const tipo = (wrapper.dataset.tipo || '').toLowerCase();
+                        const input = wrapper.querySelector('[data-field-input]');
+                        if (!campoId || !input) return null;
+                        const payload = { CampoInstanciaId: campoId, ValorTexto: null, ValorNumero: null, ValorData: null, ValorBool: null };
+                        switch (tipo) {
+                            case 'number': {
+                                const raw = input.value;
+                                if (raw !== '') {
+                                    const parsed = parseFloat(raw);
+                                    if (!Number.isNaN(parsed)) payload.ValorNumero = parsed;
+                                }
+                                break;
+                            }
+                            case 'date':
+                                payload.ValorData = input.value || null;
+                                break;
+                            case 'checkbox':
+                                payload.ValorBool = input.checked;
+                                break;
+                            case 'textarea':
+                            case 'select':
+                            case 'text':
+                            default:
+                                payload.ValorTexto = input.value ? input.value : null;
+                                break;
+                        }
+                        return payload;
+                    }).filter(Boolean);
+
+                    const payload = {
+                        FaseInstanciaId: faseId,
+                        PaginaInstanciaId: paginaIdNumero,
+                        Campos: camposPayload
+                    };
+
+                    const headers = { 'Content-Type': 'application/json' };
+                    const empId = empresaId();
+                    if (empId) headers['X-Empresa-Id'] = empId;
+
+                    const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!resp.ok) {
+                        throw new Error('Falha ao salvar respostas');
+                    }
+
+                    if (refresh) {
+                        await refresh(paginaId, form);
+                    }
+                    Alfa.toast(mensagemSalvarSucesso, 'success');
+                } catch (err) {
+                    console.error(err);
+                    Alfa.toast(mensagemSalvarErro, 'danger');
+                } finally {
+                    if (feedback) feedback.hidden = true;
+                    if (submitButton) {
+                        submitButton.textContent = submitButton.dataset.originalText || 'Salvar respostas';
+                        submitButton.disabled = false;
+                    }
+                    if (reloadButton) reloadButton.disabled = false;
+                }
+            });
+        });
+
+        root.querySelectorAll('[data-recarregar-pagina]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const form = btn.closest('form[data-resposta-form]');
+                if (!form) return;
+                const paginaId = form.dataset.pageId;
+                btn.disabled = true;
+                try {
+                    if (refresh) {
+                        await refresh(paginaId, form);
+                    }
+                    Alfa.toast(mensagemReloadSucesso, 'info');
+                } catch (err) {
+                    console.error(err);
+                    Alfa.toast(mensagemReloadErro, 'danger');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+
     Alfa.initProcessosLista = function (root) {
         if (!root) return;
 
@@ -340,108 +492,6 @@
             showPage(first.dataset.faseId, first.dataset.pageId);
         }
 
-        const forms = Array.from(root.querySelectorAll('form[data-resposta-form]'));
-        forms.forEach(form => {
-            form.addEventListener('submit', async (ev) => {
-                ev.preventDefault();
-                const faseId = form.dataset.faseId;
-                const paginaId = form.dataset.pageId;
-                const button = form.querySelector('button[type="submit"]');
-                const reloadButton = form.querySelector('[data-recarregar-pagina]');
-                const feedback = form.querySelector('[data-saving-feedback]');
-                if (feedback) feedback.hidden = false;
-                if (button) {
-                    button.dataset.originalText = button.dataset.originalText || button.textContent;
-                    button.textContent = button.dataset.loadingText || 'Salvando...';
-                    button.disabled = true;
-                }
-                if (reloadButton) reloadButton.disabled = true;
-
-                try {
-                    const camposPayload = Array.from(form.querySelectorAll('[data-campo-id]')).map(wrapper => {
-                        const campoId = parseInt(wrapper.dataset.campoId, 10);
-                        const tipo = wrapper.dataset.tipo || '';
-                        const input = wrapper.querySelector('[data-field-input]');
-                        if (!campoId || !input) return null;
-                        const payload = { CampoInstanciaId: campoId, ValorTexto: null, ValorNumero: null, ValorData: null, ValorBool: null };
-                        switch (tipo) {
-                            case 'number': {
-                                const raw = input.value;
-                                if (raw !== '') {
-                                    const parsed = parseFloat(raw);
-                                    if (!Number.isNaN(parsed)) payload.ValorNumero = parsed;
-                                }
-                                break;
-                            }
-                            case 'date':
-                                payload.ValorData = input.value || null;
-                                break;
-                            case 'checkbox':
-                                payload.ValorBool = input.checked;
-                                break;
-                            case 'textarea':
-                            case 'select':
-                            case 'text':
-                            default:
-                                payload.ValorTexto = input.value ? input.value : null;
-                                break;
-                        }
-                        return payload;
-                    }).filter(Boolean);
-
-                    const payload = {
-                        FaseInstanciaId: parseInt(faseId, 10),
-                        PaginaInstanciaId: parseInt(paginaId, 10),
-                        Campos: camposPayload
-                    };
-
-                    const headers = { 'Content-Type': 'application/json' };
-                    const empId = empresaId();
-                    if (empId) headers['X-Empresa-Id'] = empId;
-                    const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!resp.ok) {
-                        throw new Error('Falha ao salvar respostas');
-                    }
-
-                    await refreshProcess(paginaId);
-                    Alfa.toast('Respostas salvas com sucesso!', 'success');
-                } catch (err) {
-                    console.error(err);
-                    Alfa.toast('Não foi possível salvar as respostas. Tente novamente.', 'danger');
-                } finally {
-                    if (feedback) feedback.hidden = true;
-                    if (button) {
-                        button.textContent = button.dataset.originalText || 'Salvar respostas';
-                        button.disabled = false;
-                    }
-                    if (reloadButton) reloadButton.disabled = false;
-                }
-            });
-        });
-
-        root.querySelectorAll('[data-recarregar-pagina]').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const form = btn.closest('form[data-resposta-form]');
-                if (!form) return;
-                const paginaId = form.dataset.pageId;
-                btn.disabled = true;
-                try {
-                    await refreshProcess(paginaId);
-                    Alfa.toast('Página atualizada com os dados mais recentes.', 'info');
-                } catch (err) {
-                    console.error(err);
-                    Alfa.toast('Não foi possível recarregar os dados.', 'danger');
-                } finally {
-                    btn.disabled = false;
-                }
-            });
-        });
-
         function resolveVariantClasses(value) {
             if (value >= 100) return ['bg-success'];
             if (value >= 70) return ['bg-primary'];
@@ -520,26 +570,7 @@
                     if (!form) return;
                     (pagina.Campos || []).forEach(campo => {
                         const wrapper = form.querySelector(`[data-campo-id="${campo.Id}"]`);
-                        if (!wrapper) return;
-                        const input = wrapper.querySelector('[data-field-input]');
-                        if (!input) return;
-                        switch (wrapper.dataset.tipo) {
-                            case 'number':
-                                input.value = campo.ValorNumero != null ? String(campo.ValorNumero) : '';
-                                break;
-                            case 'date':
-                                input.value = campo.ValorData ? campo.ValorData.substring(0, 10) : '';
-                                break;
-                            case 'checkbox':
-                                input.checked = Boolean(campo.ValorBool);
-                                break;
-                            case 'textarea':
-                            case 'select':
-                            case 'text':
-                            default:
-                                input.value = campo.ValorTexto || '';
-                                break;
-                        }
+                        applyCampoValor(wrapper, campo);
                     });
                 });
             });
@@ -565,5 +596,79 @@
             }
             return data;
         }
+
+        initRespostaForms(root, processoId, async (paginaId) => {
+            await refreshProcess(paginaId);
+        });
+
+        const copyButtons = root.querySelectorAll('[data-copy-link]');
+        copyButtons.forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const url = btn.dataset.copyUrl;
+                if (!url) return;
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(url);
+                    } else {
+                        const fallback = document.createElement('textarea');
+                        fallback.value = url;
+                        fallback.style.position = 'fixed';
+                        fallback.style.opacity = '0';
+                        document.body.appendChild(fallback);
+                        fallback.focus();
+                        fallback.select();
+                        document.execCommand('copy');
+                        fallback.remove();
+                    }
+                    Alfa.toast('Link copiado para a área de transferência.', 'success');
+                } catch (err) {
+                    console.error(err);
+                    Alfa.toast('Não foi possível copiar o link.', 'danger');
+                }
+            });
+        });
+    };
+
+    Alfa.initPaginaExterna = function (root) {
+        if (!root) return;
+        const processoId = parseInt(root.dataset.processoId || '', 10);
+        const faseId = root.dataset.faseId;
+        const paginaId = root.dataset.pageId;
+        if (!processoId || !faseId || !paginaId) return;
+
+        const badge = root.querySelector('[data-page-complete-badge]');
+
+        const refreshPagina = async () => {
+            const headers = {};
+            const empId = empresaId();
+            if (empId) headers['X-Empresa-Id'] = empId;
+            const resp = await fetch(buildApiUrl(`/processos/${processoId}/fases`), { headers });
+            if (!resp.ok) throw new Error('Erro ao atualizar página');
+            const fases = await resp.json();
+            if (!Array.isArray(fases)) return;
+            const faseAtual = fases.find(f => String(f.Id) === String(faseId));
+            if (!faseAtual) return;
+            const paginaAtual = (faseAtual.Paginas || []).find(p => String(p.Id) === String(paginaId));
+            if (!paginaAtual) return;
+
+            const form = root.querySelector('form[data-resposta-form]');
+            if (form) {
+                (paginaAtual.Campos || []).forEach(campo => {
+                    const wrapper = form.querySelector(`[data-campo-id="${campo.Id}"]`);
+                    applyCampoValor(wrapper, campo);
+                });
+            }
+
+            if (badge) {
+                const concluida = Boolean(paginaAtual.Concluida);
+                badge.textContent = concluida ? 'Página concluída' : 'Página pendente';
+                badge.classList.toggle('bg-success', concluida);
+                badge.classList.toggle('bg-secondary', !concluida);
+            }
+        };
+
+        initRespostaForms(root, processoId, async () => {
+            await refreshPagina();
+        });
     };
 })();

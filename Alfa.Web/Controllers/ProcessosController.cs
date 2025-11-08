@@ -5,9 +5,12 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using System.Text;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
+using Alfa.Web.Servicos;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -174,17 +177,73 @@ public class ProcessosController : Controller
     {
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
-        if (processo.Fases is null) processo.Fases = new List<FaseInstanciaViewModel>();
-        processo.Fases = processo.Fases.OrderBy(f => f.Ordem).ToList();
-        foreach (var fase in processo.Fases)
+        OrdenarEstruturaProcesso(processo);
+        return View(processo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Pagina(int processoId, int faseId, int paginaId, int? empresaId = null)
+    {
+        int? resolvedEmpresaId = null;
+
+        if (empresaId is > 0)
         {
-            fase.Paginas = fase.Paginas?.OrderBy(p => p.Ordem).ToList() ?? new List<PaginaInstanciaViewModel>();
-            foreach (var pagina in fase.Paginas)
+            HttpContext.Session.SetInt32("EmpresaId", empresaId.Value);
+            resolvedEmpresaId = empresaId.Value;
+        }
+        else
+        {
+            var sessionEmpresaId = HttpContext.Session.GetInt32("EmpresaId");
+            if (sessionEmpresaId is > 0)
             {
-                pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
+                resolvedEmpresaId = sessionEmpresaId;
             }
         }
-        return View(processo);
+
+        if (resolvedEmpresaId is > 0)
+        {
+            ViewData["EmpresaIdOverride"] = resolvedEmpresaId.Value;
+        }
+
+        if (resolvedEmpresaId is null)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        var processo = await _api.GetProcessoAsync(processoId);
+        if (processo is null) return NotFound();
+
+        OrdenarEstruturaProcesso(processo);
+
+        var fase = processo.Fases?.FirstOrDefault(f => f.Id == faseId);
+        if (fase is null) return NotFound();
+
+        var pagina = fase.Paginas?.FirstOrDefault(p => p.Id == paginaId);
+        if (pagina is null) return NotFound();
+
+        var vm = new PaginaExternaViewModel
+        {
+            ProcessoId = processo.Id,
+            ProcessoTitulo = processo.Titulo,
+            FaseId = fase.Id,
+            FaseTitulo = fase.Titulo,
+            Pagina = pagina
+        };
+
+        return View(vm);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportarPdf(int id)
+    {
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+
+        OrdenarEstruturaProcesso(processo);
+        var pdfBytes = ProcessoPdfGenerator.Gerar(processo);
+        var nomeArquivo = CriarNomeArquivoPdf(processo.Titulo);
+
+        return File(pdfBytes, "application/pdf", nomeArquivo);
     }
 
     private static List<ProcessoPadraoModeloViewModel> FiltrarPadroesValidos(
@@ -215,6 +274,50 @@ public class ProcessosController : Controller
             .ToList();
     }
 
+    private static void OrdenarEstruturaProcesso(ProcessoDetalheViewModel processo)
+    {
+        if (processo is null)
+        {
+            return;
+        }
+
+        var fases = processo.Fases ?? new List<FaseInstanciaViewModel>();
+        processo.Fases = fases
+            .OrderBy(f => f.Ordem)
+            .Select(fase =>
+            {
+                fase.Paginas = (fase.Paginas ?? new List<PaginaInstanciaViewModel>())
+                    .OrderBy(p => p.Ordem)
+                    .Select(pagina =>
+                    {
+                        pagina.Campos = (pagina.Campos ?? new List<CampoInstanciaViewModel>())
+                            .OrderBy(c => c.Ordem)
+                            .ToList();
+                        return pagina;
+                    })
+                    .ToList();
+                return fase;
+            })
+            .ToList();
+    }
+
+    private static string CriarNomeArquivoPdf(string titulo)
+    {
+        var normalizado = string.IsNullOrWhiteSpace(titulo)
+            ? "processo"
+            : new string(titulo.Trim()
+                .Normalize(System.Text.NormalizationForm.FormD)
+                .Where(ch => char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch) || ch == '-')
+                .ToArray())
+                .Replace(' ', '-');
+
+        if (string.IsNullOrWhiteSpace(normalizado))
+        {
+            normalizado = "processo";
+        }
+
+        return $"{normalizado}-detalhes.pdf";
+    }
 }
 
 public class NovoProcessoVm
