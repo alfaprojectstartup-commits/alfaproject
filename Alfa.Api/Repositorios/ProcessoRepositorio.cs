@@ -364,11 +364,12 @@ public class ProcessoRepositorio : IProcessoRepositorio
         return new ProcessoDetalheDto(proc.Value.Id, proc.Value.Titulo, proc.Value.Status, proc.Value.Progresso, proc.Value.CriadoEm, fases);
     }
 
-    public async Task<int?> ObterProcessoIdDaFaseAsync(int empresaId, int faseInstanciaId)
+    public async Task<(int empresaId, int processoId)?> ObterEmpresaEProcessoDaFaseAsync(int faseInstanciaId)
     {
         using var cn = await _db.AbrirConexaoAsync();
-        const string sql = @"SELECT ProcessoId FROM FaseInstancias WHERE EmpresaId = @empresaId AND Id = @faseInstanciaId;";
-        return await cn.ExecuteScalarAsync<int?>(sql, new { empresaId, faseInstanciaId });
+        const string sql = @"SELECT EmpresaId, ProcessoId FROM FaseInstancias WHERE Id = @faseInstanciaId;";
+        var row = await cn.QueryFirstOrDefaultAsync<EmpresaProcessoRow>(sql, new { faseInstanciaId });
+        return row is null ? ((int, int)?)null : (row.EmpresaId, row.ProcessoId);
     }
 
     public async Task AtualizarStatusEProgressoAsync(int empresaId, int processoId, string? status, int? progresso)
@@ -419,6 +420,13 @@ public class ProcessoRepositorio : IProcessoRepositorio
         public DateTime CriadoEm { get; set; }
 
         public string? UsuariosConcatenados { get; set; }
+    }
+
+    private class EmpresaProcessoRow
+    {
+        public int EmpresaId { get; set; }
+
+        public int ProcessoId { get; set; }
     }
 
     private class TemplateRow
