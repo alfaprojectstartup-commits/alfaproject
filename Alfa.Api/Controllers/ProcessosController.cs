@@ -67,11 +67,9 @@ public class ProcessosController : ControllerBase
     [HttpPost("{id:int}/respostas")]
     public async Task<ActionResult> RegistrarResposta(int id, [FromBody] PaginaRespostaDto dto)
     {
-        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
-
         try
         {
-            await _app.RegistrarResposta(emp, id, dto);
+            await _app.RegistrarResposta(id, dto);
             return NoContent();
         }
         catch (KeyNotFoundException ex)
