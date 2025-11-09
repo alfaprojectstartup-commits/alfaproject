@@ -19,12 +19,14 @@ public class ProcessosController : Controller
     private readonly ApiClient _api;
     private readonly PreenchimentoExternoTokenService _tokenService;
     private readonly IUrlProtector _urlProtector;
+    private readonly IProcessoPdfGenerator _pdfGenerator;
 
-    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService, IUrlProtector urlProtector)
+    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService, IUrlProtector urlProtector, IProcessoPdfGenerator pdfGenerator)
     {
         _api = api;
         _tokenService = tokenService;
         _urlProtector = urlProtector;
+        _pdfGenerator = pdfGenerator;
     }
 
     public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
@@ -251,6 +253,19 @@ public class ProcessosController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> DownloadPdf(int id)
+    {
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+
+        OrdenarProcesso(processo);
+
+        var pdf = _pdfGenerator.Gerar(processo);
+        var fileName = $"processo-{processo.Id}.pdf";
+        return File(pdf, "application/pdf", fileName);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> PreenchimentoExterno(string token)
     {
         if (!_tokenService.TryValidarToken(token, out var payload) || payload is null)
@@ -333,8 +348,9 @@ public class ProcessosController : Controller
             }
         }
     }
-
+    
 }
+
 
 public class NovoProcessoVm
 {

@@ -1,5 +1,5 @@
 :root {
-    --alfa-body-bg: #f5f7fb;
+    --alfa-body-bg: #e7efff;
     --alfa-surface: #ffffff;
     --alfa-surface-subtle: #f3f6ff;
     --alfa-primary: #2d4ed7;
@@ -332,7 +332,7 @@ a:hover {
 .option-input:checked + .option-card {
     border-color: var(--alfa-primary);
     border-style: solid;
-    box-shadow: 0 12px 30px rgba(45, 78, 215, 0.18);
+    box-shadow: 0 12px 20px rgb(45 78 215 / 67%);
 }
 
 .option-card .option-indicator {
