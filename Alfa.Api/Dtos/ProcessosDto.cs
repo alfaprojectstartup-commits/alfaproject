@@ -144,4 +144,31 @@ namespace Alfa.Api.Dtos
         [MinLength(1, ErrorMessage = "Selecione ao menos uma fase para o padrão.")]
         public IList<int> FaseModeloIds { get; set; } = new List<int>();
     }
+
+    public class ProcessoHistoricoDto
+    {
+        public int Id { get; set; }
+
+        public int ProcessoId { get; set; }
+
+        public int? UsuarioId { get; set; }
+
+        public string UsuarioNome { get; set; } = string.Empty;
+
+        public string Descricao { get; set; } = string.Empty;
+
+        public DateTime CriadoEm { get; set; }
+    }
+
+    public class ProcessoStatusAtualizarDto
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Status { get; set; } = string.Empty;
+
+        public int? UsuarioId { get; set; }
+
+        [MaxLength(250)]
+        public string? UsuarioNome { get; set; }
+    }
 }

@@ -96,4 +96,28 @@ namespace Alfa.Web.Dtos
         public DateTime? ValorData { get; set; }
         public bool? ValorBool { get; set; }
     }
+
+    public class ProcessoHistoricoViewModel
+    {
+        public int Id { get; set; }
+
+        public int ProcessoId { get; set; }
+
+        public int? UsuarioId { get; set; }
+
+        public string UsuarioNome { get; set; } = string.Empty;
+
+        public string Descricao { get; set; } = string.Empty;
+
+        public DateTime CriadoEm { get; set; }
+    }
+
+    public class ProcessoStatusAtualizarInput
+    {
+        public string Status { get; set; } = string.Empty;
+
+        public int? UsuarioId { get; set; }
+
+        public string? UsuarioNome { get; set; }
+    }
 }
