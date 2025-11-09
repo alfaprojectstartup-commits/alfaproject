@@ -1,5 +1,6 @@
 ﻿@model Alfa.Web.Dtos.ProcessoDetalheViewModel
 @using System.Linq
+@using Alfa.Web.Dtos
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
 
@@ -9,6 +10,7 @@
     var primeiraPagina = fases.SelectMany(f => f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
         .OrderBy(p => p.Ordem)
         .FirstOrDefault();
+    var historicoUrl = ViewBag.HistoricoUrl as string;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -36,6 +38,16 @@
                title="Baixar processo em PDF">
                 Baixar PDF
             </a>
+            @if (!string.IsNullOrWhiteSpace(historicoUrl))
+            {
+                <a href="@historicoUrl"
+                   class="btn btn-outline-secondary"
+                   target="_blank"
+                   rel="noopener"
+                   title="Abrir log completo do processo em nova guia">
+                    Log do processo
+                </a>
+            }
         </div>
     </div>
 
@@ -127,6 +139,7 @@
             }
         </div>
     </div>
+
 </div>
 
 @section Scripts {

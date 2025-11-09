@@ -138,6 +138,13 @@
         const resetButton = root.querySelector('[data-filter-reset]');
         const searchInput = root.querySelector('[data-filter-search]');
         const emptyState = root.querySelector('[data-empty]');
+        const antiforgeryInput = root.querySelector('#processos-antiforgery input[name="__RequestVerificationToken"]');
+        const historicoUrlTemplate = root.dataset.historicoUrlTemplate || '';
+
+        const contextMenu = root.querySelector('[data-processo-menu]');
+        const contextMenuStatusGroup = contextMenu?.querySelector('[data-menu-status]') || null;
+        const contextMenuDetailsButton = contextMenu?.querySelector('[data-menu-detalhes]') || null;
+        const contextMenuHistoricoButton = contextMenu?.querySelector('[data-menu-historico]') || null;
 
         const filters = {
             statuses: new Set(),
@@ -145,6 +152,19 @@
             end: null,
             query: ''
         };
+
+        const normalizeStatusKey = (status) => (status || '').trim().toLowerCase();
+
+        const defaultStatuses = [
+            { name: 'Em Planejamento', lane: 'planejamento' },
+            { name: 'Em Andamento', lane: 'execucao' },
+            { name: 'Em Revisão', lane: 'revisao' },
+            { name: 'Concluído', lane: 'concluido' },
+            { name: 'Outros', lane: 'outros' }
+        ];
+
+        const statusLaneOverrides = new Map(defaultStatuses.map(s => [normalizeStatusKey(s.name), s.lane]));
+        const statusSortOrder = new Map(defaultStatuses.map((s, idx) => [normalizeStatusKey(s.name), idx]));
 
         const laneMatchers = [
             { key: 'planejamento', patterns: [/backlog/i, /planej/i, /novo/i, /aguard/i, /entrada/i] },
@@ -173,44 +193,112 @@
             return text.toLowerCase();
         };
 
-        const statusValues = Array.from(new Set(items
-            .map(item => (item.dataset.status || '').trim())
-            .filter(Boolean)))
-            .sort((a, b) => a.localeCompare(b));
+        const statusSet = new Set(defaultStatuses.map(s => s.name));
+        items.forEach(item => {
+            const status = (item.dataset.status || '').trim();
+            if (status) {
+                statusSet.add(status);
+            }
+        });
+
+        const getItemStatus = (item) => (item.dataset.status || '').trim();
+
+        const chipElements = new Map();
 
         const resolveLane = (status) => {
+            const override = statusLaneOverrides.get(normalizeStatusKey(status));
+            if (override) return override;
             for (const lane of laneMatchers) {
                 if (lane.patterns.some(re => re.test(status))) return lane.key;
             }
             return 'outros';
         };
 
-        if (board) {
-            statusValues.forEach(status => {
-                const laneKey = resolveLane(status);
-                const body = laneBodies.get(laneKey) || laneBodies.get('outros');
-                if (!body) return;
+        const createChip = (status) => {
+            if (!board) return null;
+            if (chipElements.has(status)) {
+                return chipElements.get(status) || null;
+            }
+            const laneKey = resolveLane(status);
+            const body = laneBodies.get(laneKey) || laneBodies.get('outros');
+            if (!body) return null;
 
-                const count = items.filter(item => (item.dataset.status || '').trim() === status).length;
-                const chip = document.createElement('button');
-                chip.type = 'button';
-                chip.className = 'kanban-chip';
-                chip.dataset.status = status;
-                chip.setAttribute('data-active', 'false');
-                chip.innerHTML = `<span class="text">${status}</span><span class="count">${count}</span>`;
-                chip.addEventListener('click', () => {
-                    const active = chip.getAttribute('data-active') === 'true';
-                    if (active) {
-                        chip.setAttribute('data-active', 'false');
-                        filters.statuses.delete(status);
-                    } else {
-                        chip.setAttribute('data-active', 'true');
-                        filters.statuses.add(status);
-                    }
-                    applyFilters();
-                });
-                body.appendChild(chip);
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'kanban-chip';
+            chip.dataset.status = status;
+            chip.setAttribute('data-active', filters.statuses.has(status) ? 'true' : 'false');
+            chip.innerHTML = `<span class="text">${status}</span><span class="count">0</span>`;
+            chip.addEventListener('click', () => {
+                const active = chip.getAttribute('data-active') === 'true';
+                if (active) {
+                    chip.setAttribute('data-active', 'false');
+                    filters.statuses.delete(status);
+                } else {
+                    chip.setAttribute('data-active', 'true');
+                    filters.statuses.add(status);
+                }
+                applyFilters();
             });
+            body.appendChild(chip);
+            chipElements.set(status, chip);
+            return chip;
+        };
+
+        const ensureChip = (status) => {
+            if (!chipElements.has(status)) {
+                statusSet.add(status);
+                return createChip(status);
+            }
+            return chipElements.get(status) || null;
+        };
+
+        const compareStatuses = (a, b) => {
+            const aKey = normalizeStatusKey(a);
+            const bKey = normalizeStatusKey(b);
+            const orderA = statusSortOrder.has(aKey) ? statusSortOrder.get(aKey) : null;
+            const orderB = statusSortOrder.has(bKey) ? statusSortOrder.get(bKey) : null;
+            if (orderA != null && orderB != null) return orderA - orderB;
+            if (orderA != null) return -1;
+            if (orderB != null) return 1;
+            return a.localeCompare(b);
+        };
+
+        const refreshStatusBoard = () => {
+            if (!board) return;
+            const counts = new Map();
+            items.forEach(item => {
+                const status = getItemStatus(item);
+                if (!status) return;
+                counts.set(status, (counts.get(status) || 0) + 1);
+            });
+
+            counts.forEach((count, status) => {
+                const chip = ensureChip(status);
+                if (chip) {
+                    const countEl = chip.querySelector('.count');
+                    if (countEl) countEl.textContent = String(count);
+                }
+            });
+
+            Array.from(statusSet).forEach(status => {
+                if (!counts.has(status)) {
+                    const chip = ensureChip(status);
+                    if (chip) {
+                        const countEl = chip.querySelector('.count');
+                        if (countEl) countEl.textContent = '0';
+                    }
+                }
+            });
+        };
+
+        if (board) {
+            Array.from(statusSet)
+                .sort(compareStatuses)
+                .forEach(status => {
+                    createChip(status);
+                });
+            refreshStatusBoard();
         }
 
         const parseDate = (value, endOfDay = false) => {
@@ -246,11 +334,9 @@
                 if (startInput) startInput.value = '';
                 if (endInput) endInput.value = '';
                 if (searchInput) searchInput.value = '';
-                if (board) {
-                    board.querySelectorAll('.kanban-chip').forEach(chip => {
-                        chip.setAttribute('data-active', 'false');
-                    });
-                }
+                chipElements.forEach(chip => {
+                    chip.setAttribute('data-active', 'false');
+                });
                 applyFilters();
             });
         }
@@ -264,6 +350,133 @@
             searchInput.addEventListener('input', handleSearch);
             searchInput.addEventListener('change', handleSearch);
         }
+
+        let menuActiveItem = null;
+
+        const hideContextMenu = () => {
+            if (!contextMenu) return;
+            contextMenu.classList.add('d-none');
+            contextMenu.classList.remove('is-loading');
+            menuActiveItem = null;
+        };
+
+        const positionContextMenu = (x, y) => {
+            if (!contextMenu) return;
+            const padding = 8;
+            const rect = contextMenu.getBoundingClientRect();
+            const width = rect.width || 240;
+            const height = rect.height || 200;
+            let left = x;
+            let top = y;
+
+            const maxLeft = window.innerWidth - width - padding;
+            const maxTop = window.innerHeight - height - padding;
+
+            left = Math.min(Math.max(left, padding), Math.max(padding, maxLeft));
+            top = Math.min(Math.max(top, padding), Math.max(padding, maxTop));
+
+            contextMenu.style.left = `${left}px`;
+            contextMenu.style.top = `${top}px`;
+        };
+
+        const openHistorico = (token) => {
+            if (!token || !historicoUrlTemplate) {
+                console.warn('URL do log não configurada.');
+                return;
+            }
+            const url = historicoUrlTemplate.replace('__token__', encodeURIComponent(token));
+            window.open(url, '_blank', 'noopener');
+        };
+
+        const buildContextMenu = (item) => {
+            if (contextMenuStatusGroup) {
+                contextMenuStatusGroup.innerHTML = '';
+                const currentStatus = getItemStatus(item);
+                const statuses = Array.from(statusSet).sort(compareStatuses);
+
+                statuses.forEach(status => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'processo-context-menu__item';
+                    button.textContent = status;
+                    if (status === currentStatus) {
+                        button.classList.add('is-active');
+                        button.setAttribute('aria-current', 'true');
+                    }
+                    button.addEventListener('click', () => {
+                        changeStatus(item, status);
+                    });
+                    contextMenuStatusGroup.appendChild(button);
+                });
+            }
+
+            if (contextMenuDetailsButton) {
+                const link = item.querySelector('a.stretched-link');
+                contextMenuDetailsButton.disabled = !link;
+            }
+
+            if (contextMenuHistoricoButton) {
+                const token = (item.dataset.token || '').trim();
+                contextMenuHistoricoButton.disabled = !(token && historicoUrlTemplate);
+            }
+        };
+
+        if (contextMenu) {
+            contextMenu.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+            });
+        }
+
+        if (contextMenuDetailsButton) {
+            contextMenuDetailsButton.addEventListener('click', () => {
+                if (!menuActiveItem) return;
+                const link = menuActiveItem.querySelector('a.stretched-link');
+                if (link) {
+                    hideContextMenu();
+                    window.location.href = link.href;
+                }
+            });
+        }
+
+        if (contextMenuHistoricoButton) {
+            contextMenuHistoricoButton.addEventListener('click', () => {
+                if (!menuActiveItem) return;
+                const token = (menuActiveItem.dataset.token || '').trim();
+                if (!token) return;
+                hideContextMenu();
+                openHistorico(token);
+            });
+        }
+
+        root.addEventListener('contextmenu', (event) => {
+            const item = event.target instanceof Element
+                ? event.target.closest('[data-processo-item]')
+                : null;
+            if (!item) return;
+
+            event.preventDefault();
+            menuActiveItem = item;
+            buildContextMenu(item);
+            if (contextMenu) {
+                contextMenu.classList.remove('d-none');
+                positionContextMenu(event.clientX, event.clientY);
+            }
+        });
+
+        document.addEventListener('pointerdown', (event) => {
+            if (!contextMenu || contextMenu.classList.contains('d-none')) return;
+            if (contextMenu.contains(event.target)) return;
+            hideContextMenu();
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                hideContextMenu();
+            }
+        });
+
+        window.addEventListener('scroll', hideContextMenu, true);
+        window.addEventListener('resize', hideContextMenu);
 
         const applyFilters = () => {
             let visibleCount = 0;
@@ -305,6 +518,78 @@
                 emptyState.classList.toggle('d-none', visibleCount > 0);
             }
         };
+
+        async function changeStatus(item, newStatus) {
+            if (!item) return;
+            const currentStatus = getItemStatus(item);
+            if (currentStatus === newStatus) {
+                hideContextMenu();
+                return;
+            }
+
+            const token = item.dataset.token;
+            if (!token) {
+                Alfa.toast('Não foi possível identificar o processo.', 'danger');
+                hideContextMenu();
+                return;
+            }
+
+            if (contextMenu) {
+                contextMenu.classList.add('is-loading');
+            }
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (antiforgeryInput && antiforgeryInput.value) {
+                headers['RequestVerificationToken'] = antiforgeryInput.value;
+            }
+
+            try {
+                const resp = await fetch('/Processos/AlterarStatus', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ token, status: newStatus })
+                });
+
+                if (!resp.ok) {
+                    let message = 'Não foi possível atualizar o status.';
+                    const raw = await resp.text();
+                    if (raw && raw.trim() !== '') {
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (parsed) {
+                                if (typeof parsed.message === 'string' && parsed.message.trim() !== '') {
+                                    message = parsed.message.trim();
+                                } else if (typeof parsed === 'string' && parsed.trim() !== '') {
+                                    message = parsed.trim();
+                                } else {
+                                    message = raw.trim();
+                                }
+                            }
+                        } catch {
+                            message = raw.trim();
+                        }
+                    }
+                    Alfa.toast(message, 'danger');
+                    return;
+                }
+
+                item.dataset.status = newStatus;
+                const badge = item.querySelector('.status-badge');
+                if (badge) badge.textContent = newStatus;
+                statusSet.add(newStatus);
+                hideContextMenu();
+                refreshStatusBoard();
+                applyFilters();
+                Alfa.toast('Status do processo atualizado.', 'success');
+            } catch (err) {
+                console.error('Erro ao atualizar status do processo.', err);
+                Alfa.toast('Não foi possível atualizar o status.', 'danger');
+            } finally {
+                if (contextMenu) {
+                    contextMenu.classList.remove('is-loading');
+                }
+            }
+        }
 
         applyFilters();
     };

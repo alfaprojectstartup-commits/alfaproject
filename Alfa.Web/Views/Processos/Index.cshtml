@@ -33,7 +33,13 @@
 }
 else
 {
-    <div id="processos-root" class="processos-painel" data-tab="@tab">
+    <div id="processos-root"
+         class="processos-painel"
+         data-tab="@tab"
+         data-historico-url-template="@Url.Action("Historico", new { token = "__token__" })">
+        <form id="processos-antiforgery" class="d-none" method="post">
+            @Html.AntiForgeryToken()
+        </form>
         <div class="card alfa-card mb-4" data-filtro-wrapper>
             <div class="card-body">
                 <div class="row g-3 align-items-end filtros-compactos">
@@ -104,7 +110,8 @@ else
                      data-status="@p.Status"
                      data-created="@p.CriadoEm.ToString("o")"
                      data-title="@p.Titulo"
-                     data-users="@usuariosPesquisa">
+                     data-users="@usuariosPesquisa"
+                     data-token="@p.Token">
                     <div class="processo-item-content">
                         <div class="processo-item-main">
                             <div class="processo-item-info">
@@ -135,6 +142,12 @@ else
                        aria-label="Ver detalhes do processo @p.Titulo"></a>
                 </div>
             }
+        </div>
+        <div class="processo-context-menu d-none" data-processo-menu>
+            <div class="processo-context-menu__group" data-menu-status></div>
+            <div class="processo-context-menu__divider" aria-hidden="true"></div>
+            <button type="button" class="processo-context-menu__item" data-menu-detalhes>Detalhes</button>
+            <button type="button" class="processo-context-menu__item" data-menu-historico>Log completo</button>
         </div>
     </div>
 }

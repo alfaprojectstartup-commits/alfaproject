@@ -1,0 +1,57 @@
+@model Alfa.Web.Dtos.ProcessoHistoricoPaginaViewModel
+@using System.Collections.Generic
+@using System.Linq
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@addTagHelper *, Alfa.Web
+
+@{
+    var processo = Model.Processo ?? new Alfa.Web.Dtos.ProcessoDetalheViewModel();
+    var historico = (Model.Historico ?? new List<Alfa.Web.Dtos.ProcessoHistoricoViewModel>())
+        .OrderByDescending(h => h.CriadoEm)
+        .ToList();
+    ViewData["Title"] = $"Log do processo · {processo.Titulo}";
+    var detalhesUrl = Url.Action("Detalhes", new { token = Model.Token });
+}
+
+<nav aria-label="breadcrumb" class="mb-3 small">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-action="Index">Processos</a></li>
+        @if (!string.IsNullOrWhiteSpace(detalhesUrl))
+        {
+            <li class="breadcrumb-item"><a href="@detalhesUrl" target="_self">@processo.Titulo</a></li>
+        }
+        <li class="breadcrumb-item active" aria-current="page">Log completo</li>
+    </ol>
+</nav>
+
+<section class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h4 class="card-title mb-1">Log do processo</h4>
+            <div class="text-muted small">@processo.Titulo</div>
+        </div>
+        <span class="badge rounded-pill bg-light text-muted">@historico.Count evento(s)</span>
+    </div>
+    <div class="card-body">
+        @if (historico.Any())
+        {
+            <ol class="processo-log" data-processo-log>
+                @foreach (var evento in historico)
+                {
+                    var usuario = string.IsNullOrWhiteSpace(evento.UsuarioNome) ? "Sistema" : evento.UsuarioNome;
+                    <li class="processo-log__item">
+                        <div class="processo-log__timestamp">@evento.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
+                        <div class="processo-log__content">
+                            <div class="processo-log__descricao">@evento.Descricao</div>
+                            <div class="processo-log__usuario">@usuario</div>
+                        </div>
+                    </li>
+                }
+            </ol>
+        }
+        else
+        {
+            <p class="text-muted mb-0">Nenhum evento registrado para este processo.</p>
+        }
+    </div>
+</section>

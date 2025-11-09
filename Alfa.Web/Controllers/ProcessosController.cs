@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
@@ -202,7 +203,42 @@ public class ProcessosController : Controller
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
         OrdenarProcesso(processo);
+        ViewBag.HistoricoUrl = Url.Action(nameof(Historico), new { token });
         return View(processo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Historico(string token)
+    {
+        if (!TryDecodeProcessoId(token, out var id))
+        {
+            return NotFound();
+        }
+
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+        OrdenarProcesso(processo);
+
+        List<ProcessoHistoricoViewModel> historico;
+        try
+        {
+            historico = await _api.GetProcessoHistoricoAsync(id) ?? new List<ProcessoHistoricoViewModel>();
+        }
+        catch (HttpRequestException)
+        {
+            historico = new List<ProcessoHistoricoViewModel>();
+        }
+
+        var vm = new ProcessoHistoricoPaginaViewModel
+        {
+            Processo = processo,
+            Historico = historico
+                .OrderByDescending(h => h.CriadoEm)
+                .ToList(),
+            Token = token
+        };
+
+        return View("Historico", vm);
     }
 
     private string EncodeProcessoId(int id) => _urlProtector.Encode(ProcessoPurpose, id);
@@ -304,6 +340,81 @@ public class ProcessosController : Controller
         return View("PreenchimentoExterno", vm);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AlterarStatus([FromBody] ProcessoStatusAlterarInput? input)
+    {
+        if (input is null || string.IsNullOrWhiteSpace(input.Token) || string.IsNullOrWhiteSpace(input.Status))
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        if (!TryDecodeProcessoId(input.Token, out var processoId))
+        {
+            return NotFound(new { message = "Processo não encontrado." });
+        }
+
+        var status = input.Status.Trim();
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return BadRequest(new { message = "Informe um status válido." });
+        }
+
+        var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+        var usuarioNome = HttpContext.Session.GetString("Nome");
+
+        var payload = new ProcessoStatusAtualizarInput
+        {
+            Status = status,
+            UsuarioId = usuarioId,
+            UsuarioNome = string.IsNullOrWhiteSpace(usuarioNome) ? null : usuarioNome
+        };
+
+        HttpResponseMessage resposta;
+        try
+        {
+            resposta = await _api.AtualizarProcessoStatusAsync(processoId, payload);
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(500, new { message = "Não foi possível atualizar o status.", detail = ex.Message });
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            var corpo = await resposta.Content.ReadAsStringAsync();
+            var mensagem = "Não foi possível atualizar o status.";
+            if (!string.IsNullOrWhiteSpace(corpo))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(corpo);
+                    var root = doc.RootElement;
+                    if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("message", out var msgEl) && msgEl.ValueKind == JsonValueKind.String)
+                    {
+                        mensagem = msgEl.GetString() ?? mensagem;
+                    }
+                    else if (root.ValueKind == JsonValueKind.String)
+                    {
+                        mensagem = root.GetString() ?? mensagem;
+                    }
+                    else
+                    {
+                        mensagem = corpo.Trim();
+                    }
+                }
+                catch
+                {
+                    mensagem = corpo.Trim();
+                }
+            }
+
+            return StatusCode((int)resposta.StatusCode, new { message = mensagem });
+        }
+
+        return Ok(new { status });
+    }
+
     private static List<ProcessoPadraoModeloViewModel> FiltrarPadroesValidos(
         IEnumerable<ProcessoPadraoModeloViewModel> padroes,
         IEnumerable<FaseModelosViewModel> fasesDisponiveis)
@@ -389,5 +500,11 @@ public class PreenchimentoExternoViewModel
     public string FaseTitulo { get; set; } = string.Empty;
     public PaginaInstanciaViewModel Pagina { get; set; } = new();
     public string Token { get; set; } = string.Empty;
+}
+
+public class ProcessoStatusAlterarInput
+{
+    public string Token { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
 
