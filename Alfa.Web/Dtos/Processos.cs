@@ -120,4 +120,13 @@ namespace Alfa.Web.Dtos
 
         public string? UsuarioNome { get; set; }
     }
+
+    public class ProcessoHistoricoPaginaViewModel
+    {
+        public ProcessoDetalheViewModel Processo { get; set; } = new();
+
+        public IList<ProcessoHistoricoViewModel> Historico { get; set; } = new List<ProcessoHistoricoViewModel>();
+
+        public string Token { get; set; } = string.Empty;
+    }
 }

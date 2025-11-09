@@ -33,7 +33,10 @@
 }
 else
 {
-    <div id="processos-root" class="processos-painel" data-tab="@tab">
+    <div id="processos-root"
+         class="processos-painel"
+         data-tab="@tab"
+         data-historico-url-template="@Url.Action("Historico", new { token = "__token__" })">
         <form id="processos-antiforgery" class="d-none" method="post">
             @Html.AntiForgeryToken()
         </form>
@@ -144,6 +147,7 @@ else
             <div class="processo-context-menu__group" data-menu-status></div>
             <div class="processo-context-menu__divider" aria-hidden="true"></div>
             <button type="button" class="processo-context-menu__item" data-menu-detalhes>Detalhes</button>
+            <button type="button" class="processo-context-menu__item" data-menu-historico>Log completo</button>
         </div>
     </div>
 }

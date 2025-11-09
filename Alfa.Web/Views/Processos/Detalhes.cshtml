@@ -10,10 +10,7 @@
     var primeiraPagina = fases.SelectMany(f => f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
         .OrderBy(p => p.Ordem)
         .FirstOrDefault();
-    var historico = (IEnumerable<ProcessoHistoricoViewModel>)(ViewBag.Historico ?? new List<ProcessoHistoricoViewModel>());
-    var historicoLista = historico
-        .OrderByDescending(h => h.CriadoEm)
-        .ToList();
+    var historicoUrl = ViewBag.HistoricoUrl as string;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -41,6 +38,16 @@
                title="Baixar processo em PDF">
                 Baixar PDF
             </a>
+            @if (!string.IsNullOrWhiteSpace(historicoUrl))
+            {
+                <a href="@historicoUrl"
+                   class="btn btn-outline-secondary"
+                   target="_blank"
+                   rel="noopener"
+                   title="Abrir log completo do processo em nova guia">
+                    Log do processo
+                </a>
+            }
         </div>
     </div>
 
@@ -133,34 +140,6 @@
         </div>
     </div>
 
-    <section class="card shadow-sm mt-4">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="card-title mb-0">Log do processo</h5>
-            <span class="badge rounded-pill bg-light text-muted">@historicoLista.Count evento(s)</span>
-        </div>
-        <div class="card-body">
-            @if (historicoLista.Any())
-            {
-                <ol class="processo-log" data-processo-log>
-                    @foreach (var evento in historicoLista)
-                    {
-                        var usuario = string.IsNullOrWhiteSpace(evento.UsuarioNome) ? "Sistema" : evento.UsuarioNome;
-                        <li class="processo-log__item">
-                            <div class="processo-log__timestamp">@evento.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
-                            <div class="processo-log__content">
-                                <div class="processo-log__descricao">@evento.Descricao</div>
-                                <div class="processo-log__usuario">@usuario</div>
-                            </div>
-                        </li>
-                    }
-                </ol>
-            }
-            else
-            {
-                <p class="text-muted mb-0">Nenhum evento registrado para este processo.</p>
-            }
-        </div>
-    </section>
 </div>
 
 @section Scripts {

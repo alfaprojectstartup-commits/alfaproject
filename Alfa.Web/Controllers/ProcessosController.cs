@@ -203,6 +203,22 @@ public class ProcessosController : Controller
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
         OrdenarProcesso(processo);
+        ViewBag.HistoricoUrl = Url.Action(nameof(Historico), new { token });
+        return View(processo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Historico(string token)
+    {
+        if (!TryDecodeProcessoId(token, out var id))
+        {
+            return NotFound();
+        }
+
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+        OrdenarProcesso(processo);
+
         List<ProcessoHistoricoViewModel> historico;
         try
         {
@@ -212,8 +228,17 @@ public class ProcessosController : Controller
         {
             historico = new List<ProcessoHistoricoViewModel>();
         }
-        ViewBag.Historico = historico;
-        return View(processo);
+
+        var vm = new ProcessoHistoricoPaginaViewModel
+        {
+            Processo = processo,
+            Historico = historico
+                .OrderByDescending(h => h.CriadoEm)
+                .ToList(),
+            Token = token
+        };
+
+        return View("Historico", vm);
     }
 
     private string EncodeProcessoId(int id) => _urlProtector.Encode(ProcessoPurpose, id);

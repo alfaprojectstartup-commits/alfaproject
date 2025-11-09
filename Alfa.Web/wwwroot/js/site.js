@@ -139,9 +139,12 @@
         const searchInput = root.querySelector('[data-filter-search]');
         const emptyState = root.querySelector('[data-empty]');
         const antiforgeryInput = root.querySelector('#processos-antiforgery input[name="__RequestVerificationToken"]');
+        const historicoUrlTemplate = root.dataset.historicoUrlTemplate || '';
+
         const contextMenu = root.querySelector('[data-processo-menu]');
         const contextMenuStatusGroup = contextMenu?.querySelector('[data-menu-status]') || null;
         const contextMenuDetailsButton = contextMenu?.querySelector('[data-menu-detalhes]') || null;
+        const contextMenuHistoricoButton = contextMenu?.querySelector('[data-menu-historico]') || null;
 
         const filters = {
             statuses: new Set(),
@@ -149,6 +152,19 @@
             end: null,
             query: ''
         };
+
+        const normalizeStatusKey = (status) => (status || '').trim().toLowerCase();
+
+        const defaultStatuses = [
+            { name: 'Em Planejamento', lane: 'planejamento' },
+            { name: 'Em Andamento', lane: 'execucao' },
+            { name: 'Em Revisão', lane: 'revisao' },
+            { name: 'Concluído', lane: 'concluido' },
+            { name: 'Outros', lane: 'outros' }
+        ];
+
+        const statusLaneOverrides = new Map(defaultStatuses.map(s => [normalizeStatusKey(s.name), s.lane]));
+        const statusSortOrder = new Map(defaultStatuses.map((s, idx) => [normalizeStatusKey(s.name), idx]));
 
         const laneMatchers = [
             { key: 'planejamento', patterns: [/backlog/i, /planej/i, /novo/i, /aguard/i, /entrada/i] },
@@ -177,15 +193,21 @@
             return text.toLowerCase();
         };
 
-        const statusSet = new Set(items
-            .map(item => (item.dataset.status || '').trim())
-            .filter(Boolean));
+        const statusSet = new Set(defaultStatuses.map(s => s.name));
+        items.forEach(item => {
+            const status = (item.dataset.status || '').trim();
+            if (status) {
+                statusSet.add(status);
+            }
+        });
 
         const getItemStatus = (item) => (item.dataset.status || '').trim();
 
         const chipElements = new Map();
 
         const resolveLane = (status) => {
+            const override = statusLaneOverrides.get(normalizeStatusKey(status));
+            if (override) return override;
             for (const lane of laneMatchers) {
                 if (lane.patterns.some(re => re.test(status))) return lane.key;
             }
@@ -194,6 +216,9 @@
 
         const createChip = (status) => {
             if (!board) return null;
+            if (chipElements.has(status)) {
+                return chipElements.get(status) || null;
+            }
             const laneKey = resolveLane(status);
             const body = laneBodies.get(laneKey) || laneBodies.get('outros');
             if (!body) return null;
@@ -228,6 +253,17 @@
             return chipElements.get(status) || null;
         };
 
+        const compareStatuses = (a, b) => {
+            const aKey = normalizeStatusKey(a);
+            const bKey = normalizeStatusKey(b);
+            const orderA = statusSortOrder.has(aKey) ? statusSortOrder.get(aKey) : null;
+            const orderB = statusSortOrder.has(bKey) ? statusSortOrder.get(bKey) : null;
+            if (orderA != null && orderB != null) return orderA - orderB;
+            if (orderA != null) return -1;
+            if (orderB != null) return 1;
+            return a.localeCompare(b);
+        };
+
         const refreshStatusBoard = () => {
             if (!board) return;
             const counts = new Map();
@@ -258,7 +294,7 @@
 
         if (board) {
             Array.from(statusSet)
-                .sort((a, b) => a.localeCompare(b))
+                .sort(compareStatuses)
                 .forEach(status => {
                     createChip(status);
                 });
@@ -343,30 +379,45 @@
             contextMenu.style.top = `${top}px`;
         };
 
-        const buildContextMenu = (item) => {
-            if (!contextMenuStatusGroup) return;
-            contextMenuStatusGroup.innerHTML = '';
-            const currentStatus = getItemStatus(item);
-            const statuses = Array.from(statusSet).sort((a, b) => a.localeCompare(b));
+        const openHistorico = (token) => {
+            if (!token || !historicoUrlTemplate) {
+                console.warn('URL do log não configurada.');
+                return;
+            }
+            const url = historicoUrlTemplate.replace('__token__', encodeURIComponent(token));
+            window.open(url, '_blank', 'noopener');
+        };
 
-            statuses.forEach(status => {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'processo-context-menu__item';
-                button.textContent = status;
-                if (status === currentStatus) {
-                    button.classList.add('is-active');
-                    button.setAttribute('aria-current', 'true');
-                }
-                button.addEventListener('click', () => {
-                    changeStatus(item, status);
+        const buildContextMenu = (item) => {
+            if (contextMenuStatusGroup) {
+                contextMenuStatusGroup.innerHTML = '';
+                const currentStatus = getItemStatus(item);
+                const statuses = Array.from(statusSet).sort(compareStatuses);
+
+                statuses.forEach(status => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'processo-context-menu__item';
+                    button.textContent = status;
+                    if (status === currentStatus) {
+                        button.classList.add('is-active');
+                        button.setAttribute('aria-current', 'true');
+                    }
+                    button.addEventListener('click', () => {
+                        changeStatus(item, status);
+                    });
+                    contextMenuStatusGroup.appendChild(button);
                 });
-                contextMenuStatusGroup.appendChild(button);
-            });
+            }
 
             if (contextMenuDetailsButton) {
                 const link = item.querySelector('a.stretched-link');
                 contextMenuDetailsButton.disabled = !link;
+            }
+
+            if (contextMenuHistoricoButton) {
+                const token = (item.dataset.token || '').trim();
+                contextMenuHistoricoButton.disabled = !(token && historicoUrlTemplate);
             }
         };
 
@@ -384,6 +435,16 @@
                     hideContextMenu();
                     window.location.href = link.href;
                 }
+            });
+        }
+
+        if (contextMenuHistoricoButton) {
+            contextMenuHistoricoButton.addEventListener('click', () => {
+                if (!menuActiveItem) return;
+                const token = (menuActiveItem.dataset.token || '').trim();
+                if (!token) return;
+                hideContextMenu();
+                openHistorico(token);
             });
         }
 
