@@ -384,6 +384,10 @@ public class ProcessoRepositorio : IProcessoRepositorio
             statusId = await cn.ExecuteScalarAsync<int?>(
                 "SELECT Id FROM ProcessoStatus WHERE EmpresaId=@empresaId AND Status=@status",
                 new { empresaId, status });
+            if (!statusId.HasValue)
+            {
+                throw new InvalidOperationException($"Status '{status}' não encontrado para a empresa informada.");
+            }
         }
 
         var setClauses = new List<string>();
@@ -404,7 +408,40 @@ public class ProcessoRepositorio : IProcessoRepositorio
         if (setClauses.Count == 0) return;
 
         var sql = $"UPDATE Processos SET {string.Join(",", setClauses)} WHERE EmpresaId=@empresaId AND Id=@processoId";
-        await cn.ExecuteAsync(sql, parameters);
+        var linhas = await cn.ExecuteAsync(sql, parameters);
+        if (linhas == 0)
+        {
+            throw new InvalidOperationException("Processo não encontrado ou não atualizado.");
+        }
+    }
+
+    public async Task RegistrarHistoricoAsync(int empresaId, int processoId, int? usuarioId, string usuarioNome, string descricao)
+    {
+        using var cn = await _db.AbrirConexaoAsync();
+        const string sql = @"
+            INSERT INTO ProcessoHistoricos (EmpresaId, ProcessoId, UsuarioId, UsuarioNome, Descricao)
+            VALUES (@empresaId, @processoId, @usuarioId, @usuarioNome, @descricao);";
+
+        await cn.ExecuteAsync(sql, new
+        {
+            empresaId,
+            processoId,
+            usuarioId,
+            usuarioNome = string.IsNullOrWhiteSpace(usuarioNome) ? "Sistema" : usuarioNome.Trim(),
+            descricao
+        });
+    }
+
+    public async Task<IEnumerable<ProcessoHistoricoDto>> ListarHistoricosAsync(int empresaId, int processoId)
+    {
+        using var cn = await _db.AbrirConexaoAsync();
+        const string sql = @"
+            SELECT Id, ProcessoId, UsuarioId, UsuarioNome, Descricao, CriadoEm
+            FROM ProcessoHistoricos
+            WHERE EmpresaId = @empresaId AND ProcessoId = @processoId
+            ORDER BY CriadoEm DESC, Id DESC;";
+
+        return await cn.QueryAsync<ProcessoHistoricoDto>(sql, new { empresaId, processoId });
     }
 
     private class ProcessoListItemRow

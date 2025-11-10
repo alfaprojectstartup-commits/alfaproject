@@ -41,6 +41,22 @@ namespace Alfa.Api.Aplicacao
         public Task<int> CriarPadraoAsync(int empresaId, ProcessoPadraoModeloInputDto dto)
             => _padraoRepo.CriarAsync(empresaId, dto);
 
+        public async Task AtualizarStatus(int empresaId, int processoId, string status, int? usuarioId, string? usuarioNome)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                throw new ArgumentException("Informe um status válido.", nameof(status));
+            }
+
+            await _procRepo.AtualizarStatusEProgressoAsync(empresaId, processoId, status.Trim(), null);
+
+            var descricao = $"Status alterado para '{status.Trim()}'.";
+            await _procRepo.RegistrarHistoricoAsync(empresaId, processoId, usuarioId, usuarioNome ?? string.Empty, descricao);
+        }
+
+        public Task<IEnumerable<ProcessoHistoricoDto>> ListarHistoricos(int empresaId, int processoId)
+            => _procRepo.ListarHistoricosAsync(empresaId, processoId);
+
         public Task<IEnumerable<FaseInstanciaDto>> ListarFases(int empresaId, int processoId)
             => _faseRepo.ListarInstanciasAsync(empresaId, processoId);
 

@@ -1,5 +1,6 @@
 ﻿@model Alfa.Web.Dtos.ProcessoDetalheViewModel
 @using System.Linq
+@using Alfa.Web.Dtos
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @addTagHelper *, Alfa.Web
 
@@ -9,6 +10,7 @@
     var primeiraPagina = fases.SelectMany(f => f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
         .OrderBy(p => p.Ordem)
         .FirstOrDefault();
+    var historicoUrl = ViewBag.HistoricoUrl as string;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -18,13 +20,35 @@
     </ol>
 </nav>
 
-<div id="processo-detalhes" data-processo-details data-processo-id="@Model.Id">
+<form id="preenchimento-externo-antiforgery" class="d-none" method="post">
+    @Html.AntiForgeryToken()
+</form>
+
+<div id="processo-detalhes" data-processo-details data-processo-id="@Model.Id" data-link-preenchimento-url="@Url.Action("LinkPreenchimentoExterno", "Processos")">
     <div class="d-flex flex-wrap gap-3 align-items-start mb-4">
         <div class="flex-grow-1">
             <h2 class="h4 mb-1">@Model.Titulo</h2>
             <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
         </div>
         <span class="badge rounded-pill status-badge align-self-center" data-status-processo>@Model.Status</span>
+        <div class="btn-group align-self-center">
+            <a asp-action="DownloadPdf"
+               asp-route-id="@Model.Id"
+               class="btn btn-outline-primary"
+               title="Baixar processo em PDF">
+                Baixar PDF
+            </a>
+            @if (!string.IsNullOrWhiteSpace(historicoUrl))
+            {
+                <a href="@historicoUrl"
+                   class="btn btn-outline-secondary"
+                   target="_blank"
+                   rel="noopener"
+                   title="Abrir log completo do processo em nova guia">
+                    Log do processo
+                </a>
+            }
+        </div>
     </div>
 
     <div class="mb-4">
@@ -79,9 +103,18 @@
                                     <h5 class="card-title mb-1">@pagina.Titulo</h5>
                                     <div class="text-muted small">Fase: @fase.Titulo</div>
                                 </div>
-                                <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary") align-self-center" data-page-complete-badge="@pagina.Id">
-                                    @(pagina.Concluida ? "Página concluída" : "Página pendente")
-                                </span>
+                                <div class="d-flex flex-column flex-sm-row gap-2 align-items-sm-center">
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-sm"
+                                            data-link-preenchimento
+                                            data-fase-id="@fase.Id"
+                                            data-page-id="@pagina.Id">
+                                        Preenchimento externo
+                                    </button>
+                                    <span class="badge @(pagina.Concluida ? "bg-success" : "bg-secondary") align-self-center" data-page-complete-badge="@pagina.Id">
+                                        @(pagina.Concluida ? "Página concluída" : "Página pendente")
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         <div class="card-body">
@@ -106,6 +139,7 @@
             }
         </div>
     </div>
+
 </div>
 
 @section Scripts {
