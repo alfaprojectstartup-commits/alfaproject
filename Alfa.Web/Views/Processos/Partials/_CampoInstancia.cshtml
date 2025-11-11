@@ -117,24 +117,25 @@
                 }
                 break;
             case "signature":
-                <div class="d-grid gap-2" data-file-field>
-                    <input class="form-control" type="file" data-field-input accept="image/*,application/pdf" id="campo_@Model?.Id" />
-                    <input type="hidden" data-existing-file value="@valorTexto" />
-                    @if (possuiArquivo)
-                    {
-                        <div class="form-text">Um arquivo já foi anexado. Você pode enviar um novo para substituir.</div>
-                        if (pareceImagem)
-                        {
-                            <img src="@valorTexto" alt="Assinatura atual" class="img-fluid rounded border" />
-                        }
-                        else
-                        {
-                            <div>
-                                <a href="@valorTexto" target="_blank" rel="noopener">Visualizar arquivo atual</a>
-                            </div>
-                        }
-                    }
+                {
+                    var possuiAssinatura = !string.IsNullOrWhiteSpace(valorTexto);
+                <div class="signature-field" data-signature-field>
+                    <div class="signature-pad border border-2 rounded bg-white position-relative overflow-hidden" data-signature-pad style="height: 180px; border-style: dashed;">
+                        <canvas data-signature-canvas class="w-100 h-100" width="720" height="220" aria-label="Área para assinatura"></canvas>
+                        <div class="signature-hint position-absolute top-50 start-50 translate-middle text-muted small" data-signature-hint>Assine aqui usando o mouse ou toque.</div>
+                    </div>
+                    <input type="hidden" data-field-input data-signature-output value="@valorTexto" />
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-signature-clear>Limpar</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm@(possuiAssinatura ? string.Empty : " d-none")" data-signature-remove>Remover assinatura atual</button>
+                    </div>
+                    <div class="signature-preview mt-3@(possuiAssinatura ? string.Empty : " d-none")" data-signature-preview>
+                        <div class="text-muted small mb-2">Assinatura salva:</div>
+                        <img src="@valorTexto" alt="Assinatura atual" class="img-fluid border rounded" data-signature-preview-img />
+                    </div>
+                    <div class="form-text mt-2">A assinatura é salva em formato digital e pode ser refeita a qualquer momento.</div>
                 </div>
+                }
                 break;
             case "image":
                 <div class="d-grid gap-2" data-file-field>

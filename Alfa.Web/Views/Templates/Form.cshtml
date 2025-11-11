@@ -49,16 +49,36 @@
     }
 
     .campos-drop-area {
-        border: 1px dashed var(--bs-border-color);
+        border: 2px dashed var(--bs-border-color);
         border-radius: var(--bs-border-radius);
-        padding: 1rem;
-        background-color: var(--bs-body-bg);
-        transition: border-color .2s ease, background-color .2s ease;
+        padding: 1.5rem;
+        background-color: var(--bs-tertiary-bg);
+        transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        position: relative;
     }
 
     .campos-drop-area.has-campos {
         border-style: solid;
         background-color: transparent;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .02);
+    }
+
+    .campos-drop-hint {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--bs-secondary-color);
+        min-height: 6rem;
+        pointer-events: none;
+        text-align: center;
+    }
+
+    .campos-drop-icon {
+        font-size: 2rem;
+        line-height: 1;
+        margin-bottom: .5rem;
+        opacity: .65;
     }
 
     .campos-container {
@@ -148,7 +168,13 @@
                                         <h3 class="h6 mb-0">Campos</h3>
                                     </div>
                                     <div class="campos-drop-area" data-campos-area>
-                                        <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado para adicioná-lo.</div>
+                                        <div class="campos-drop-hint" data-campos-vazio>
+                                            <div class="campos-drop-icon" aria-hidden="true">⬇️</div>
+                                            <div>
+                                                <div class="fw-semibold">Arraste os campos para cá</div>
+                                                <div class="small">Solte nesta área para montar a página</div>
+                                            </div>
+                                        </div>
                                         <div class="d-grid gap-3 mt-3 campos-container">
                                             @if (pagina.Campos != null)
                                             {
@@ -171,21 +197,17 @@
                                                             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
                                                         </div>
                                                         <div class="row g-3 align-items-start">
-                                                            <div class="col-md-6">
+                                                            <div class="col-md-7">
                                                                 <label class="form-label">Rótulo</label>
                                                                 <input class="form-control" data-field-prop="Rotulo" name="Paginas[@i].Campos[@j].Rotulo" value="@campo.Rotulo" />
                                                             </div>
-                                                            <div class="col-md-3">
+                                                            <div class="col-md-5">
                                                                 <label class="form-label">Tipo</label>
                                                                 <div class="form-control-plaintext" data-field-tipo-display>@descreverTipo(campo.Tipo)</div>
                                                                 <input type="hidden" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo" value="@campo.Tipo" />
                                                             </div>
-                                                            <div class="col-md-3">
-                                                                <label class="form-label">Nome interno</label>
-                                                                <div class="form-control-plaintext small text-muted" data-field-nome-display>@campo.NomeCampo</div>
-                                                                <input type="hidden" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
-                                                            </div>
                                                         </div>
+                                                        <input type="hidden" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
                                                         <input type="hidden" data-field-prop="Ordem" name="Paginas[@i].Campos[@j].Ordem" value="@campo.Ordem" />
                                                         <div class="row g-3 mt-1">
                                                             <div class="col-md-3">
@@ -223,26 +245,21 @@
                                                                         <div class="border rounded p-2 opcao-item" data-option-index="@k">
                                                                             <input type="hidden" data-option-index-field name="Paginas[@i].Campos[@j].Opcoes.Index" value="@k" />
                                                                             <div class="row g-2 align-items-end">
-                                                                                <div class="col-md-5">
+                                                                                <div class="col-md-8">
                                                                                     <label class="form-label form-label-sm">Texto</label>
                                                                                     <input class="form-control form-control-sm" data-option-prop="Texto" name="Paginas[@i].Campos[@j].Opcoes[@k].Texto" value="@opcao.Texto" />
+                                                                                    <input type="hidden" data-option-prop="Valor" name="Paginas[@i].Campos[@j].Opcoes[@k].Valor" value="@opcao.Valor" />
+                                                                                    <input type="hidden" data-option-prop="Ordem" name="Paginas[@i].Campos[@j].Opcoes[@k].Ordem" value="@opcao.Ordem" />
+                                                                                    <div class="form-text">Valor automático: <span data-option-valor-display>@(k + 1)</span></div>
                                                                                 </div>
                                                                                 <div class="col-md-3">
-                                                                                    <label class="form-label form-label-sm">Valor</label>
-                                                                                    <input class="form-control form-control-sm" data-option-prop="Valor" name="Paginas[@i].Campos[@j].Opcoes[@k].Valor" value="@opcao.Valor" />
-                                                                                </div>
-                                                                                <div class="col-md-2">
-                                                                                    <label class="form-label form-label-sm">Ordem</label>
-                                                                                    <input class="form-control form-control-sm" data-option-prop="Ordem" name="Paginas[@i].Campos[@j].Opcoes[@k].Ordem" type="number" min="0" value="@opcao.Ordem" />
-                                                                                </div>
-                                                                                <div class="col-md-2">
                                                                                     <label class="form-label form-label-sm">Ativa</label>
                                                                                     <div class="form-check">
                                                                                         <input type="hidden" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="false" />
                                                                                         <input class="form-check-input" type="checkbox" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="true" @(opcao.Ativo ? "checked" : string.Empty) />
                                                                                     </div>
                                                                                 </div>
-                                                                                <div class="col-auto">
+                                                                                <div class="col-auto align-self-end">
                                                                                     <button type="button" class="btn btn-sm btn-outline-danger" data-remover-opcao>Remover</button>
                                                                                 </div>
                                                                             </div>
@@ -335,7 +352,13 @@
                     <h3 class="h6 mb-0">Campos</h3>
                 </div>
                 <div class="campos-drop-area" data-campos-area>
-                    <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado para adicioná-lo.</div>
+                    <div class="campos-drop-hint" data-campos-vazio>
+                        <div class="campos-drop-icon" aria-hidden="true">⬇️</div>
+                        <div>
+                            <div class="fw-semibold">Arraste os campos para cá</div>
+                            <div class="small">Solte nesta área para montar a página</div>
+                        </div>
+                    </div>
                     <div class="d-grid gap-3 mt-3 campos-container"></div>
                 </div>
             </div>
@@ -356,21 +379,17 @@
             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
         </div>
         <div class="row g-3 align-items-start">
-            <div class="col-md-6">
+            <div class="col-md-7">
                 <label class="form-label">Rótulo</label>
                 <input class="form-control" data-field-prop="Rotulo" />
             </div>
-            <div class="col-md-3">
+            <div class="col-md-5">
                 <label class="form-label">Tipo</label>
                 <div class="form-control-plaintext" data-field-tipo-display>Selecione um campo no catálogo</div>
                 <input type="hidden" data-field-prop="Tipo" />
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Nome interno</label>
-                <div class="form-control-plaintext small text-muted" data-field-nome-display>Defina o rótulo para gerar</div>
-                <input type="hidden" data-field-prop="NomeCampo" />
-            </div>
         </div>
+        <input type="hidden" data-field-prop="NomeCampo" />
         <input type="hidden" data-field-prop="Ordem" value="0" />
         <div class="row g-3 mt-1">
             <div class="col-md-3">
@@ -407,26 +426,21 @@
     <div class="border rounded p-2 opcao-item">
         <input type="hidden" data-option-index-field />
         <div class="row g-2 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-8">
                 <label class="form-label form-label-sm">Texto</label>
                 <input class="form-control form-control-sm" data-option-prop="Texto" />
+                <input type="hidden" data-option-prop="Valor" value="" />
+                <input type="hidden" data-option-prop="Ordem" value="0" />
+                <div class="form-text">Valor automático: <span data-option-valor-display>1</span></div>
             </div>
             <div class="col-md-3">
-                <label class="form-label form-label-sm">Valor</label>
-                <input class="form-control form-control-sm" data-option-prop="Valor" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label form-label-sm">Ordem</label>
-                <input class="form-control form-control-sm" data-option-prop="Ordem" type="number" min="0" value="0" />
-            </div>
-            <div class="col-md-2">
                 <label class="form-label form-label-sm">Ativa</label>
                 <div class="form-check">
                     <input type="hidden" data-option-prop="Ativo" value="false" />
                     <input class="form-check-input" type="checkbox" data-option-prop="Ativo" value="true" checked />
                 </div>
             </div>
-            <div class="col-auto">
+            <div class="col-auto align-self-end">
                 <button type="button" class="btn btn-sm btn-outline-danger" data-remover-opcao>Remover</button>
             </div>
         </div>
@@ -483,24 +497,26 @@
                 }
 
                 return rotulo
+                    .toString()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^\w\s-]/g, '')
                     .trim()
-                    .replace(/\s+/g, '_');
+                    .replace(/\s+/g, '_')
+                    .replace(/_+/g, '_')
+                    .toLowerCase();
             }
 
             function atualizarNomeInterno(campoEl, rotuloValor) {
                 const nomeHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
-                const nomeDisplay = campoEl.querySelector('[data-field-nome-display]');
                 if (!nomeHidden) {
                     return;
                 }
 
-                let novoNome = nomeHidden.value || '';
-                if (rotuloValor) {
-                    novoNome = gerarNomeInterno(rotuloValor);
-                    nomeHidden.value = novoNome;
-                }
-                if (nomeDisplay) {
-                    nomeDisplay.textContent = novoNome || 'Defina o rótulo para gerar';
+                if (rotuloValor && rotuloValor.trim() !== '') {
+                    nomeHidden.value = gerarNomeInterno(rotuloValor);
+                } else if (!nomeHidden.value) {
+                    nomeHidden.value = '';
                 }
             }
 
@@ -590,7 +606,7 @@
                 const nomeCampoHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
                 const rotuloInicial = rotuloInput?.value ?? dados?.Rotulo ?? '';
                 if (nomeCampoHidden) {
-                    const nomeInicial = gerarNomeInterno(rotuloInicial || dados?.NomeCampo || '');
+                    const nomeInicial = gerarNomeInterno(rotuloInicial);
                     nomeCampoHidden.value = nomeInicial;
                 }
 
@@ -601,7 +617,7 @@
                 const tipoDescricaoInicial = dados?.TipoDescricao ?? null;
                 atualizarTipoCampo(campoEl, tipoInicial, permiteOpcoes, tipoDescricaoInicial);
 
-                atualizarNomeInterno(campoEl, rotuloInicial || dados?.NomeCampo || '');
+                atualizarNomeInterno(campoEl, rotuloInicial);
 
                 const ordemInput = campoEl.querySelector('[data-field-prop="Ordem"]');
                 if (ordemInput) {
@@ -644,9 +660,24 @@
 
             function adicionarOpcao(campoEl, dados) {
                 const opcaoEl = cloneTemplate(opcaoTemplate);
-                opcaoEl.querySelector('[data-option-prop="Texto"]').value = dados?.Texto ?? '';
-                opcaoEl.querySelector('[data-option-prop="Valor"]').value = dados?.Valor ?? '';
-                opcaoEl.querySelector('[data-option-prop="Ordem"]').value = dados?.Ordem ?? 0;
+                const textoInput = opcaoEl.querySelector('[data-option-prop="Texto"]');
+                const valorInput = opcaoEl.querySelector('[data-option-prop="Valor"]');
+                const ordemInput = opcaoEl.querySelector('[data-option-prop="Ordem"]');
+                const valorDisplay = opcaoEl.querySelector('[data-option-valor-display]');
+
+                if (textoInput) {
+                    textoInput.value = dados?.Texto ?? '';
+                }
+                if (valorInput) {
+                    valorInput.value = dados?.Valor ?? '';
+                }
+                if (ordemInput) {
+                    ordemInput.value = dados?.Ordem ?? 0;
+                }
+                if (valorDisplay) {
+                    const valorInicial = dados?.Valor ?? '1';
+                    valorDisplay.textContent = valorInicial;
+                }
                 const ativoHidden = opcaoEl.querySelector('input[type="hidden"][data-option-prop="Ativo"]');
                 const ativoCheck = opcaoEl.querySelector('input[type="checkbox"][data-option-prop="Ativo"]');
                 const ativo = dados?.Ativo ?? true;
@@ -709,7 +740,7 @@
                     rotuloInput.addEventListener('blur', () => {
                         atualizarNomeInterno(campoEl, rotuloInput.value);
                     });
-                    atualizarNomeInterno(campoEl);
+                    atualizarNomeInterno(campoEl, rotuloInput.value);
                 }
 
                 const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
@@ -881,8 +912,14 @@
                                 input.name = `Paginas[${pIndex}].Campos[${cIndex}].Opcoes[${oIndex}].${prop}`;
                                 if (prop === 'Ordem') {
                                     input.value = oIndex + 1;
+                                } else if (prop === 'Valor') {
+                                    input.value = (oIndex + 1).toString();
                                 }
                             });
+                            const valorDisplay = opcaoEl.querySelector('[data-option-valor-display]');
+                            if (valorDisplay) {
+                                valorDisplay.textContent = (oIndex + 1).toString();
+                            }
                         });
                     });
 
