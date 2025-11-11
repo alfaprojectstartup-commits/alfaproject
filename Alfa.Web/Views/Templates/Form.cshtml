@@ -119,17 +119,17 @@
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label">Ordem</label>
-                                        <input class="form-control" data-page-prop="Ordem" name="Paginas[@i].Ordem" type="number" min="0" value="@pagina.Ordem" />
+                                        <div class="form-control-plaintext small text-muted">Definida automaticamente conforme a posição</div>
+                                        <input type="hidden" data-page-prop="Ordem" name="Paginas[@i].Ordem" value="@pagina.Ordem" />
                                     </div>
                                 </div>
 
                                 <div class="mb-3 campos-wrapper">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h3 class="h6 mb-0">Campos</h3>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-campo>Adicionar campo</button>
                                     </div>
                                     <div class="campos-drop-area" data-campos-area>
-                                        <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado ou use o botão acima.</div>
+                                        <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado para adicioná-lo.</div>
                                         <div class="d-grid gap-3 mt-3 campos-container">
                                             @if (pagina.Campos != null)
                                             {
@@ -137,7 +137,8 @@
                                                 {
                                                     var campo = pagina.Campos[j];
                                                     var tipoAtual = campo?.Tipo ?? string.Empty;
-                                                    <div class="border rounded p-3 campo-item" data-field-index="@j">
+                                                    var permiteOpcoes = (campo?.Opcoes?.Any() ?? false) || string.Equals(tipoAtual, "Select", StringComparison.OrdinalIgnoreCase);
+                                                    <div class="border rounded p-3 campo-item" data-field-index="@j" data-permite-opcoes="@(permiteOpcoes ? "true" : "false")">
                                                         <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
                                                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
                                                             <div class="d-flex align-items-center gap-2">
@@ -148,48 +149,24 @@
                                                             </div>
                                                             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
                                                         </div>
-                                                        <div class="row g-3">
-                                                            <div class="col-md-4">
-                                                                <label class="form-label">Nome interno</label>
-                                                                <input class="form-control" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
-                                                            </div>
-                                                            <div class="col-md-4">
+                                                        <div class="row g-3 align-items-start">
+                                                            <div class="col-md-6">
                                                                 <label class="form-label">Rótulo</label>
                                                                 <input class="form-control" data-field-prop="Rotulo" name="Paginas[@i].Campos[@j].Rotulo" value="@campo.Rotulo" />
                                                             </div>
-                                                            <div class="col-md-4">
+                                                            <div class="col-md-3">
                                                                 <label class="form-label">Tipo</label>
-                                                                <select class="form-select" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo">
-                                                                    <option value="">Selecione um tipo</option>
-
-                                                                    @foreach (var modelo in catalogoCampos)
-                                                                    {
-                                                                        var isSelected = string.Equals(modelo.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase);
-
-                                                                        if (isSelected)
-                                                                        {
-                                                                            <option value="@modelo.Tipo" selected="selected">
-                                                                                @modelo.Rotulo (@modelo.Tipo)
-                                                                            </option>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <option value="@modelo.Tipo">
-                                                                                @modelo.Rotulo (@modelo.Tipo)
-                                                                            </option>
-                                                                        }
-                                                                    }
-
-                                                                    @if (!string.IsNullOrWhiteSpace(tipoAtual) && !catalogoCampos.Any(x => x.Tipo == tipoAtual))
-                                                                    {
-                                                                        <option value="@tipoAtual" selected="selected">@tipoAtual</option>
-                                                                    }
-                                                                </select>
+                                                                <div class="form-control-plaintext" data-field-tipo-display>@campo.Tipo</div>
+                                                                <input type="hidden" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo" value="@campo.Tipo" />
                                                             </div>
                                                             <div class="col-md-3">
-                                                                <label class="form-label">Ordem</label>
-                                                                <input class="form-control" data-field-prop="Ordem" name="Paginas[@i].Campos[@j].Ordem" type="number" min="0" value="@campo.Ordem" />
+                                                                <label class="form-label">Nome interno</label>
+                                                                <div class="form-control-plaintext small text-muted" data-field-nome-display>@campo.NomeCampo</div>
+                                                                <input type="hidden" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
                                                             </div>
+                                                        </div>
+                                                        <input type="hidden" data-field-prop="Ordem" name="Paginas[@i].Campos[@j].Ordem" value="@campo.Ordem" />
+                                                        <div class="row g-3 mt-1">
                                                             <div class="col-md-3">
                                                                 <label class="form-label">Placeholder</label>
                                                                 <input class="form-control" data-field-prop="Placeholder" name="Paginas[@i].Campos[@j].Placeholder" value="@campo.Placeholder" />
@@ -211,10 +188,10 @@
                                                             </div>
                                                         </div>
 
-                                                        <div class="mt-3 opcoes-wrapper">
+                                                        <div class="mt-3 opcoes-wrapper@(permiteOpcoes ? string.Empty : " d-none")" data-opcoes-wrapper>
                                                             <div class="d-flex justify-content-between align-items-center mb-2">
                                                                 <span class="fw-semibold small">Opções</span>
-                                                                <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-opcao>Adicionar opção</button>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm@(permiteOpcoes ? string.Empty : " d-none")" data-adicionar-opcao>Adicionar opção</button>
                                                             </div>
                                                             <div class="d-grid gap-2 opcoes-container">
                                                                 @if (campo.Opcoes != null)
@@ -278,7 +255,8 @@
                         {
                             foreach (var campoModelo in catalogoCampos.OrderBy(c => c.Rotulo))
                             {
-                                <div class="catalogo-campo border rounded p-3 bg-light" data-tipo="@campoModelo.Tipo" data-rotulo="@campoModelo.Rotulo" data-nome="@campoModelo.NomeCampo">
+                                var permiteOpcoesCatalogo = (campoModelo.Opcoes?.Any() ?? false) || string.Equals(campoModelo.Tipo, "Select", StringComparison.OrdinalIgnoreCase);
+                                <div class="catalogo-campo border rounded p-3 bg-light" data-tipo="@campoModelo.Tipo" data-rotulo="@campoModelo.Rotulo" data-nome="@campoModelo.NomeCampo" data-permite-opcoes="@(permiteOpcoesCatalogo ? "true" : "false")">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-semibold">@campoModelo.Rotulo</span>
                                         <span class="badge text-bg-secondary">@campoModelo.Tipo</span>
@@ -325,16 +303,16 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ordem</label>
-                    <input class="form-control" data-page-prop="Ordem" type="number" min="0" value="0" />
+                    <div class="form-control-plaintext small text-muted">Definida automaticamente conforme a posição</div>
+                    <input type="hidden" data-page-prop="Ordem" value="0" />
                 </div>
             </div>
             <div class="mb-3 campos-wrapper">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h3 class="h6 mb-0">Campos</h3>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-campo>Adicionar campo</button>
                 </div>
                 <div class="campos-drop-area" data-campos-area>
-                    <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado ou use o botão acima.</div>
+                    <div class="text-muted small" data-campos-vazio>Arraste um campo do catálogo ao lado para adicioná-lo.</div>
                     <div class="d-grid gap-3 mt-3 campos-container"></div>
                 </div>
             </div>
@@ -343,7 +321,7 @@
 </template>
 
 <template id="campo-template">
-    <div class="border rounded p-3 campo-item">
+    <div class="border rounded p-3 campo-item" data-permite-opcoes="false">
         <input type="hidden" data-field-index-field />
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
             <div class="d-flex align-items-center gap-2">
@@ -354,29 +332,24 @@
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
         </div>
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Nome interno</label>
-                <input class="form-control" data-field-prop="NomeCampo" />
-            </div>
-            <div class="col-md-4">
+        <div class="row g-3 align-items-start">
+            <div class="col-md-6">
                 <label class="form-label">Rótulo</label>
                 <input class="form-control" data-field-prop="Rotulo" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Tipo</label>
-                <select class="form-select" data-field-prop="Tipo">
-                    <option value="">Selecione um tipo</option>
-                    @foreach (var modelo in catalogoCampos)
-                    {
-                        <option value="@modelo.Tipo">@modelo.Rotulo (@modelo.Tipo)</option>
-                    }
-                </select>
+                <div class="form-control-plaintext" data-field-tipo-display>Selecione um campo no catálogo</div>
+                <input type="hidden" data-field-prop="Tipo" />
             </div>
             <div class="col-md-3">
-                <label class="form-label">Ordem</label>
-                <input class="form-control" data-field-prop="Ordem" type="number" min="0" value="0" />
+                <label class="form-label">Nome interno</label>
+                <div class="form-control-plaintext small text-muted" data-field-nome-display>Defina o rótulo para gerar</div>
+                <input type="hidden" data-field-prop="NomeCampo" />
             </div>
+        </div>
+        <input type="hidden" data-field-prop="Ordem" value="0" />
+        <div class="row g-3 mt-1">
             <div class="col-md-3">
                 <label class="form-label">Placeholder</label>
                 <input class="form-control" data-field-prop="Placeholder" />
@@ -397,10 +370,10 @@
                 </div>
             </div>
         </div>
-        <div class="mt-3 opcoes-wrapper">
+        <div class="mt-3 opcoes-wrapper d-none" data-opcoes-wrapper>
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="fw-semibold small">Opções</span>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-opcao>Adicionar opção</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm d-none" data-adicionar-opcao>Adicionar opção</button>
             </div>
             <div class="d-grid gap-2 opcoes-container"></div>
         </div>
@@ -450,6 +423,65 @@
             const form = document.getElementById('template-form');
             const catalogoContainer = document.getElementById('catalogo-campos');
             const dragGhostClass = 'drag-ghost';
+            const tiposComOpcoes = ['select'];
+
+            function tipoPermiteOpcoes(tipo) {
+                if (!tipo) {
+                    return false;
+                }
+                return tiposComOpcoes.includes(tipo.toLowerCase());
+            }
+
+            function gerarNomeInterno(rotulo) {
+                if (!rotulo) {
+                    return '';
+                }
+
+                return rotulo
+                    .trim()
+                    .replace(/\s+/g, '_');
+            }
+
+            function atualizarNomeInterno(campoEl, rotuloValor) {
+                const nomeHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
+                const nomeDisplay = campoEl.querySelector('[data-field-nome-display]');
+                if (!nomeHidden) {
+                    return;
+                }
+
+                let novoNome = nomeHidden.value || '';
+                if (rotuloValor) {
+                    novoNome = gerarNomeInterno(rotuloValor);
+                    nomeHidden.value = novoNome;
+                }
+                if (nomeDisplay) {
+                    nomeDisplay.textContent = novoNome || 'Defina o rótulo para gerar';
+                }
+            }
+
+            function atualizarTipoCampo(campoEl, tipo, permiteOpcoes) {
+                const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
+                const tipoDisplay = campoEl.querySelector('[data-field-tipo-display]');
+                const opcoesWrapper = campoEl.querySelector('[data-opcoes-wrapper]');
+                const addOpcaoBtn = campoEl.querySelector('[data-adicionar-opcao]');
+
+                if (tipoHidden) {
+                    tipoHidden.value = tipo ?? '';
+                }
+                if (tipoDisplay) {
+                    tipoDisplay.textContent = tipo ? tipo : 'Selecione um campo no catálogo';
+                }
+
+                const habilitaOpcoes = permiteOpcoes || tipoPermiteOpcoes(tipo);
+                campoEl.dataset.permiteOpcoes = habilitaOpcoes ? 'true' : 'false';
+
+                if (opcoesWrapper) {
+                    opcoesWrapper.classList.toggle('d-none', !habilitaOpcoes);
+                }
+                if (addOpcaoBtn) {
+                    addOpcaoBtn.classList.toggle('d-none', !habilitaOpcoes);
+                }
+            }
 
             if (!paginasContainer) {
                 return;
@@ -499,27 +531,25 @@
                 const campoEl = cloneTemplate(campoTemplate);
                 const opcoesContainer = campoEl.querySelector('.opcoes-container');
 
-                const nomeCampoInput = campoEl.querySelector('[data-field-prop="NomeCampo"]');
-                if (nomeCampoInput) {
-                    nomeCampoInput.value = dados?.NomeCampo ?? '';
-                }
-
                 const rotuloInput = campoEl.querySelector('[data-field-prop="Rotulo"]');
                 if (rotuloInput) {
                     rotuloInput.value = dados?.Rotulo ?? '';
                 }
 
-                const tipoSelect = campoEl.querySelector('[data-field-prop="Tipo"]');
-                if (tipoSelect) {
-                    tipoSelect.value = dados?.Tipo ?? '';
-                    if (!tipoSelect.value && dados?.Tipo) {
-                        const option = document.createElement('option');
-                        option.value = dados.Tipo;
-                        option.textContent = `${dados.Tipo}`;
-                        option.selected = true;
-                        tipoSelect.appendChild(option);
-                    }
+                const nomeCampoHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
+                const rotuloInicial = rotuloInput?.value ?? dados?.Rotulo ?? '';
+                if (nomeCampoHidden) {
+                    const nomeInicial = gerarNomeInterno(rotuloInicial || dados?.NomeCampo || '');
+                    nomeCampoHidden.value = nomeInicial;
                 }
+
+                const tipoInicial = dados?.Tipo ?? '';
+                const permiteOpcoes = dados?.PermiteOpcoes === true
+                    || tipoPermiteOpcoes(tipoInicial)
+                    || (dados?.Opcoes?.length ?? 0) > 0;
+                atualizarTipoCampo(campoEl, tipoInicial, permiteOpcoes);
+
+                atualizarNomeInterno(campoEl, rotuloInicial || dados?.NomeCampo || '');
 
                 const ordemInput = campoEl.querySelector('[data-field-prop="Ordem"]');
                 if (ordemInput) {
@@ -584,14 +614,6 @@
                 }
                 paginaEl.dataset.initialized = 'true';
 
-                paginaEl.querySelector('[data-adicionar-campo]')?.addEventListener('click', () => {
-                    const camposContainer = paginaEl.querySelector('.campos-container');
-                    const campoEl = adicionarCampo();
-                    camposContainer.appendChild(campoEl);
-                    atualizarCamposEstado(paginaEl);
-                    reindexar();
-                });
-
                 paginaEl.querySelector('[data-remover-pagina]')?.addEventListener('click', () => {
                     paginaEl.remove();
                     reindexar();
@@ -623,6 +645,20 @@
                 });
 
                 campoEl.querySelectorAll('.opcao-item').forEach(opcaoEl => inicializarOpcao(opcaoEl));
+
+                const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
+                atualizarTipoCampo(campoEl, tipoHidden?.value ?? '', campoEl.dataset.permiteOpcoes === 'true');
+
+                const rotuloInput = campoEl.querySelector('[data-field-prop="Rotulo"]');
+                if (rotuloInput) {
+                    rotuloInput.addEventListener('input', () => {
+                        atualizarNomeInterno(campoEl, rotuloInput.value);
+                    });
+                    rotuloInput.addEventListener('blur', () => {
+                        atualizarNomeInterno(campoEl, rotuloInput.value);
+                    });
+                    atualizarNomeInterno(campoEl);
+                }
 
                 const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
                 const obrigatorioHidden = campoEl.querySelector('input[type="hidden"][data-field-prop="Obrigatorio"]');
@@ -695,13 +731,15 @@
                             const tipo = evt.item.getAttribute('data-tipo') ?? '';
                             const rotulo = evt.item.getAttribute('data-rotulo') ?? '';
                             const nomeSugerido = evt.item.getAttribute('data-nome') ?? '';
+                            const permiteOpcoesCatalogo = evt.item.getAttribute('data-permite-opcoes') === 'true';
                             evt.item.remove();
                             const camposContainerDestino = evt.to;
                             const campoEl = adicionarCampo({
                                 Tipo: tipo,
                                 Rotulo: rotulo,
-                                NomeCampo: nomeSugerido || (tipo ? tipo.replace(/\s+/g, '_').toLowerCase() : ''),
-                                Obrigatorio: false
+                                NomeCampo: nomeSugerido || gerarNomeInterno(rotulo),
+                                Obrigatorio: false,
+                                PermiteOpcoes: permiteOpcoesCatalogo
                             });
                             const referencia = camposContainerDestino.children[evt.newIndex] ?? null;
                             camposContainerDestino.insertBefore(campoEl, referencia);
@@ -755,6 +793,9 @@
                     paginaEl.querySelectorAll('[data-page-prop]').forEach(input => {
                         const prop = input.getAttribute('data-page-prop');
                         input.name = `Paginas[${pIndex}].${prop}`;
+                        if (prop === 'Ordem') {
+                            input.value = pIndex + 1;
+                        }
                     });
 
                     const campoEls = paginaEl.querySelectorAll('.campo-item');
@@ -768,6 +809,9 @@
                         campoEl.querySelectorAll('[data-field-prop]').forEach(input => {
                             const prop = input.getAttribute('data-field-prop');
                             input.name = `Paginas[${pIndex}].Campos[${cIndex}].${prop}`;
+                            if (prop === 'Ordem') {
+                                input.value = cIndex + 1;
+                            }
                         });
 
                         const opcaoEls = campoEl.querySelectorAll('.opcao-item');
@@ -781,6 +825,9 @@
                             opcaoEl.querySelectorAll('[data-option-prop]').forEach(input => {
                                 const prop = input.getAttribute('data-option-prop');
                                 input.name = `Paginas[${pIndex}].Campos[${cIndex}].Opcoes[${oIndex}].${prop}`;
+                                if (prop === 'Ordem') {
+                                    input.value = oIndex + 1;
+                                }
                             });
                         });
                     });
