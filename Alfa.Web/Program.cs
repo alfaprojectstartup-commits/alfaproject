@@ -19,6 +19,7 @@ builder.Services.AddHttpContextAccessor();
 
 // ===== registrar o serviço de autenticação que criamos =====
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
+builder.Services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
 
 builder.Services.AddScoped<IPermissaoUiService, PermissaoUiServico>();
@@ -52,9 +53,9 @@ builder.Services.AddAuthentication(options =>
 })
 .AddCookie(options =>
 {
-    options.LoginPath = "/Usuario/Login";
-    options.LogoutPath = "/Usuario/Logout";
-    options.AccessDeniedPath = "/Usuario/AcessoNegado";
+    options.LoginPath = "/Autenticacao/Login";
+    options.LogoutPath = "/Autenticacao/Logout";
+    options.AccessDeniedPath = "/Autenticacao/AcessoNegado";
     options.ExpireTimeSpan = TimeSpan.FromHours(4);
 })
 .AddJwtBearer(options =>
@@ -137,7 +138,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Usuario}/{action=Login}/{id?}");
+    pattern: "{controller=Autenticacao}/{action=Login}/{id?}");
 
 app.Run();
 

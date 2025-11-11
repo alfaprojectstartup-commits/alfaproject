@@ -1,4 +1,5 @@
 ﻿using Alfa.Web.Dtos;
+using Alfa.Web.Models;
 using Alfa.Web.Servicos.Interfaces;
 
 namespace Alfa.Web.Servicos
@@ -12,30 +13,33 @@ namespace Alfa.Web.Servicos
             _httpFactory = httpFactory;
         }
 
-        public async Task<UsuarioAutenticadoDto?> LoginAsync(UsuarioLoginDto login)
+        public async Task<IEnumerable<UsuarioEmpresaViewModel>> ListarUsuariosEmpresaAsync(int empresaId)
         {
-            var client = _httpFactory.CreateClient("AlfaApiLogin");
-            var resp = await client.PostAsJsonAsync("/api/usuario/login", login);
+            string rotaListarUsuariosEmpresa = $"/api/usuario/{empresaId}/listar";
 
-            if (!resp.IsSuccessStatusCode) {
-                return null;
-            } 
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaListarUsuariosEmpresa);
 
-            var auth = await resp.Content.ReadFromJsonAsync<UsuarioAutenticadoDto>();
-            return auth;
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            var usuarios = await resposta.Content.ReadFromJsonAsync<IEnumerable<UsuarioEmpresaViewModel>>();
+            return usuarios ?? [];
         }
 
         public async Task<(bool Success, string? Error)> RegistrarAsync(UsuarioRegistroDto registro)
         {
             var client = _httpFactory.CreateClient("AlfaApi");
-            var resp = await client.PostAsJsonAsync("/api/usuario/registrar", registro);
+            var resposta = await client.PostAsJsonAsync("/api/usuario/registrar", registro);
 
-            if (resp.IsSuccessStatusCode)
+            if (resposta.IsSuccessStatusCode)
             {
                 return (true, null);
             }
 
-            var txt = await resp.Content.ReadAsStringAsync();
+            var txt = await resposta.Content.ReadAsStringAsync();
             return (false, txt);
         }
     }

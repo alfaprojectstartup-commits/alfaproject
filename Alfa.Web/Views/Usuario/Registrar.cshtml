@@ -8,7 +8,7 @@
         <div class="col-md-6">
             <div class="card shadow-sm rounded-4">
                 <div class="card-body">
-                    <h3 class="text-center mb-4">Criar Conta</h3>
+                    <h3 class="text-center mb-4">Criar novo usuário</h3>
 
                     <div asp-validation-summary="All" class="text-danger mb-3"></div>
 
@@ -37,12 +37,11 @@
                             <span asp-validation-for="ConfirmarSenha" class="text-danger"></span>
                         </div>
 
-                        <button type="submit" class="btn btn-success w-100">Registrar</button>
+                        <div class="d-flex justify-content-between">
+                            <a asp-controller="Usuario" asp-action="Index" class="btn btn-outline-danger w-50 me-2">Cancelar</a>
+                            <button type="submit" class="btn btn-success w-50">Salvar</button>
+                        </div>
                     </form>
-
-                    <div class="mt-3 text-center">
-                        <p>Já tem conta? <a asp-controller="Usuario" asp-action="Login">Faça login</a></p>
-                    </div>
                 </div>
             </div>
         </div>
