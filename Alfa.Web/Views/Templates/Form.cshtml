@@ -51,6 +51,11 @@
         min-height: 3rem;
     }
 
+    .catalogo-container {
+        max-height: 24rem;
+        overflow-y: auto;
+    }
+
     .catalogo-campo {
         cursor: grab;
     }
@@ -250,7 +255,7 @@
                 </div>
                 <div class="card-body">
                     <p class="text-muted small">Arraste um campo disponível para dentro de uma página para adicioná-lo rapidamente.</p>
-                    <div id="catalogo-campos" class="d-grid gap-2">
+                    <div id="catalogo-campos" class="d-grid gap-2 catalogo-container">
                         @if (catalogoCampos.Any())
                         {
                             foreach (var campoModelo in catalogoCampos.OrderBy(c => c.Rotulo))
