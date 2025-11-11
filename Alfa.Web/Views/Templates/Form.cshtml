@@ -8,6 +8,20 @@
     var faseToken = ViewBag.FaseToken as string ?? string.Empty;
     ViewData["Title"] = isEdit ? "Editar fase" : "Nova fase";
     var catalogoCampos = Model?.CatalogoCampos ?? new List<CampoModeloViewModel>();
+    var mapaTipoDescricao = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Text"] = "Texto",
+        ["TextArea"] = "Texto longo",
+        ["Number"] = "Número",
+        ["Date"] = "Data",
+        ["Select"] = "Dropdown",
+        ["Checkbox"] = "Checkbox",
+        ["CheckboxList"] = "Opções checkbox",
+        ["Signature"] = "Assinatura",
+        ["Image"] = "Imagem"
+    };
+    Func<string, string> descreverTipo = tipo =>
+        mapaTipoDescricao.TryGetValue(tipo ?? string.Empty, out var descricao) ? descricao : tipo;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -24,6 +38,62 @@
         <p class="text-muted mb-0">Configure páginas, campos e opções que serão utilizados na criação de novos processos.</p>
     </div>
 </div>
+
+<style>
+    .drag-handle {
+        cursor: grab;
+    }
+
+    .drag-ghost {
+        opacity: .6;
+    }
+
+    .campos-drop-area {
+        border: 2px dashed var(--bs-border-color);
+        border-radius: var(--bs-border-radius);
+        padding: 1.5rem;
+        background-color: var(--bs-tertiary-bg);
+        transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+        position: relative;
+    }
+
+    .campos-drop-area.has-campos {
+        border-style: solid;
+        background-color: transparent;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .02);
+    }
+
+    .campos-drop-hint {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--bs-secondary-color);
+        min-height: 6rem;
+        pointer-events: none;
+        text-align: center;
+    }
+
+    .campos-drop-icon {
+        font-size: 2rem;
+        line-height: 1;
+        margin-bottom: .5rem;
+        opacity: .65;
+    }
+
+    .campos-container {
+        min-height: 3rem;
+    }
+
+    .catalogo-container {
+        max-height: 24rem;
+        overflow-y: auto;
+    }
+
+    .catalogo-campo {
+        cursor: grab;
+    }
+</style>
 
 <form asp-action="@(isEdit ? "Editar" : "Novo")" asp-route-token="@(isEdit ? faseToken : null)" method="post" id="template-form">
     @Html.AntiForgeryToken()
@@ -52,177 +122,196 @@
         </div>
     </div>
 
-    <div class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h2 class="h5 mb-0">Páginas da fase</h2>
-            <button type="button" class="btn btn-outline-primary btn-sm" id="adicionar-pagina">
-                Adicionar página
-            </button>
-        </div>
-        <div id="paginas-container" class="d-grid gap-3">
-            @if (Model?.Paginas != null)
-            {
-                for (var i = 0; i < Model.Paginas.Count; i++)
+    <div class="row g-4 align-items-start mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h5 mb-0">Páginas da fase</h2>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="adicionar-pagina">
+                    Adicionar página
+                </button>
+            </div>
+            <div id="paginas-container" class="d-grid gap-3">
+                @if (Model?.Paginas != null)
                 {
-                    var pagina = Model.Paginas[i];
-                    <div class="card shadow-sm pagina-item" data-page-index="@i">
-                        <input type="hidden" data-page-index-field name="Paginas.Index" value="@i" />
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="fw-semibold">Página</span>
-                                <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
+                    for (var i = 0; i < Model.Paginas.Count; i++)
+                    {
+                        var pagina = Model.Paginas[i];
+                        <div class="card shadow-sm pagina-item" data-page-index="@i">
+                            <input type="hidden" data-page-index-field name="Paginas.Index" value="@i" />
+                            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary drag-handle" data-move-pagina aria-label="Reordenar página">
+                                        <span aria-hidden="true">☰</span>
+                                    </button>
+                                    <div>
+                                        <span class="fw-semibold">Página</span>
+                                        <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-remover-pagina>Remover</button>
                             </div>
-                            <button type="button" class="btn btn-sm btn-outline-danger" data-remover-pagina>Remover</button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-8">
-                                    <label class="form-label">Título</label>
-                                    <input class="form-control" data-page-prop="Titulo" name="Paginas[@i].Titulo" value="@pagina.Titulo" />
+                            <div class="card-body">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-8">
+                                        <label class="form-label">Título</label>
+                                        <input class="form-control" data-page-prop="Titulo" name="Paginas[@i].Titulo" value="@pagina.Titulo" />
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Ordem</label>
+                                        <div class="form-control-plaintext small text-muted">Definida automaticamente conforme a posição</div>
+                                        <input type="hidden" data-page-prop="Ordem" name="Paginas[@i].Ordem" value="@pagina.Ordem" />
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Ordem</label>
-                                    <input class="form-control" data-page-prop="Ordem" name="Paginas[@i].Ordem" type="number" min="0" value="@pagina.Ordem" />
-                                </div>
-                            </div>
 
-                            <div class="mb-3 campos-wrapper">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h3 class="h6 mb-0">Campos</h3>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-campo>Adicionar campo</button>
-                                </div>
-                                <div class="d-grid gap-3 campos-container">
-                                    @if (pagina.Campos != null)
-                                    {
-                                        for (var j = 0; j < pagina.Campos.Count; j++)
-                                        {
-                                            var campo = pagina.Campos[j];
-                                            var tipoAtual = campo?.Tipo ?? string.Empty;
-                                            var possuiCatalogo = catalogoCampos.Any(c => string.Equals(c.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase));
-                                            <div class="border rounded p-3 campo-item" data-field-index="@j">
-                                                <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <div>
-                                                        <span class="fw-semibold">Campo</span>
-                                                    </div>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
-                                                </div>
-                                                <div class="row g-3">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Nome interno</label>
-                                                        <input class="form-control" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Rótulo</label>
-                                                        <input class="form-control" data-field-prop="Rotulo" name="Paginas[@i].Campos[@j].Rotulo" value="@campo.Rotulo" />
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <label class="form-label">Tipo</label>
-                                                        <select class="form-select" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo">
-                                                            <option value="">Selecione um tipo</option>
-
-                                                            @foreach (var modelo in catalogoCampos)
-                                                            {
-                                                                var isSelected = string.Equals(modelo.Tipo, tipoAtual, StringComparison.OrdinalIgnoreCase);
-
-                                                                if (isSelected)
-                                                                {
-                                                                    <option value="@modelo.Tipo" selected="selected">
-                                                                        @modelo.Rotulo (@modelo.Tipo)
-                                                                    </option>
-                                                                }
-                                                                else
-                                                                {
-                                                                    <option value="@modelo.Tipo">
-                                                                        @modelo.Rotulo (@modelo.Tipo)
-                                                                    </option>
-                                                                }
-                                                            }
-
-                                                            @if (!string.IsNullOrWhiteSpace(tipoAtual) && !catalogoCampos.Any(x => x.Tipo == tipoAtual))
-                                                            {
-                                                                <option value="@tipoAtual" selected="selected">@tipoAtual</option>
-                                                            }
-                                                        </select>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Ordem</label>
-                                                        <input class="form-control" data-field-prop="Ordem" name="Paginas[@i].Campos[@j].Ordem" type="number" min="0" value="@campo.Ordem" />
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Placeholder</label>
-                                                        <input class="form-control" data-field-prop="Placeholder" name="Paginas[@i].Campos[@j].Placeholder" value="@campo.Placeholder" />
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Máscara</label>
-                                                        <input class="form-control" data-field-prop="Mascara" name="Paginas[@i].Campos[@j].Mascara" value="@campo.Mascara" />
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Ajuda</label>
-                                                        <input class="form-control" data-field-prop="Ajuda" name="Paginas[@i].Campos[@j].Ajuda" value="@campo.Ajuda" />
-                                                    </div>
-                                                    <div class="col-md-3 d-flex align-items-center">
-                                                        <div class="form-check mt-4">
-                                                            <input type="hidden" data-field-prop="Obrigatorio" name="Paginas[@i].Campos[@j].Obrigatorio" value="false" />
-                                                            <input class="form-check-input" type="checkbox" data-field-prop="Obrigatorio" name="Paginas[@i].Campos[@j].Obrigatorio" value="true" @(campo.Obrigatorio ? "checked" : string.Empty) />
-                                                            <label class="form-check-label">Obrigatório</label>
+                                <div class="mb-3 campos-wrapper">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h3 class="h6 mb-0">Campos</h3>
+                                    </div>
+                                    <div class="campos-drop-area" data-campos-area>
+                                        <div class="campos-drop-hint" data-campos-vazio>
+                                            <div class="campos-drop-icon" aria-hidden="true">⬇️</div>
+                                            <div>
+                                                <div class="fw-semibold">Arraste os campos para cá</div>
+                                                <div class="small">Solte nesta área para montar a página</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-grid gap-3 mt-3 campos-container">
+                                            @if (pagina.Campos != null)
+                                            {
+                                                for (var j = 0; j < pagina.Campos.Count; j++)
+                                                {
+                                                    var campo = pagina.Campos[j];
+                                                    var tipoAtual = campo?.Tipo ?? string.Empty;
+                                                    var permiteOpcoes = (campo?.Opcoes?.Any() ?? false)
+                                                        || string.Equals(tipoAtual, "Select", StringComparison.OrdinalIgnoreCase)
+                                                        || string.Equals(tipoAtual, "CheckboxList", StringComparison.OrdinalIgnoreCase);
+                                                    <div class="border rounded p-3 campo-item" data-field-index="@j" data-permite-opcoes="@(permiteOpcoes ? "true" : "false")" data-tipo-descricao="@descreverTipo(campo.Tipo)">
+                                                        <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
+                                                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                                                            <div class="d-flex align-items-center gap-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary drag-handle" data-move-campo aria-label="Reordenar campo">
+                                                                    <span aria-hidden="true">☰</span>
+                                                                </button>
+                                                                <span class="fw-semibold">Campo</span>
+                                                            </div>
+                                                            <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
                                                         </div>
-                                                    </div>
-                                                </div>
+                                                        <div class="row g-3 align-items-start">
+                                                            <div class="col-md-7">
+                                                                <label class="form-label">Rótulo</label>
+                                                                <input class="form-control" data-field-prop="Rotulo" name="Paginas[@i].Campos[@j].Rotulo" value="@campo.Rotulo" />
+                                                            </div>
+                                                            <div class="col-md-5">
+                                                                <label class="form-label">Tipo</label>
+                                                                <div class="form-control-plaintext" data-field-tipo-display>@descreverTipo(campo.Tipo)</div>
+                                                                <input type="hidden" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo" value="@campo.Tipo" />
+                                                            </div>
+                                                        </div>
+                                                        <input type="hidden" data-field-prop="NomeCampo" name="Paginas[@i].Campos[@j].NomeCampo" value="@campo.NomeCampo" />
+                                                        <input type="hidden" data-field-prop="Ordem" name="Paginas[@i].Campos[@j].Ordem" value="@campo.Ordem" />
+                                                        <div class="row g-3 mt-1">
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Placeholder</label>
+                                                                <input class="form-control" data-field-prop="Placeholder" name="Paginas[@i].Campos[@j].Placeholder" value="@campo.Placeholder" />
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Máscara</label>
+                                                                <input class="form-control" data-field-prop="Mascara" name="Paginas[@i].Campos[@j].Mascara" value="@campo.Mascara" />
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Ajuda</label>
+                                                                <input class="form-control" data-field-prop="Ajuda" name="Paginas[@i].Campos[@j].Ajuda" value="@campo.Ajuda" />
+                                                            </div>
+                                                            <div class="col-md-3 d-flex align-items-center">
+                                                                <div class="form-check mt-4">
+                                                                    <input type="hidden" data-field-prop="Obrigatorio" name="Paginas[@i].Campos[@j].Obrigatorio" value="false" />
+                                                                    <input class="form-check-input" type="checkbox" data-field-prop="Obrigatorio" name="Paginas[@i].Campos[@j].Obrigatorio" value="true" @(campo.Obrigatorio ? "checked" : string.Empty) />
+                                                                    <label class="form-check-label">Obrigatório</label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
 
-                                                <div class="mt-3 opcoes-wrapper">
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <span class="fw-semibold small">Opções</span>
-                                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-opcao>Adicionar opção</button>
-                                                    </div>
-                                                    <div class="d-grid gap-2 opcoes-container">
-                                                        @if (campo.Opcoes != null)
-                                                        {
-                                                            for (var k = 0; k < campo.Opcoes.Count; k++)
-                                                            {
-                                                                var opcao = campo.Opcoes[k];
-                                                                <div class="border rounded p-2 opcao-item" data-option-index="@k">
-                                                                    <input type="hidden" data-option-index-field name="Paginas[@i].Campos[@j].Opcoes.Index" value="@k" />
-                                                                    <div class="row g-2 align-items-end">
-                                                                        <div class="col-md-5">
-                                                                            <label class="form-label form-label-sm">Texto</label>
-                                                                            <input class="form-control form-control-sm" data-option-prop="Texto" name="Paginas[@i].Campos[@j].Opcoes[@k].Texto" value="@opcao.Texto" />
-                                                                        </div>
-                                                                        <div class="col-md-3">
-                                                                            <label class="form-label form-label-sm">Valor</label>
-                                                                            <input class="form-control form-control-sm" data-option-prop="Valor" name="Paginas[@i].Campos[@j].Opcoes[@k].Valor" value="@opcao.Valor" />
-                                                                        </div>
-                                                                        <div class="col-md-2">
-                                                                            <label class="form-label form-label-sm">Ordem</label>
-                                                                            <input class="form-control form-control-sm" data-option-prop="Ordem" name="Paginas[@i].Campos[@j].Opcoes[@k].Ordem" type="number" min="0" value="@opcao.Ordem" />
-                                                                        </div>
-                                                                        <div class="col-md-2">
-                                                                            <label class="form-label form-label-sm">Ativa</label>
-                                                                            <div class="form-check">
-                                                                                <input type="hidden" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="false" />
-                                                                                <input class="form-check-input" type="checkbox" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="true" @(opcao.Ativo ? "checked" : string.Empty) />
+                                                        <div class="mt-3 opcoes-wrapper@(permiteOpcoes ? string.Empty : " d-none")" data-opcoes-wrapper>
+                                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                                <span class="fw-semibold small">Opções</span>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm@(permiteOpcoes ? string.Empty : " d-none")" data-adicionar-opcao>Adicionar opção</button>
+                                                            </div>
+                                                            <div class="d-grid gap-2 opcoes-container">
+                                                                @if (campo.Opcoes != null)
+                                                                {
+                                                                    for (var k = 0; k < campo.Opcoes.Count; k++)
+                                                                    {
+                                                                        var opcao = campo.Opcoes[k];
+                                                                        <div class="border rounded p-2 opcao-item" data-option-index="@k">
+                                                                            <input type="hidden" data-option-index-field name="Paginas[@i].Campos[@j].Opcoes.Index" value="@k" />
+                                                                            <div class="row g-2 align-items-end">
+                                                                                <div class="col-md-8">
+                                                                                    <label class="form-label form-label-sm">Texto</label>
+                                                                                    <input class="form-control form-control-sm" data-option-prop="Texto" name="Paginas[@i].Campos[@j].Opcoes[@k].Texto" value="@opcao.Texto" />
+                                                                                    <input type="hidden" data-option-prop="Valor" name="Paginas[@i].Campos[@j].Opcoes[@k].Valor" value="@opcao.Valor" />
+                                                                                    <input type="hidden" data-option-prop="Ordem" name="Paginas[@i].Campos[@j].Opcoes[@k].Ordem" value="@opcao.Ordem" />
+                                                                                    <div class="form-text">Valor automático: <span data-option-valor-display>@(k + 1)</span></div>
+                                                                                </div>
+                                                                                <div class="col-md-3">
+                                                                                    <label class="form-label form-label-sm">Ativa</label>
+                                                                                    <div class="form-check">
+                                                                                        <input type="hidden" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="false" />
+                                                                                        <input class="form-check-input" type="checkbox" data-option-prop="Ativo" name="Paginas[@i].Campos[@j].Opcoes[@k].Ativo" value="true" @(opcao.Ativo ? "checked" : string.Empty) />
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="col-auto align-self-end">
+                                                                                    <button type="button" class="btn btn-sm btn-outline-danger" data-remover-opcao>Remover</button>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
-                                                                        <div class="col-auto">
-                                                                            <button type="button" class="btn btn-sm btn-outline-danger" data-remover-opcao>Remover</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            }
-                                                        }
+                                                                    }
+                                                                }
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
+                                                }
+                                            }
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 }
-            }
+            </div>
+            <div class="text-muted small">Inclua pelo menos uma página com seus respectivos campos para que a fase esteja pronta para uso.</div>
         </div>
-        <div class="text-muted small">Inclua pelo menos uma página com seus respectivos campos para que a fase esteja pronta para uso.</div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm position-sticky top-0" style="z-index: 1;">
+                <div class="card-header">
+                    <h3 class="h6 mb-0">Catálogo de campos</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Arraste um campo disponível para dentro de uma página para adicioná-lo rapidamente.</p>
+                    <div id="catalogo-campos" class="d-grid gap-2 catalogo-container">
+                        @if (catalogoCampos.Any())
+                        {
+                            foreach (var campoModelo in catalogoCampos)
+                            {
+                                var permiteOpcoesCatalogo = (campoModelo.Opcoes?.Any() ?? false)
+                                    || string.Equals(campoModelo.Tipo, "Select", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(campoModelo.Tipo, "CheckboxList", StringComparison.OrdinalIgnoreCase);
+                                <div class="catalogo-campo border rounded p-3 bg-light" data-tipo="@campoModelo.Tipo" data-tipo-descricao="@descreverTipo(campoModelo.Tipo)" data-rotulo="@campoModelo.Rotulo" data-nome="@campoModelo.NomeCampo" data-permite-opcoes="@(permiteOpcoesCatalogo ? "true" : "false")">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-semibold">@campoModelo.Rotulo</span>
+                                        <span class="badge text-bg-secondary">@descreverTipo(campoModelo.Tipo)</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted small">Nenhum campo disponível para arrastar.</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center">
@@ -234,10 +323,15 @@
 <template id="pagina-template">
     <div class="card shadow-sm pagina-item">
         <input type="hidden" data-page-index-field />
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <span class="fw-semibold">Página</span>
-                <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary drag-handle" data-move-pagina aria-label="Reordenar página">
+                    <span aria-hidden="true">☰</span>
+                </button>
+                <div>
+                    <span class="fw-semibold">Página</span>
+                    <span class="text-muted small ms-2">Ordem exibida conforme preenchido</span>
+                </div>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-pagina>Remover</button>
         </div>
@@ -249,52 +343,55 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Ordem</label>
-                    <input class="form-control" data-page-prop="Ordem" type="number" min="0" value="0" />
+                    <div class="form-control-plaintext small text-muted">Definida automaticamente conforme a posição</div>
+                    <input type="hidden" data-page-prop="Ordem" value="0" />
                 </div>
             </div>
             <div class="mb-3 campos-wrapper">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h3 class="h6 mb-0">Campos</h3>
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-campo>Adicionar campo</button>
                 </div>
-                <div class="d-grid gap-3 campos-container"></div>
+                <div class="campos-drop-area" data-campos-area>
+                    <div class="campos-drop-hint" data-campos-vazio>
+                        <div class="campos-drop-icon" aria-hidden="true">⬇️</div>
+                        <div>
+                            <div class="fw-semibold">Arraste os campos para cá</div>
+                            <div class="small">Solte nesta área para montar a página</div>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-3 mt-3 campos-container"></div>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <template id="campo-template">
-    <div class="border rounded p-3 campo-item">
+    <div class="border rounded p-3 campo-item" data-permite-opcoes="false" data-tipo-descricao="">
         <input type="hidden" data-field-index-field />
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <div>
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary drag-handle" data-move-campo aria-label="Reordenar campo">
+                    <span aria-hidden="true">☰</span>
+                </button>
                 <span class="fw-semibold">Campo</span>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
         </div>
-        <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label">Nome interno</label>
-                <input class="form-control" data-field-prop="NomeCampo" />
-            </div>
-            <div class="col-md-4">
+        <div class="row g-3 align-items-start">
+            <div class="col-md-7">
                 <label class="form-label">Rótulo</label>
                 <input class="form-control" data-field-prop="Rotulo" />
             </div>
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <label class="form-label">Tipo</label>
-                <select class="form-select" data-field-prop="Tipo">
-                    <option value="">Selecione um tipo</option>
-                    @foreach (var modelo in catalogoCampos)
-                    {
-                        <option value="@modelo.Tipo">@modelo.Rotulo (@modelo.Tipo)</option>
-                    }
-                </select>
+                <div class="form-control-plaintext" data-field-tipo-display>Selecione um campo no catálogo</div>
+                <input type="hidden" data-field-prop="Tipo" />
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Ordem</label>
-                <input class="form-control" data-field-prop="Ordem" type="number" min="0" value="0" />
-            </div>
+        </div>
+        <input type="hidden" data-field-prop="NomeCampo" />
+        <input type="hidden" data-field-prop="Ordem" value="0" />
+        <div class="row g-3 mt-1">
             <div class="col-md-3">
                 <label class="form-label">Placeholder</label>
                 <input class="form-control" data-field-prop="Placeholder" />
@@ -315,10 +412,10 @@
                 </div>
             </div>
         </div>
-        <div class="mt-3 opcoes-wrapper">
+        <div class="mt-3 opcoes-wrapper d-none" data-opcoes-wrapper>
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="fw-semibold small">Opções</span>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-adicionar-opcao>Adicionar opção</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm d-none" data-adicionar-opcao>Adicionar opção</button>
             </div>
             <div class="d-grid gap-2 opcoes-container"></div>
         </div>
@@ -329,26 +426,21 @@
     <div class="border rounded p-2 opcao-item">
         <input type="hidden" data-option-index-field />
         <div class="row g-2 align-items-end">
-            <div class="col-md-5">
+            <div class="col-md-8">
                 <label class="form-label form-label-sm">Texto</label>
                 <input class="form-control form-control-sm" data-option-prop="Texto" />
+                <input type="hidden" data-option-prop="Valor" value="" />
+                <input type="hidden" data-option-prop="Ordem" value="0" />
+                <div class="form-text">Valor automático: <span data-option-valor-display>1</span></div>
             </div>
             <div class="col-md-3">
-                <label class="form-label form-label-sm">Valor</label>
-                <input class="form-control form-control-sm" data-option-prop="Valor" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label form-label-sm">Ordem</label>
-                <input class="form-control form-control-sm" data-option-prop="Ordem" type="number" min="0" value="0" />
-            </div>
-            <div class="col-md-2">
                 <label class="form-label form-label-sm">Ativa</label>
                 <div class="form-check">
                     <input type="hidden" data-option-prop="Ativo" value="false" />
                     <input class="form-check-input" type="checkbox" data-option-prop="Ativo" value="true" checked />
                 </div>
             </div>
-            <div class="col-auto">
+            <div class="col-auto align-self-end">
                 <button type="button" class="btn btn-sm btn-outline-danger" data-remover-opcao>Remover</button>
             </div>
         </div>
@@ -357,6 +449,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         (function () {
             const paginasContainer = document.getElementById('paginas-container');
@@ -365,9 +458,117 @@
             const campoTemplate = document.getElementById('campo-template');
             const opcaoTemplate = document.getElementById('opcao-template');
             const form = document.getElementById('template-form');
+            const catalogoContainer = document.getElementById('catalogo-campos');
+            const dragGhostClass = 'drag-ghost';
+            const tiposComOpcoes = ['select', 'checkboxlist'];
+            const tipoLabels = {
+                text: 'Texto',
+                textarea: 'Texto longo',
+                number: 'Número',
+                date: 'Data',
+                select: 'Dropdown',
+                checkbox: 'Checkbox',
+                checkboxlist: 'Opções checkbox',
+                signature: 'Assinatura',
+                image: 'Imagem'
+            };
+
+            function resolverDescricaoTipo(tipo, sugestao) {
+                if (typeof sugestao === 'string' && sugestao.trim() !== '') {
+                    return sugestao.trim();
+                }
+                if (!tipo) {
+                    return '';
+                }
+                const chave = tipo.toLowerCase();
+                return tipoLabels[chave] ?? tipo;
+            }
+
+            function tipoPermiteOpcoes(tipo) {
+                if (!tipo) {
+                    return false;
+                }
+                return tiposComOpcoes.includes(tipo.toLowerCase());
+            }
+
+            function gerarNomeInterno(rotulo) {
+                if (!rotulo) {
+                    return '';
+                }
+
+                return rotulo
+                    .toString()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^\w\s-]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '_')
+                    .replace(/_+/g, '_')
+                    .toLowerCase();
+            }
+
+            function atualizarNomeInterno(campoEl, rotuloValor) {
+                const nomeHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
+                if (!nomeHidden) {
+                    return;
+                }
+
+                if (rotuloValor && rotuloValor.trim() !== '') {
+                    nomeHidden.value = gerarNomeInterno(rotuloValor);
+                } else if (!nomeHidden.value) {
+                    nomeHidden.value = '';
+                }
+            }
+
+            function atualizarTipoCampo(campoEl, tipo, permiteOpcoes, tipoDescricaoSugestao) {
+                const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
+                const tipoDisplay = campoEl.querySelector('[data-field-tipo-display]');
+                const opcoesWrapper = campoEl.querySelector('[data-opcoes-wrapper]');
+                const addOpcaoBtn = campoEl.querySelector('[data-adicionar-opcao]');
+
+                if (tipoHidden) {
+                    tipoHidden.value = tipo ?? '';
+                }
+                if (tipoDisplay) {
+                    const descricao = resolverDescricaoTipo(tipo, tipoDescricaoSugestao);
+                    tipoDisplay.textContent = descricao ? descricao : 'Selecione um campo no catálogo';
+                    if (descricao) {
+                        campoEl.dataset.tipoDescricao = descricao;
+                    } else {
+                        delete campoEl.dataset.tipoDescricao;
+                    }
+                }
+
+                const habilitaOpcoes = permiteOpcoes || tipoPermiteOpcoes(tipo);
+                campoEl.dataset.permiteOpcoes = habilitaOpcoes ? 'true' : 'false';
+
+                if (opcoesWrapper) {
+                    opcoesWrapper.classList.toggle('d-none', !habilitaOpcoes);
+                }
+                if (addOpcaoBtn) {
+                    addOpcaoBtn.classList.toggle('d-none', !habilitaOpcoes);
+                }
+            }
+
+            if (!paginasContainer) {
+                return;
+            }
 
             function cloneTemplate(template) {
                 return template.content.firstElementChild.cloneNode(true);
+            }
+
+            function atualizarCamposEstado(paginaEl) {
+                const camposContainer = paginaEl.querySelector('.campos-container');
+                const camposArea = paginaEl.querySelector('[data-campos-area]');
+                const hint = paginaEl.querySelector('[data-campos-vazio]');
+                const hasCampos = camposContainer && camposContainer.children.length > 0;
+                if (hint) {
+                    hint.classList.toggle('d-none', hasCampos);
+                }
+                if (camposArea) {
+                    camposArea.classList.toggle('has-campos', !!hasCampos);
+                }
             }
 
             function adicionarPagina(dados) {
@@ -382,41 +583,71 @@
                 });
 
                 (dados?.Campos ?? []).forEach(campo => {
-                    const campoEl = adicionarCampo(paginaEl, campo);
+                    const campoEl = adicionarCampo(campo);
                     camposContainer.appendChild(campoEl);
                 });
 
                 paginasContainer.appendChild(paginaEl);
                 inicializarPagina(paginaEl);
+                atualizarCamposEstado(paginaEl);
                 reindexar();
+                return paginaEl;
             }
 
-            function adicionarCampo(paginaEl, dados) {
+            function adicionarCampo(dados) {
                 const campoEl = cloneTemplate(campoTemplate);
                 const opcoesContainer = campoEl.querySelector('.opcoes-container');
 
-                campoEl.querySelector('[data-field-prop="NomeCampo"]').value = dados?.NomeCampo ?? '';
-                campoEl.querySelector('[data-field-prop="Rotulo"]').value = dados?.Rotulo ?? '';
-                const tipoSelect = campoEl.querySelector('[data-field-prop="Tipo"]');
-                if (tipoSelect) {
-                    tipoSelect.value = dados?.Tipo ?? '';
-                    if (!tipoSelect.value && dados?.Tipo) {
-                        const option = document.createElement('option');
-                        option.value = dados.Tipo;
-                        option.textContent = `${dados.Tipo}`;
-                        option.selected = true;
-                        tipoSelect.appendChild(option);
-                    }
+                const rotuloInput = campoEl.querySelector('[data-field-prop="Rotulo"]');
+                if (rotuloInput) {
+                    rotuloInput.value = dados?.Rotulo ?? '';
                 }
-                campoEl.querySelector('[data-field-prop="Ordem"]').value = dados?.Ordem ?? 0;
-                campoEl.querySelector('[data-field-prop="Placeholder"]').value = dados?.Placeholder ?? '';
-                campoEl.querySelector('[data-field-prop="Mascara"]').value = dados?.Mascara ?? '';
-                campoEl.querySelector('[data-field-prop="Ajuda"]').value = dados?.Ajuda ?? '';
+
+                const nomeCampoHidden = campoEl.querySelector('[data-field-prop="NomeCampo"]');
+                const rotuloInicial = rotuloInput?.value ?? dados?.Rotulo ?? '';
+                if (nomeCampoHidden) {
+                    const nomeInicial = gerarNomeInterno(rotuloInicial);
+                    nomeCampoHidden.value = nomeInicial;
+                }
+
+                const tipoInicial = dados?.Tipo ?? '';
+                const permiteOpcoes = dados?.PermiteOpcoes === true
+                    || tipoPermiteOpcoes(tipoInicial)
+                    || (dados?.Opcoes?.length ?? 0) > 0;
+                const tipoDescricaoInicial = dados?.TipoDescricao ?? null;
+                atualizarTipoCampo(campoEl, tipoInicial, permiteOpcoes, tipoDescricaoInicial);
+
+                atualizarNomeInterno(campoEl, rotuloInicial);
+
+                const ordemInput = campoEl.querySelector('[data-field-prop="Ordem"]');
+                if (ordemInput) {
+                    ordemInput.value = dados?.Ordem ?? 0;
+                }
+
+                const placeholderInput = campoEl.querySelector('[data-field-prop="Placeholder"]');
+                if (placeholderInput) {
+                    placeholderInput.value = dados?.Placeholder ?? '';
+                }
+
+                const mascaraInput = campoEl.querySelector('[data-field-prop="Mascara"]');
+                if (mascaraInput) {
+                    mascaraInput.value = dados?.Mascara ?? '';
+                }
+
+                const ajudaInput = campoEl.querySelector('[data-field-prop="Ajuda"]');
+                if (ajudaInput) {
+                    ajudaInput.value = dados?.Ajuda ?? '';
+                }
+
                 const obrigatorioHidden = campoEl.querySelector('input[type="hidden"][data-field-prop="Obrigatorio"]');
                 const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
                 const obrigatorio = dados?.Obrigatorio ?? false;
-                obrigatorioHidden.value = obrigatorio ? 'true' : 'false';
-                obrigatorioCheck.checked = obrigatorio;
+                if (obrigatorioHidden) {
+                    obrigatorioHidden.value = obrigatorio ? 'true' : 'false';
+                }
+                if (obrigatorioCheck) {
+                    obrigatorioCheck.checked = obrigatorio;
+                }
 
                 (dados?.Opcoes ?? []).forEach(opcao => {
                     const opcaoEl = adicionarOpcao(campoEl, opcao);
@@ -429,64 +660,209 @@
 
             function adicionarOpcao(campoEl, dados) {
                 const opcaoEl = cloneTemplate(opcaoTemplate);
-                opcaoEl.querySelector('[data-option-prop="Texto"]').value = dados?.Texto ?? '';
-                opcaoEl.querySelector('[data-option-prop="Valor"]').value = dados?.Valor ?? '';
-                opcaoEl.querySelector('[data-option-prop="Ordem"]').value = dados?.Ordem ?? 0;
+                const textoInput = opcaoEl.querySelector('[data-option-prop="Texto"]');
+                const valorInput = opcaoEl.querySelector('[data-option-prop="Valor"]');
+                const ordemInput = opcaoEl.querySelector('[data-option-prop="Ordem"]');
+                const valorDisplay = opcaoEl.querySelector('[data-option-valor-display]');
+
+                if (textoInput) {
+                    textoInput.value = dados?.Texto ?? '';
+                }
+                if (valorInput) {
+                    valorInput.value = dados?.Valor ?? '';
+                }
+                if (ordemInput) {
+                    ordemInput.value = dados?.Ordem ?? 0;
+                }
+                if (valorDisplay) {
+                    const valorInicial = dados?.Valor ?? '1';
+                    valorDisplay.textContent = valorInicial;
+                }
                 const ativoHidden = opcaoEl.querySelector('input[type="hidden"][data-option-prop="Ativo"]');
                 const ativoCheck = opcaoEl.querySelector('input[type="checkbox"][data-option-prop="Ativo"]');
                 const ativo = dados?.Ativo ?? true;
-                ativoHidden.value = ativo ? 'true' : 'false';
-                ativoCheck.checked = ativo;
+                if (ativoHidden) {
+                    ativoHidden.value = ativo ? 'true' : 'false';
+                }
+                if (ativoCheck) {
+                    ativoCheck.checked = ativo;
+                }
                 inicializarOpcao(opcaoEl);
                 return opcaoEl;
             }
 
             function inicializarPagina(paginaEl) {
-                paginaEl.querySelector('[data-adicionar-campo]').addEventListener('click', () => {
-                    const campoEl = adicionarCampo(paginaEl);
-                    paginaEl.querySelector('.campos-container').appendChild(campoEl);
-                    reindexar();
-                });
+                if (paginaEl.dataset.initialized === 'true') {
+                    return;
+                }
+                paginaEl.dataset.initialized = 'true';
 
-                paginaEl.querySelector('[data-remover-pagina]').addEventListener('click', () => {
+                paginaEl.querySelector('[data-remover-pagina]')?.addEventListener('click', () => {
                     paginaEl.remove();
                     reindexar();
                 });
 
                 paginaEl.querySelectorAll('.campo-item').forEach(campoEl => inicializarCampo(campoEl));
+                criarSortableCampos(paginaEl);
             }
 
             function inicializarCampo(campoEl) {
-                campoEl.querySelector('[data-adicionar-opcao]').addEventListener('click', () => {
+                if (campoEl.dataset.initialized === 'true') {
+                    return;
+                }
+                campoEl.dataset.initialized = 'true';
+
+                campoEl.querySelector('[data-adicionar-opcao]')?.addEventListener('click', () => {
                     const opcaoEl = adicionarOpcao(campoEl);
                     campoEl.querySelector('.opcoes-container').appendChild(opcaoEl);
                     reindexar();
                 });
 
-                campoEl.querySelector('[data-remover-campo]').addEventListener('click', () => {
+                campoEl.querySelector('[data-remover-campo]')?.addEventListener('click', () => {
+                    const paginaAtual = campoEl.closest('.pagina-item');
                     campoEl.remove();
+                    if (paginaAtual) {
+                        atualizarCamposEstado(paginaAtual);
+                    }
                     reindexar();
                 });
 
                 campoEl.querySelectorAll('.opcao-item').forEach(opcaoEl => inicializarOpcao(opcaoEl));
 
+                const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
+                atualizarTipoCampo(campoEl, tipoHidden?.value ?? '', campoEl.dataset.permiteOpcoes === 'true', campoEl.dataset.tipoDescricao ?? null);
+
+                const rotuloInput = campoEl.querySelector('[data-field-prop="Rotulo"]');
+                if (rotuloInput) {
+                    rotuloInput.addEventListener('input', () => {
+                        atualizarNomeInterno(campoEl, rotuloInput.value);
+                    });
+                    rotuloInput.addEventListener('blur', () => {
+                        atualizarNomeInterno(campoEl, rotuloInput.value);
+                    });
+                    atualizarNomeInterno(campoEl, rotuloInput.value);
+                }
+
                 const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
                 const obrigatorioHidden = campoEl.querySelector('input[type="hidden"][data-field-prop="Obrigatorio"]');
-                obrigatorioCheck.addEventListener('change', () => {
-                    obrigatorioHidden.value = obrigatorioCheck.checked ? 'true' : 'false';
-                });
+                if (obrigatorioCheck && obrigatorioHidden) {
+                    obrigatorioCheck.addEventListener('change', () => {
+                        obrigatorioHidden.value = obrigatorioCheck.checked ? 'true' : 'false';
+                    });
+                }
             }
 
             function inicializarOpcao(opcaoEl) {
+                if (opcaoEl.dataset.initialized === 'true') {
+                    return;
+                }
+                opcaoEl.dataset.initialized = 'true';
+
                 const ativoCheck = opcaoEl.querySelector('input[type="checkbox"][data-option-prop="Ativo"]');
                 const ativoHidden = opcaoEl.querySelector('input[type="hidden"][data-option-prop="Ativo"]');
-                ativoCheck.addEventListener('change', () => {
-                    ativoHidden.value = ativoCheck.checked ? 'true' : 'false';
-                });
+                if (ativoCheck && ativoHidden) {
+                    ativoCheck.addEventListener('change', () => {
+                        ativoHidden.value = ativoCheck.checked ? 'true' : 'false';
+                    });
+                }
 
-                opcaoEl.querySelector('[data-remover-opcao]').addEventListener('click', () => {
+                opcaoEl.querySelector('[data-remover-opcao]')?.addEventListener('click', () => {
                     opcaoEl.remove();
                     reindexar();
+                });
+            }
+
+            function criarSortablePaginas() {
+                if (!paginasContainer || paginasContainer.dataset.sortableInitialized === 'true' || typeof Sortable === 'undefined') {
+                    return;
+                }
+
+                Sortable.create(paginasContainer, {
+                    handle: '[data-move-pagina]',
+                    draggable: '.pagina-item',
+                    animation: 150,
+                    ghostClass: dragGhostClass,
+                    fallbackOnBody: true,
+                    onSort: () => {
+                        reindexar();
+                    }
+                });
+
+                paginasContainer.dataset.sortableInitialized = 'true';
+            }
+
+            function criarSortableCampos(paginaEl) {
+                const camposContainer = paginaEl.querySelector('.campos-container');
+                if (!camposContainer || camposContainer.dataset.sortableInitialized === 'true' || typeof Sortable === 'undefined') {
+                    return;
+                }
+
+                Sortable.create(camposContainer, {
+                    group: { name: 'campos', pull: true, put: true },
+                    handle: '[data-move-campo]',
+                    draggable: '.campo-item',
+                    animation: 150,
+                    ghostClass: dragGhostClass,
+                    fallbackOnBody: true,
+                    onAdd: evt => {
+                        const destinoPagina = evt.to.closest('.pagina-item');
+                        if (!destinoPagina) {
+                            return;
+                        }
+
+                        if (evt.from === catalogoContainer) {
+                            const tipo = evt.item.getAttribute('data-tipo') ?? '';
+                            const rotulo = evt.item.getAttribute('data-rotulo') ?? '';
+                            const nomeSugerido = evt.item.getAttribute('data-nome') ?? '';
+                            const permiteOpcoesCatalogo = evt.item.getAttribute('data-permite-opcoes') === 'true';
+                            const tipoDescricaoCatalogo = evt.item.getAttribute('data-tipo-descricao') ?? '';
+                            evt.item.remove();
+                            const camposContainerDestino = evt.to;
+                            const campoEl = adicionarCampo({
+                                Tipo: tipo,
+                                TipoDescricao: tipoDescricaoCatalogo,
+                                Rotulo: rotulo,
+                                NomeCampo: nomeSugerido || gerarNomeInterno(rotulo),
+                                Obrigatorio: false,
+                                PermiteOpcoes: permiteOpcoesCatalogo
+                            });
+                            const referencia = camposContainerDestino.children[evt.newIndex] ?? null;
+                            camposContainerDestino.insertBefore(campoEl, referencia);
+                        } else {
+                            inicializarCampo(evt.item);
+                            const origemPagina = evt.from.closest('.pagina-item');
+                            if (origemPagina && origemPagina !== destinoPagina) {
+                                atualizarCamposEstado(origemPagina);
+                            }
+                        }
+
+                        atualizarCamposEstado(destinoPagina);
+                        reindexar();
+                    },
+                    onSort: () => {
+                        const paginaAtual = camposContainer.closest('.pagina-item');
+                        if (paginaAtual) {
+                            atualizarCamposEstado(paginaAtual);
+                        }
+                        reindexar();
+                    }
+                });
+
+                camposContainer.dataset.sortableInitialized = 'true';
+            }
+
+            function criarSortableCatalogo() {
+                if (!catalogoContainer || typeof Sortable === 'undefined') {
+                    return;
+                }
+
+                Sortable.create(catalogoContainer, {
+                    group: { name: 'campos', pull: 'clone', put: false },
+                    sort: false,
+                    draggable: '.catalogo-campo',
+                    animation: 150,
+                    ghostClass: dragGhostClass,
+                    fallbackOnBody: true
                 });
             }
 
@@ -502,6 +878,9 @@
                     paginaEl.querySelectorAll('[data-page-prop]').forEach(input => {
                         const prop = input.getAttribute('data-page-prop');
                         input.name = `Paginas[${pIndex}].${prop}`;
+                        if (prop === 'Ordem') {
+                            input.value = pIndex + 1;
+                        }
                     });
 
                     const campoEls = paginaEl.querySelectorAll('.campo-item');
@@ -515,6 +894,9 @@
                         campoEl.querySelectorAll('[data-field-prop]').forEach(input => {
                             const prop = input.getAttribute('data-field-prop');
                             input.name = `Paginas[${pIndex}].Campos[${cIndex}].${prop}`;
+                            if (prop === 'Ordem') {
+                                input.value = cIndex + 1;
+                            }
                         });
 
                         const opcaoEls = campoEl.querySelectorAll('.opcao-item');
@@ -528,9 +910,20 @@
                             opcaoEl.querySelectorAll('[data-option-prop]').forEach(input => {
                                 const prop = input.getAttribute('data-option-prop');
                                 input.name = `Paginas[${pIndex}].Campos[${cIndex}].Opcoes[${oIndex}].${prop}`;
+                                if (prop === 'Ordem') {
+                                    input.value = oIndex + 1;
+                                } else if (prop === 'Valor') {
+                                    input.value = (oIndex + 1).toString();
+                                }
                             });
+                            const valorDisplay = opcaoEl.querySelector('[data-option-valor-display]');
+                            if (valorDisplay) {
+                                valorDisplay.textContent = (oIndex + 1).toString();
+                            }
                         });
                     });
+
+                    atualizarCamposEstado(paginaEl);
                 });
             }
 
@@ -547,9 +940,13 @@
             } else {
                 paginasContainer.querySelectorAll('.pagina-item').forEach(paginaEl => {
                     inicializarPagina(paginaEl);
+                    atualizarCamposEstado(paginaEl);
                 });
                 reindexar();
             }
+
+            criarSortablePaginas();
+            criarSortableCatalogo();
         })();
     </script>
 }

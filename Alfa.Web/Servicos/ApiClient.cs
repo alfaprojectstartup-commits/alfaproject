@@ -53,9 +53,6 @@ public class ApiClient
     public Task<HttpResponseMessage> AtualizarFaseTemplateAsync(int id, FaseTemplateInputDto payload)
         => _http.PutAsJsonAsync($"api/fases/modelos/{id}", payload);
 
-    public Task<List<CampoModeloViewModel>?> GetCatalogoCamposAsync()
-        => _http.GetFromJsonAsync<List<CampoModeloViewModel>>("api/campos/catalogo");
-
     public Task<HttpResponseMessage> AtualizarProcessoStatusAsync(int id, ProcessoStatusAtualizarInput payload)
         => _http.PutAsJsonAsync($"api/processos/{id}/status", payload);
 

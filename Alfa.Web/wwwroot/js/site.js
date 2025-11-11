@@ -126,6 +126,219 @@
         return path;
     };
 
+    function initSignaturePads(scope) {
+        if (!scope) return;
+
+        if (scope instanceof NodeList || Array.isArray(scope)) {
+            scope.forEach(node => initSignaturePads(node));
+            return;
+        }
+
+        const root = (scope instanceof Element || scope instanceof Document) ? scope : document;
+        if (typeof root.querySelectorAll !== 'function') return;
+
+        const containers = root.querySelectorAll('[data-signature-field]');
+        containers.forEach(container => ensureSignaturePad(container));
+    }
+
+    function ensureSignaturePad(container) {
+        if (!(container instanceof Element)) return;
+        if (container.dataset.signatureInitialized === 'true') {
+            const api = container.__alfaSignature;
+            if (api && typeof api.refresh === 'function') {
+                api.refresh();
+            }
+            return;
+        }
+
+        const pad = container.querySelector('[data-signature-pad]');
+        const canvas = container.querySelector('[data-signature-canvas]');
+        const hiddenInput = container.querySelector('[data-signature-output]');
+        if (!pad || !canvas || !hiddenInput) {
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return;
+        }
+
+        const hint = container.querySelector('[data-signature-hint]');
+        const clearBtn = container.querySelector('[data-signature-clear]');
+        const removeBtn = container.querySelector('[data-signature-remove]');
+        const previewWrapper = container.querySelector('[data-signature-preview]');
+        const previewImg = container.querySelector('[data-signature-preview-img]');
+
+        let storedData = hiddenInput.value || '';
+        let drawing = false;
+
+        const applyCtxStyles = () => {
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#111';
+        };
+
+        const updateUi = () => {
+            const hasSignature = !!storedData;
+            if (previewWrapper) {
+                previewWrapper.classList.toggle('d-none', !hasSignature);
+            }
+            if (previewImg && hasSignature) {
+                previewImg.src = storedData;
+            }
+            if (removeBtn) {
+                removeBtn.classList.toggle('d-none', !hasSignature);
+            }
+            if (hint) {
+                hint.classList.toggle('d-none', hasSignature);
+            }
+        };
+
+        const drawStored = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!storedData) {
+                return;
+            }
+
+            const image = new Image();
+            image.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const ratio = Math.min(canvas.width / image.width, canvas.height / image.height, 1);
+                const renderWidth = image.width * ratio;
+                const renderHeight = image.height * ratio;
+                const offsetX = (canvas.width - renderWidth) / 2;
+                const offsetY = (canvas.height - renderHeight) / 2;
+                ctx.drawImage(image, offsetX, offsetY, renderWidth, renderHeight);
+            };
+            image.src = storedData;
+        };
+
+        const setValue = (value, { redraw = true } = {}) => {
+            storedData = value || '';
+            hiddenInput.value = storedData;
+            updateUi();
+            if (redraw) {
+                drawStored();
+            }
+        };
+
+        const resizeCanvas = () => {
+            const rect = pad.getBoundingClientRect();
+            const width = rect.width > 0 ? rect.width : 600;
+            const height = rect.height > 0 ? rect.height : 180;
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
+            applyCtxStyles();
+            drawStored();
+        };
+
+        const getPoint = (evt) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        };
+
+        const startDrawing = (evt) => {
+            if (evt.button === 2) return;
+            evt.preventDefault();
+            const point = getPoint(evt);
+            if (!point) return;
+            if (storedData) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                setValue('', { redraw: false });
+            }
+            drawing = true;
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y);
+            hint?.classList.add('d-none');
+            if (typeof canvas.setPointerCapture === 'function' && evt.pointerId != null) {
+                try {
+                    canvas.setPointerCapture(evt.pointerId);
+                } catch {
+                    // browsers sem suporte a pointer capture podem lançar exceções
+                }
+            }
+        };
+
+        const draw = (evt) => {
+            if (!drawing) return;
+            evt.preventDefault();
+            const point = getPoint(evt);
+            if (!point) return;
+            ctx.lineTo(point.x, point.y);
+            ctx.stroke();
+        };
+
+        const stopDrawing = (evt) => {
+            if (!drawing) return;
+            evt.preventDefault();
+            drawing = false;
+            if (typeof canvas.releasePointerCapture === 'function' && evt.pointerId != null) {
+                try {
+                    canvas.releasePointerCapture(evt.pointerId);
+                } catch {
+                    // ignore falhas ao liberar pointer capture
+                }
+            }
+            ctx.closePath();
+            setValue(canvas.toDataURL('image/png'), { redraw: false });
+        };
+
+        canvas.style.touchAction = 'none';
+        canvas.addEventListener('pointerdown', startDrawing);
+        canvas.addEventListener('pointermove', draw);
+        canvas.addEventListener('pointerup', stopDrawing);
+        canvas.addEventListener('pointerleave', stopDrawing);
+        canvas.addEventListener('pointercancel', stopDrawing);
+
+        clearBtn?.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            setValue('', { redraw: true });
+        });
+
+        removeBtn?.addEventListener('click', (evt) => {
+            evt.preventDefault();
+            setValue('', { redraw: true });
+        });
+
+        let resizeObserver = null;
+        const resizeHandler = () => resizeCanvas();
+        if (window.ResizeObserver) {
+            resizeObserver = new ResizeObserver(() => resizeCanvas());
+            resizeObserver.observe(pad);
+        } else {
+            window.addEventListener('resize', resizeHandler);
+        }
+
+        container.dataset.signatureInitialized = 'true';
+        container.__alfaSignature = {
+            setValue: (value, options) => setValue(value, options),
+            refresh: () => resizeCanvas(),
+            destroy: () => {
+                resizeObserver?.disconnect();
+                window.removeEventListener('resize', resizeHandler);
+            }
+        };
+
+        applyCtxStyles();
+        resizeCanvas();
+        setValue(storedData, { redraw: true });
+    }
+
+    function syncSignatureValue(container, value) {
+        if (!(container instanceof Element)) return;
+        ensureSignaturePad(container);
+        const api = container.__alfaSignature;
+        if (api && typeof api.setValue === 'function') {
+            api.setValue(value || '', { redraw: true });
+        }
+    }
+
     Alfa.initProcessosLista = function (root) {
         if (!root) return;
 
@@ -727,6 +940,7 @@
 
         const forms = Array.from(root.querySelectorAll('form[data-resposta-form]'));
         forms.forEach(form => {
+            initSignaturePads(form);
             form.addEventListener('submit', async (ev) => {
                 ev.preventDefault();
                 const faseId = form.dataset.faseId;
@@ -743,11 +957,25 @@
                 if (reloadButton) reloadButton.disabled = true;
 
                 try {
-                    const camposPayload = Array.from(form.querySelectorAll('[data-campo-id]')).map(wrapper => {
+                    const lerArquivoComoBase64 = (arquivo) => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            if (typeof reader.result === 'string') {
+                                resolve(reader.result);
+                            } else {
+                                reject(new Error('Não foi possível ler o arquivo selecionado.'));
+                            }
+                        };
+                        reader.onerror = () => reject(reader.error || new Error('Falha ao processar o arquivo.'));
+                        reader.readAsDataURL(arquivo);
+                    });
+
+                    const wrappers = Array.from(form.querySelectorAll('[data-campo-id]'));
+                    const camposPayload = (await Promise.all(wrappers.map(async wrapper => {
                         const campoId = parseInt(wrapper.dataset.campoId, 10);
-                        const tipo = wrapper.dataset.tipo || '';
+                        const tipo = (wrapper.dataset.tipo || '').toLowerCase();
                         const input = wrapper.querySelector('[data-field-input]');
-                        if (!campoId || !input) return null;
+                        if (!campoId) return null;
                         const payload = { CampoInstanciaId: campoId, ValorTexto: null, ValorNumero: null, ValorData: null, ValorBool: null };
                         switch (tipo) {
                             case 'number': {
@@ -764,15 +992,44 @@
                             case 'checkbox':
                                 payload.ValorBool = input.checked;
                                 break;
+                            case 'checkboxlist': {
+                                const selecionados = Array.from(wrapper.querySelectorAll('[data-field-input]'))
+                                    .filter(el => el instanceof HTMLInputElement && el.checked)
+                                    .map(el => el.value)
+                                    .filter(valor => typeof valor === 'string' && valor.trim() !== '');
+                                payload.ValorTexto = selecionados.length > 0 ? selecionados.join(';') : null;
+                                break;
+                            }
+                            case 'signature': {
+                                payload.ValorTexto = input && input.value ? input.value : null;
+                                break;
+                            }
+                            case 'image': {
+                                const arquivoInput = input;
+                                const existente = wrapper.querySelector('[data-existing-file]');
+                                const valorPersistido = existente ? (existente.value || null) : null;
+                                if (arquivoInput && arquivoInput.files && arquivoInput.files.length > 0) {
+                                    const arquivo = arquivoInput.files[0];
+                                    if (arquivo.size > (50 * 1024 * 1024)) {
+                                        throw new Error('O arquivo de imagem excede o limite de 50 MB.');
+                                    }
+                                    payload.ValorTexto = await lerArquivoComoBase64(arquivo);
+                                } else {
+                                    payload.ValorTexto = valorPersistido;
+                                }
+                                break;
+                            }
                             case 'textarea':
                             case 'select':
                             case 'text':
                             default:
-                                payload.ValorTexto = input.value ? input.value : null;
+                                if (input) {
+                                    payload.ValorTexto = input.value ? input.value : null;
+                                }
                                 break;
                         }
                         return payload;
-                    }).filter(Boolean);
+                    }))).filter(Boolean);
 
                     const payload = {
                         FaseInstanciaId: parseInt(faseId, 10),
@@ -947,6 +1204,16 @@
                                     input.checked = Boolean(valorBool);
                                 }
                                 break;
+                            case 'signature':
+                                {
+                                    const valorAssinatura = readText(campo, 'ValorTexto') || '';
+                                    input.value = valorAssinatura;
+                                    const assinaturaContainer = wrapper.querySelector('[data-signature-field]');
+                                    if (assinaturaContainer) {
+                                        syncSignatureValue(assinaturaContainer, valorAssinatura);
+                                    }
+                                }
+                                break;
                             case 'textarea':
                             case 'select':
                             case 'text':
@@ -973,6 +1240,7 @@
             const fases = readArray(data, 'Fases');
             updatePhaseCards(fases);
             updateFormFields(fases);
+            initSignaturePads(root);
             if (focusPageId) {
                 const active = root.querySelector(`[data-page-selector][data-page-id="${focusPageId}"]`);
                 if (active) {
@@ -993,6 +1261,8 @@
 
         const form = root.querySelector('[data-preenchimento-externo-form]');
         if (!form) return;
+
+        initSignaturePads(form);
 
         form.addEventListener('submit', async (ev) => {
             ev.preventDefault();
@@ -1030,6 +1300,9 @@
                             break;
                         case 'checkbox':
                             payload.ValorBool = !!input.checked;
+                            break;
+                        case 'signature':
+                            payload.ValorTexto = input.value ? input.value : null;
                             break;
                         case 'textarea':
                         case 'select':
