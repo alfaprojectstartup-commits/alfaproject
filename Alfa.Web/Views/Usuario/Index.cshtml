@@ -1,0 +1,33 @@
+﻿@model IEnumerable<Alfa.Web.Models.UsuarioEmpresaViewModel>
+@{
+    ViewData["Title"] = "Gerenciar Usuários";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h3>Usuários</h3>
+    <a class="btn btn-primary" asp-controller="Usuario" asp-action="Registrar">Novo Usuário</a>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Ativo</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var u in Model)
+        {
+            <tr>
+                <td>@u.Nome</td>
+                <td>@u.Email</td>
+                <td>@(u.Ativo ? "Sim" : "Não")</td>
+                <td>
+                    <!-- futuramente botões Edit / Delete -->
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

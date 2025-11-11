@@ -31,6 +31,20 @@ namespace Alfa.Api.Repositorios
             return await _execucaoDb.QuerySingleAsync<UsuarioModel>(sql, parameters);
         }
 
+        public async Task<IEnumerable<UsuarioEmpresaDto>> ListarUsuariosEmpresaAsync(int empresaId)
+        {
+            const string sql = @"
+                SELECT Id, Nome, Email, EmpresaId, Ativo
+                FROM Usuarios 
+                WHERE EmpresaId = @EmpresaId
+            ";
+
+            DynamicParameters parameters = new();
+            parameters.Add("@EmpresaId", empresaId, DbType.String);
+
+            return await _execucaoDb.QueryAsync<UsuarioEmpresaDto>(sql, parameters);
+        }
+
         public async Task<int> CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro)
         {
             const string sql = @"

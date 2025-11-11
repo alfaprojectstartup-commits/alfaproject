@@ -56,6 +56,23 @@ namespace Alfa.Api.Servicos
             }
         }
 
+        public async Task<IEnumerable<UsuarioEmpresaDto>> ListarUsuariosEmpresaAsync(int empresaId)
+        {
+            if (empresaId == 0)
+            {
+                throw new BadHttpRequestException("Id da empresa inválido.");
+            }
+
+            try
+            {
+                return await _usuarioRepositorio.ListarUsuariosEmpresaAsync(empresaId);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao listar usuários da empresa.", ex);
+            }
+        }
+
         public async Task CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro)
         {
             try

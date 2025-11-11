@@ -1,10 +1,11 @@
 ﻿using Alfa.Web.Dtos;
+using Alfa.Web.Models;
 
 namespace Alfa.Web.Servicos.Interfaces
 {
     public interface IUsuarioServico
     {
-        Task<UsuarioAutenticadoDto?> LoginAsync(UsuarioLoginDto login);
+        Task<IEnumerable<UsuarioEmpresaViewModel>> ListarUsuariosEmpresaAsync(int empresaId);
         Task<(bool Success, string? Error)> RegistrarAsync(UsuarioRegistroDto registro);
     }
 }

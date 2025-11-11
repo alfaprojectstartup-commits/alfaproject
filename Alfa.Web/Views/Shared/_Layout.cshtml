@@ -9,8 +9,7 @@
 @inject IPermissaoUiService PermissaoService
 
 @{ 
-    var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
-    var nomeUsuario = User.Identity?.IsAuthenticated == true ? User.FindFirst("nome")?.Value : null;
+    // var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante"; // Estou pegando o nome direto do usuario autenticado
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
     var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
     var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
@@ -59,7 +58,7 @@
                     <ul class="navbar-nav ms-auto align-items-lg-center">
 
                         <li class="nav-item dropdown dropdown-hover">
-                            <a class="nav-link dropdown-toggle @(ctrl=="Processos"?"active":"")" href="#" role="button" data-bs-toggle="dropdown">
+                            <a class="nav-link dropdown-toggle @(ctrl=="Processos" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown">
                                 Processos
                             </a>
                             <ul class="dropdown-menu dropdown-fade">
@@ -69,16 +68,20 @@
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link @(ctrl=="Dashboard"?"active":"")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                            <a class="nav-link @(ctrl=="Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
                         </li>
 
-                        <li class="nav-item dropdown dropdown-hover">
-                            <a class="nav-link dropdown-toggle @(ctrl=="Usuarios"?"active":"")" href="#" data-bs-toggle="dropdown">Usuários</a>
-                            <ul class="dropdown-menu dropdown-fade">
-                                <li><a class="dropdown-item" asp-controller="Usuarios" asp-action="Index">Lista</a></li>
-                                <li><a class="dropdown-item" asp-controller="Usuarios" asp-action="Permissoes">Permissões</a></li>
-                            </ul>
-                        </li>
+
+                        @if (PermissaoService.PossuiPermissao("USUARIOS_GERENCIAR"))
+                        {
+                            <li class="nav-item dropdown dropdown-hover">
+                                <a class="nav-link dropdown-toggle @(ctrl == "Usuarios" ? "active" : "")" href="#" data-bs-toggle="dropdown">Usuários</a>
+                                <ul class="dropdown-menu dropdown-fade">
+                                    <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Gerenciar Usuários</a></li>
+                                </ul>
+                            </li>
+                        }
+
 
                         <li class="nav-item me-lg-3">
                             <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
@@ -87,10 +90,14 @@
                             </button>
                         </li>
 
-                        <li class="nav-item ms-lg-2">
-                            <span class="navbar-text small text-muted me-2">Bem-vindo, @nome</span>
-                            <a class="btn btn-outline-secondary btn-sm" href="/logout">Sair</a>
-                        </li>
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item ms-lg-2">
+                                <span class="navbar-text small text-muted me-2">Bem-vindo, @User.Identity.Name</span>
+                                <a class="btn btn-outline-secondary btn-sm" asp-controller="Autenticacao" asp-action="Logout">Sair</a>
+                            </li>
+                        }
+
                     </ul>
                 </div>
             </div>
