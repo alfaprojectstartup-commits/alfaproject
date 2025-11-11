@@ -17,20 +17,19 @@ namespace Alfa.Api.Servicos
             _tokenServico = tokenServico;
         }
 
-        public async Task<LoginTokenDto?> Login(LoginDto login)
+        public async Task<UsuarioAutenticadoDto?> Login(UsuarioLoginDto login)
         {
             try
             {
                 var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(login.Email);
-                if (usuarioExistente == null || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
+                if (usuarioExistente is null || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
                 {
                     return null;
                 }
 
-                return new LoginTokenDto
+                return new UsuarioAutenticadoDto
                 {
                     Email = usuarioExistente.Email,
-                    FuncaoId = usuarioExistente.FuncaoId,
                     Token = _tokenServico.GerarToken(usuarioExistente)
                 };
             }
@@ -64,10 +63,34 @@ namespace Alfa.Api.Servicos
                 var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(usuarioRegistro.Email);
                 if (usuarioExistente != null)
                 {
-                    throw new BadHttpRequestException("Usuário já existe.");
+                    throw new BadHttpRequestException("Usuário já existe com esse e-mail.");
                 }
 
-                await _usuarioRepositorio.CadastrarUsuarioAsync(usuarioRegistro);
+                int usuarioId = await _usuarioRepositorio.CadastrarUsuarioAsync(usuarioRegistro);
+
+                if (usuarioId == 0)
+                {
+                    throw new Exception("Erro ao cadastrar usuário no banco.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao cadastrar novo usuário.", ex);
+            }
+        }
+
+        public async Task<PermissoesUsuarioDto> ObterPermissoesPorUsuarioAsync(int usuarioId)
+        {
+            PermissoesUsuarioDto response = new();
+
+            try
+            {
+                var permissoes = await _usuarioRepositorio.ObterPermissoesPorUsuarioIdAsync(usuarioId);
+
+                response.UsuarioId = usuarioId;
+                response.Permissoes = permissoes.ToList();
+
+                return response;
             }
             catch (Exception ex)
             {

@@ -21,9 +21,10 @@ namespace Alfa.Api.Servicos
         {
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Nome),
-                new Claim(ClaimTypes.Role, usuario.FuncaoId.ToString())
+                new Claim("usuarioId", usuario.Id.ToString()),
+                new Claim("nome", usuario.Nome),
+                new Claim("email", usuario.Email),
+                new Claim("empresaId", usuario.EmpresaId.ToString())
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfiguracao.Key));

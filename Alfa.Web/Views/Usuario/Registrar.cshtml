@@ -1,0 +1,54 @@
+﻿@model Alfa.Web.Dtos.UsuarioRegistroDto
+@{
+    ViewData["Title"] = "Registrar Usuário";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body">
+                    <h3 class="text-center mb-4">Criar Conta</h3>
+
+                    <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                    <form asp-action="Registrar" method="post" novalidate>
+                        <div class="mb-3">
+                            <label asp-for="Nome" class="form-label"></label>
+                            <input asp-for="Nome" class="form-control" />
+                            <span asp-validation-for="Nome" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Senha" class="form-label"></label>
+                            <input asp-for="Senha" class="form-control" type="password" />
+                            <span asp-validation-for="Senha" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ConfirmarSenha" class="form-label"></label>
+                            <input asp-for="ConfirmarSenha" class="form-control" type="password" />
+                            <span asp-validation-for="ConfirmarSenha" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Registrar</button>
+                    </form>
+
+                    <div class="mt-3 text-center">
+                        <p>Já tem conta? <a asp-controller="Usuario" asp-action="Login">Faça login</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,5 +1,6 @@
 ﻿using Alfa.Api.Aplicacao;
 using Alfa.Api.Aplicacao.Interfaces;
+using Alfa.Api.Autorizacao;
 using Alfa.Api.Dados;
 using Alfa.Api.Infra;
 using Alfa.Api.Infra.Interfaces;
@@ -7,6 +8,7 @@ using Alfa.Api.Repositorios;
 using Alfa.Api.Repositorios.Interfaces;
 using Alfa.Api.Servicos;
 using Alfa.Api.Servicos.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Alfa.Api.Configuracoes
 {
@@ -31,6 +33,10 @@ namespace Alfa.Api.Configuracoes
             services.AddScoped<IProcessoApp, ProcessoApp>();
             services.AddScoped<ITokenServico, TokenServico>();
             services.AddScoped<IUsuarioServico, UsuarioServico>();
+
+            // Autorizacao
+            services.AddScoped<IAuthorizationHandler, PermissaoHandler>();
+            services.AddSingleton<IAuthorizationPolicyProvider, PermissaoPolicyProvider>();
 
             return services;
         }

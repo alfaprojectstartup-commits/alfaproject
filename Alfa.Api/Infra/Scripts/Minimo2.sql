@@ -9,64 +9,98 @@ END
 DECLARE @EmpresaId INT = (SELECT TOP 1 Id FROM Empresas WHERE Id = 1);
 
 -- ===============================
--- Inserir Funções de Usuário
--- ===============================
-IF NOT EXISTS(SELECT 1 FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Administrador')
-BEGIN
-    INSERT INTO UsuariosFuncoes (Funcao, EmpresaId) VALUES (N'Administrador', @EmpresaId);
-END
-
-IF NOT EXISTS(SELECT 1 FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Vendedor')
-BEGIN
-    INSERT INTO UsuariosFuncoes (Funcao, EmpresaId) VALUES (N'Vendedor', @EmpresaId);
-END
-
-DECLARE @FuncaoAdminId INT = (SELECT TOP 1 Id FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Administrador');
-DECLARE @FuncaoVendedorId INT = (SELECT TOP 1 Id FROM UsuariosFuncoes WHERE EmpresaId=@EmpresaId AND Funcao=N'Vendedor');
-
--- ===============================
 -- Inserir Usuário Admin
 -- ===============================
 IF NOT EXISTS(SELECT 1 FROM Usuarios WHERE Email=N'admin@empresa.com')
 BEGIN
-    INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId, Ativo)
-    VALUES (N'Admin', N'admin@empresa.com', N'hashficticio', @FuncaoAdminId, 1);
+    INSERT INTO Usuarios (Nome, Email, SenhaHash, EmpresaId, Ativo)
+    VALUES (N'Admin', N'admin@empresa.com', N'hashficticio', @EmpresaId, 1);
 END
 
 DECLARE @UsuarioAdminId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'admin@empresa.com');
 
 IF NOT EXISTS(SELECT 1 FROM Usuarios WHERE Email=N'marina@empresa.com')
 BEGIN
-    INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId, Ativo)
-    VALUES (N'Marina Souza', N'marina@empresa.com', N'hashficticio', @FuncaoVendedorId, 1);
+    INSERT INTO Usuarios (Nome, Email, SenhaHash, EmpresaId, Ativo)
+    VALUES (N'Marina Souza', N'marina@empresa.com', N'hashficticio', @EmpresaId, 1);
 END
 
 IF NOT EXISTS(SELECT 1 FROM Usuarios WHERE Email=N'joao@empresa.com')
 BEGIN
-    INSERT INTO Usuarios (Nome, Email, SenhaHash, FuncaoId, Ativo)
-    VALUES (N'João Batista', N'joao@empresa.com', N'hashficticio', @FuncaoVendedorId, 1);
+    INSERT INTO Usuarios (Nome, Email, SenhaHash, EmpresaId, Ativo)
+    VALUES (N'João Batista', N'joao@empresa.com', N'hashficticio', @EmpresaId, 1);
 END
 
 DECLARE @UsuarioMarinaId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'marina@empresa.com');
 DECLARE @UsuarioJoaoId INT = (SELECT TOP 1 Id FROM Usuarios WHERE Email=N'joao@empresa.com');
 
 -- ===============================
--- Vincular Usuário à Empresa
+-- Inserir Permissões Padrão
 -- ===============================
-IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioAdminId AND EmpresaId=@EmpresaId)
+IF NOT EXISTS(SELECT 1 FROM Permissoes WHERE Codigo = N'CONFIG_SISTEMA')
 BEGIN
-    INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioAdminId, @EmpresaId);
+    INSERT INTO Permissoes (Codigo, Nome, Descricao)
+    VALUES (N'CONFIG_SISTEMA', N'Configurar Sistema', N'Permite acesso às configurações gerais do sistema');
 END
 
-IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioMarinaId AND EmpresaId=@EmpresaId)
+IF NOT EXISTS(SELECT 1 FROM Permissoes WHERE Codigo = N'PROCESSO_EDIT')
 BEGIN
-    INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioMarinaId, @EmpresaId);
+    INSERT INTO Permissoes (Codigo, Nome, Descricao)
+    VALUES (N'PROCESSO_EDIT', N'Editar Processos', N'Permite criar e editar processos');
 END
 
-IF NOT EXISTS(SELECT 1 FROM UsuariosEmpresas WHERE UsuarioId=@UsuarioJoaoId AND EmpresaId=@EmpresaId)
+IF NOT EXISTS(SELECT 1 FROM Permissoes WHERE Codigo = N'PROCESSO_VIEW')
 BEGIN
-    INSERT INTO UsuariosEmpresas (UsuarioId, EmpresaId) VALUES (@UsuarioJoaoId, @EmpresaId);
+    INSERT INTO Permissoes (Codigo, Nome, Descricao)
+    VALUES (N'PROCESSO_VIEW', N'Visualizar Processos', N'Permite visualizar detalhes de processos');
 END
+
+IF NOT EXISTS(SELECT 1 FROM Permissoes WHERE Codigo = N'USUARIOS_GERENCIAR')
+BEGIN
+    INSERT INTO Permissoes (Codigo, Nome, Descricao)
+    VALUES (N'USUARIOS_GERENCIAR', N'Gerenciar Usuários', N'Permite criar, editar e desativar usuários');
+END
+
+-- Recuperar IDs das permissões para vincular aos usuários
+DECLARE @PermissaoConfig INT       = (SELECT TOP 1 Id FROM Permissoes WHERE Codigo = N'CONFIG_SISTEMA');
+DECLARE @PermissaoProcEdit INT     = (SELECT TOP 1 Id FROM Permissoes WHERE Codigo = N'PROCESSO_EDIT');
+DECLARE @PermissaoProcView INT     = (SELECT TOP 1 Id FROM Permissoes WHERE Codigo = N'PROCESSO_VIEW');
+DECLARE @PermissaoUserManage INT   = (SELECT TOP 1 Id FROM Permissoes WHERE Codigo = N'USUARIOS_GERENCIAR');
+
+-- ===============================
+-- Vincular Permissões aos Usuários
+-- ===============================
+
+-- Admin tem todas as permissões
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioAdminId AND PermissaoId = @PermissaoConfig)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioAdminId, @PermissaoConfig, @UsuarioAdminId);
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioAdminId AND PermissaoId = @PermissaoProcEdit)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioAdminId, @PermissaoProcEdit, @UsuarioAdminId);
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioAdminId AND PermissaoId = @PermissaoProcView)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioAdminId, @PermissaoProcView, @UsuarioAdminId);
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioAdminId AND PermissaoId = @PermissaoUserManage)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioAdminId, @PermissaoUserManage, @UsuarioAdminId);
+
+-- Marina tem permissão de editar e visualizar processos
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioMarinaId AND PermissaoId = @PermissaoProcEdit)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioMarinaId, @PermissaoProcEdit, @UsuarioAdminId);
+
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioMarinaId AND PermissaoId = @PermissaoProcView)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioMarinaId, @PermissaoProcView, @UsuarioAdminId);
+
+-- João tem apenas permissão de visualizar processos
+IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioJoaoId AND PermissaoId = @PermissaoProcView)
+    INSERT INTO UsuariosPermissoes (UsuarioId, PermissaoId, ConcedidoPor)
+    VALUES (@UsuarioJoaoId, @PermissaoProcView, @UsuarioAdminId);
 
 -- ===============================
 -- Inserir Status

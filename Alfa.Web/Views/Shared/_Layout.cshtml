@@ -1,10 +1,16 @@
+@using Alfa.Web.Servicos.Interfaces
 @using Microsoft.AspNetCore.Http
+@using Microsoft.Extensions.Configuration
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
 @inject IHttpContextAccessor Http
 @inject IConfiguration Config
-@using Microsoft.Extensions.Configuration
+@inject IPermissaoUiService PermissaoService
 
 @{ 
     var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante";
+    var nomeUsuario = User.Identity?.IsAuthenticated == true ? User.FindFirst("nome")?.Value : null;
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
     var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
     var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
