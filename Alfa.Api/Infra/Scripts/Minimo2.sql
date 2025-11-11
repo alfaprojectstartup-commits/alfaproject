@@ -105,13 +105,25 @@ IF NOT EXISTS(SELECT 1 FROM UsuariosPermissoes WHERE UsuarioId = @UsuarioJoaoId 
 -- ===============================
 -- Inserir Status
 -- ===============================
+IF NOT EXISTS(SELECT 1 FROM ProcessoStatus WHERE EmpresaId=@EmpresaId AND Status=N'Em Planejamento')
+BEGIN
+    INSERT INTO ProcessoStatus (EmpresaId, Status) VALUES (@EmpresaId, N'Em Planejamento');
+END
 IF NOT EXISTS(SELECT 1 FROM ProcessoStatus WHERE EmpresaId=@EmpresaId AND Status=N'Em Andamento')
 BEGIN
     INSERT INTO ProcessoStatus (EmpresaId, Status) VALUES (@EmpresaId, N'Em Andamento');
 END
+IF NOT EXISTS(SELECT 1 FROM ProcessoStatus WHERE EmpresaId=@EmpresaId AND Status=N'Em Revisão')
+BEGIN
+    INSERT INTO ProcessoStatus (EmpresaId, Status) VALUES (@EmpresaId, N'Em Revisão');
+END
 IF NOT EXISTS(SELECT 1 FROM ProcessoStatus WHERE EmpresaId=@EmpresaId AND Status=N'Concluído')
 BEGIN
     INSERT INTO ProcessoStatus (EmpresaId, Status) VALUES (@EmpresaId, N'Concluído');
+END
+IF NOT EXISTS(SELECT 1 FROM ProcessoStatus WHERE EmpresaId=@EmpresaId AND Status=N'Outros')
+BEGIN
+    INSERT INTO ProcessoStatus (EmpresaId, Status) VALUES (@EmpresaId, N'Outros');
 END
 
 IF NOT EXISTS(SELECT 1 FROM FaseStatus WHERE EmpresaId=@EmpresaId AND Status=N'Em Andamento')

@@ -1,0 +1,50 @@
+@model PreenchimentoExternoViewModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using System.Collections.Generic
+
+@{
+    Layout = "_Layout";
+    ViewBag.HideChrome = true;
+    var pagina = Model.Pagina ?? new Alfa.Web.Dtos.PaginaInstanciaViewModel();
+    var campos = pagina.Campos ?? new List<Alfa.Web.Dtos.CampoInstanciaViewModel>();
+}
+
+<div class="container" data-preenchimento-externo data-processo-id="@Model.ProcessoId" data-fase-id="@Model.FaseInstanciaId" data-pagina-id="@pagina.Id" data-token="@Model.Token">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="text-center mb-4">
+                <h1 class="h4 mb-1">@pagina.Titulo</h1>
+                <p class="text-muted mb-0">Processo: @Model.ProcessoTitulo</p>
+                <p class="text-muted">Fase: @Model.FaseTitulo</p>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form data-preenchimento-externo-form>
+                        <input type="hidden" name="token" value="@Model.Token" />
+                        @foreach (var campo in campos)
+                        {
+                            @await Html.PartialAsync("Partials/_CampoInstancia", campo)
+                        }
+
+                        <div class="d-flex justify-content-end gap-2 align-items-center mt-4">
+                            <div class="text-muted small" data-saving-feedback hidden>Enviando respostas...</div>
+                            <button type="submit" class="btn btn-primary" data-loading-text="Enviando...">Enviar respostas</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const root = document.querySelector('[data-preenchimento-externo]');
+            if (root && window.Alfa && typeof window.Alfa.initPreenchimentoExterno === 'function') {
+                window.Alfa.initPreenchimentoExterno(root);
+            }
+        });
+    </script>
+}

@@ -8,10 +8,12 @@ namespace Alfa.Api.Aplicacao.Interfaces
         Task<int> Criar(int empresaId, ProcessoCriarDto dto);
         Task<ProcessoDetalheDto?> Obter(int empresaId, int id);
         Task<IEnumerable<FaseInstanciaDto>> ListarFases(int empresaId, int processoId);
-        Task RegistrarResposta(int empresaId, int processoId, PaginaRespostaDto dto);
-        Task<int?> ObterProcessoIdDaFase(int empresaId, int faseInstanciaId);
+        Task RegistrarResposta(int processoId, PaginaRespostaDto dto);
+        Task<int?> ObterProcessoIdDaFase(int faseInstanciaId);
         Task RecalcularProgressoProcesso(int empresaId, int processoId);
         Task<IEnumerable<ProcessoPadraoModeloDto>> ListarPadroesAsync(int empresaId);
         Task<int> CriarPadraoAsync(int empresaId, ProcessoPadraoModeloInputDto dto);
+        Task AtualizarStatus(int empresaId, int processoId, string status, int? usuarioId, string? usuarioNome);
+        Task<IEnumerable<ProcessoHistoricoDto>> ListarHistoricos(int empresaId, int processoId);
     }
 }

@@ -9,6 +9,7 @@ namespace Alfa.Web.Models
         public int Ordem { get; set; }
         public bool Ativo { get; set; }
         public List<PaginaModeloViewModel> Paginas { get; set; } = new();
+        public string Token { get; set; } = string.Empty;
     }
 
     public class PaginaModeloViewModel

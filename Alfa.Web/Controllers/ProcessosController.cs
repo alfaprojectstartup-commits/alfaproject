@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
+using System.Text.Json;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
+using Alfa.Web.Servicos;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
@@ -9,8 +11,20 @@ using Microsoft.AspNetCore.Authorization;
 [Authorize]
 public class ProcessosController : Controller
 {
+    private const string ProcessoPurpose = "ProcessosController.ProcessoId";
+
     private readonly ApiClient _api;
-    public ProcessosController(ApiClient api) => _api = api;
+    private readonly PreenchimentoExternoTokenService _tokenService;
+    private readonly IUrlProtector _urlProtector;
+    private readonly IProcessoPdfGenerator _pdfGenerator;
+
+    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService, IUrlProtector urlProtector, IProcessoPdfGenerator pdfGenerator)
+    {
+        _api = api;
+        _tokenService = tokenService;
+        _urlProtector = urlProtector;
+        _pdfGenerator = pdfGenerator;
+    }
 
     public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
     {
@@ -22,11 +36,20 @@ public class ProcessosController : Controller
               items = Enumerable.Empty<ProcessoListaItemViewModel>()
           };
 
+        var itens = res.items.ToList();
+        foreach (var processo in itens)
+        {
+            if (processo.Id > 0)
+            {
+                processo.Token = EncodeProcessoId(processo.Id);
+            }
+        }
+
         ViewBag.Tab = tab;
         ViewBag.Page = page;
         ViewBag.PageSize = 10;
         ViewBag.Total = res.total;
-        return View(res.items.ToList());
+        return View(itens);
     }
 
     [HttpGet]
@@ -166,21 +189,226 @@ public class ProcessosController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Detalhes(int id)
+    public async Task<IActionResult> Detalhes(string token)
+    {
+        if (!TryDecodeProcessoId(token, out var id))
+        {
+            return NotFound();
+        }
+
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+        OrdenarProcesso(processo);
+        ViewBag.HistoricoUrl = Url.Action(nameof(Historico), new { token });
+        return View(processo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Historico(string token)
+    {
+        if (!TryDecodeProcessoId(token, out var id))
+        {
+            return NotFound();
+        }
+
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null) return NotFound();
+        OrdenarProcesso(processo);
+
+        List<ProcessoHistoricoViewModel> historico;
+        try
+        {
+            historico = await _api.GetProcessoHistoricoAsync(id) ?? new List<ProcessoHistoricoViewModel>();
+        }
+        catch (HttpRequestException)
+        {
+            historico = new List<ProcessoHistoricoViewModel>();
+        }
+
+        var vm = new ProcessoHistoricoPaginaViewModel
+        {
+            Processo = processo,
+            Historico = historico
+                .OrderByDescending(h => h.CriadoEm)
+                .ToList(),
+            Token = token
+        };
+
+        return View("Historico", vm);
+    }
+
+    private string EncodeProcessoId(int id) => _urlProtector.Encode(ProcessoPurpose, id);
+
+    private bool TryDecodeProcessoId(string? token, out int id) => _urlProtector.TryDecode(ProcessoPurpose, token, out id);
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LinkPreenchimentoExterno([FromBody] LinkPreenchimentoExternoRequest? input)
+    {
+        if (input is null)
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        if (input.ProcessoId <= 0 || input.FaseInstanciaId <= 0 || input.PaginaInstanciaId <= 0)
+        {
+            return BadRequest(new { message = "Identificadores inválidos." });
+        }
+
+        var processo = await _api.GetProcessoAsync(input.ProcessoId);
+        if (processo is null)
+        {
+            return NotFound(new { message = "Processo não encontrado." });
+        }
+
+        var fase = processo.Fases?.FirstOrDefault(f => f.Id == input.FaseInstanciaId);
+        var pagina = fase?.Paginas?.FirstOrDefault(p => p.Id == input.PaginaInstanciaId);
+        if (fase is null || pagina is null)
+        {
+            return NotFound(new { message = "Página não encontrada." });
+        }
+
+        pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
+
+        TimeSpan? validade = null;
+        if (input.ValidadeMinutos.HasValue && input.ValidadeMinutos.Value > 0)
+        {
+            validade = TimeSpan.FromMinutes(input.ValidadeMinutos.Value);
+        }
+
+        var token = _tokenService.GerarToken(processo.Id, fase.Id, pagina.Id, validade);
+        var host = Request.Host.HasValue ? Request.Host.Value : null;
+        var link = Url.Action(nameof(PreenchimentoExterno), "Processos", new { token }, Request.Scheme, host)
+            ?? Url.Action(nameof(PreenchimentoExterno), "Processos", new { token });
+
+        return Json(new { link, token });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadPdf(int id)
     {
         var processo = await _api.GetProcessoAsync(id);
         if (processo is null) return NotFound();
-        if (processo.Fases is null) processo.Fases = new List<FaseInstanciaViewModel>();
-        processo.Fases = processo.Fases.OrderBy(f => f.Ordem).ToList();
-        foreach (var fase in processo.Fases)
+
+        OrdenarProcesso(processo);
+
+        var pdf = _pdfGenerator.Gerar(processo);
+        var fileName = $"processo-{processo.Id}.pdf";
+        return File(pdf, "application/pdf", fileName);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> PreenchimentoExterno(string token)
+    {
+        if (!_tokenService.TryValidarToken(token, out var payload) || payload is null)
         {
-            fase.Paginas = fase.Paginas?.OrderBy(p => p.Ordem).ToList() ?? new List<PaginaInstanciaViewModel>();
-            foreach (var pagina in fase.Paginas)
-            {
-                pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
-            }
+            return BadRequest("Token inválido ou expirado.");
         }
-        return View(processo);
+
+        var processo = await _api.GetProcessoAsync(payload.ProcessoId);
+        if (processo is null)
+        {
+            return NotFound();
+        }
+
+        var fase = processo.Fases?.FirstOrDefault(f => f.Id == payload.FaseInstanciaId);
+        var pagina = fase?.Paginas?.FirstOrDefault(p => p.Id == payload.PaginaInstanciaId);
+        if (fase is null || pagina is null)
+        {
+            return NotFound();
+        }
+
+        pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
+
+        var vm = new PreenchimentoExternoViewModel
+        {
+            ProcessoId = processo.Id,
+            ProcessoTitulo = processo.Titulo ?? string.Empty,
+            FaseInstanciaId = fase.Id,
+            FaseTitulo = fase.Titulo ?? string.Empty,
+            Pagina = pagina,
+            Token = token
+        };
+
+        ViewBag.HideChrome = true;
+        ViewData["Title"] = $"{pagina.Titulo} · Preenchimento externo";
+
+        return View("PreenchimentoExterno", vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AlterarStatus([FromBody] ProcessoStatusAlterarInput? input)
+    {
+        if (input is null || string.IsNullOrWhiteSpace(input.Token) || string.IsNullOrWhiteSpace(input.Status))
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        if (!TryDecodeProcessoId(input.Token, out var processoId))
+        {
+            return NotFound(new { message = "Processo não encontrado." });
+        }
+
+        var status = input.Status.Trim();
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return BadRequest(new { message = "Informe um status válido." });
+        }
+
+        var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+        var usuarioNome = HttpContext.Session.GetString("Nome");
+
+        var payload = new ProcessoStatusAtualizarInput
+        {
+            Status = status,
+            UsuarioId = usuarioId,
+            UsuarioNome = string.IsNullOrWhiteSpace(usuarioNome) ? null : usuarioNome
+        };
+
+        HttpResponseMessage resposta;
+        try
+        {
+            resposta = await _api.AtualizarProcessoStatusAsync(processoId, payload);
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(500, new { message = "Não foi possível atualizar o status.", detail = ex.Message });
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            var corpo = await resposta.Content.ReadAsStringAsync();
+            var mensagem = "Não foi possível atualizar o status.";
+            if (!string.IsNullOrWhiteSpace(corpo))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(corpo);
+                    var root = doc.RootElement;
+                    if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("message", out var msgEl) && msgEl.ValueKind == JsonValueKind.String)
+                    {
+                        mensagem = msgEl.GetString() ?? mensagem;
+                    }
+                    else if (root.ValueKind == JsonValueKind.String)
+                    {
+                        mensagem = root.GetString() ?? mensagem;
+                    }
+                    else
+                    {
+                        mensagem = corpo.Trim();
+                    }
+                }
+                catch
+                {
+                    mensagem = corpo.Trim();
+                }
+            }
+
+            return StatusCode((int)resposta.StatusCode, new { message = mensagem });
+        }
+
+        return Ok(new { status });
     }
 
     private static List<ProcessoPadraoModeloViewModel> FiltrarPadroesValidos(
@@ -211,7 +439,25 @@ public class ProcessosController : Controller
             .ToList();
     }
 
+    private static void OrdenarProcesso(ProcessoDetalheViewModel processo)
+    {
+        processo.Fases ??= new List<FaseInstanciaViewModel>();
+        processo.Fases = processo.Fases
+            .OrderBy(f => f.Ordem)
+            .ToList();
+
+        foreach (var fase in processo.Fases)
+        {
+            fase.Paginas = fase.Paginas?.OrderBy(p => p.Ordem).ToList() ?? new List<PaginaInstanciaViewModel>();
+            foreach (var pagina in fase.Paginas)
+            {
+                pagina.Campos = pagina.Campos?.OrderBy(c => c.Ordem).ToList() ?? new List<CampoInstanciaViewModel>();
+            }
+        }
+    }
+    
 }
+
 
 public class NovoProcessoVm
 {
@@ -232,5 +478,29 @@ public class CreatedResourceDto
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+}
+
+public class LinkPreenchimentoExternoRequest
+{
+    public int ProcessoId { get; set; }
+    public int FaseInstanciaId { get; set; }
+    public int PaginaInstanciaId { get; set; }
+    public int? ValidadeMinutos { get; set; }
+}
+
+public class PreenchimentoExternoViewModel
+{
+    public int ProcessoId { get; set; }
+    public string ProcessoTitulo { get; set; } = string.Empty;
+    public int FaseInstanciaId { get; set; }
+    public string FaseTitulo { get; set; } = string.Empty;
+    public PaginaInstanciaViewModel Pagina { get; set; } = new();
+    public string Token { get; set; } = string.Empty;
+}
+
+public class ProcessoStatusAlterarInput
+{
+    public string Token { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
 }
 

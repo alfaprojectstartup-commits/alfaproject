@@ -64,14 +64,45 @@ public class ProcessosController : ControllerBase
         return Ok(fases);
     }
 
-    [HttpPost("{id:int}/respostas")]
-    public async Task<ActionResult> RegistrarResposta(int id, [FromBody] PaginaRespostaDto dto)
+    [HttpGet("{id:int}/historico")]
+    public async Task<ActionResult<IEnumerable<ProcessoHistoricoDto>>> ListarHistorico(int id)
     {
+        var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
+        var historico = await _app.ListarHistoricos(emp, id);
+        return Ok(historico);
+    }
+
+    [HttpPut("{id:int}/status")]
+    public async Task<IActionResult> AtualizarStatus(int id, [FromBody] ProcessoStatusAtualizarDto dto)
+    {
+        if (dto is null || string.IsNullOrWhiteSpace(dto.Status))
+        {
+            return BadRequest(new { message = "Informe um status válido." });
+        }
+
         var emp = EmpresaId; if (emp <= 0) return BadRequest("EmpresaId ausente");
 
         try
         {
-            await _app.RegistrarResposta(emp, id, dto);
+            await _app.AtualizarStatus(emp, id, dto.Status, dto.UsuarioId, dto.UsuarioNome);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/respostas")]
+    public async Task<ActionResult> RegistrarResposta(int id, [FromBody] PaginaRespostaDto dto)
+    {
+        try
+        {
+            await _app.RegistrarResposta(id, dto);
             return NoContent();
         }
         catch (KeyNotFoundException ex)

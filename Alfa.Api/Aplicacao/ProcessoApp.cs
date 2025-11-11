@@ -41,15 +41,37 @@ namespace Alfa.Api.Aplicacao
         public Task<int> CriarPadraoAsync(int empresaId, ProcessoPadraoModeloInputDto dto)
             => _padraoRepo.CriarAsync(empresaId, dto);
 
+        public async Task AtualizarStatus(int empresaId, int processoId, string status, int? usuarioId, string? usuarioNome)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                throw new ArgumentException("Informe um status válido.", nameof(status));
+            }
+
+            await _procRepo.AtualizarStatusEProgressoAsync(empresaId, processoId, status.Trim(), null);
+
+            var descricao = $"Status alterado para '{status.Trim()}'.";
+            await _procRepo.RegistrarHistoricoAsync(empresaId, processoId, usuarioId, usuarioNome ?? string.Empty, descricao);
+        }
+
+        public Task<IEnumerable<ProcessoHistoricoDto>> ListarHistoricos(int empresaId, int processoId)
+            => _procRepo.ListarHistoricosAsync(empresaId, processoId);
+
         public Task<IEnumerable<FaseInstanciaDto>> ListarFases(int empresaId, int processoId)
             => _faseRepo.ListarInstanciasAsync(empresaId, processoId);
 
-        public async Task RegistrarResposta(int empresaId, int processoId, PaginaRespostaDto dto)
+        public async Task RegistrarResposta(int processoId, PaginaRespostaDto dto)
         {
             if (dto is null) throw new ArgumentNullException(nameof(dto));
 
-            var processoDaFase = await _procRepo.ObterProcessoIdDaFaseAsync(empresaId, dto.FaseInstanciaId);
-            if (!processoDaFase.HasValue || processoDaFase.Value != processoId)
+            var dadosFase = await _procRepo.ObterEmpresaEProcessoDaFaseAsync(dto.FaseInstanciaId);
+            if (!dadosFase.HasValue)
+            {
+                throw new KeyNotFoundException("Fase não encontrada.");
+            }
+
+            var (empresaId, processoDaFase) = dadosFase.Value;
+            if (processoDaFase != processoId)
             {
                 throw new KeyNotFoundException("Fase não pertence ao processo informado.");
             }
@@ -59,8 +81,11 @@ namespace Alfa.Api.Aplicacao
             await RecalcularProgressoProcesso(empresaId, processoId);
         }
 
-        public Task<int?> ObterProcessoIdDaFase(int empresaId, int faseInstanciaId)
-            => _procRepo.ObterProcessoIdDaFaseAsync(empresaId, faseInstanciaId);
+        public async Task<int?> ObterProcessoIdDaFase(int faseInstanciaId)
+        {
+            var dadosFase = await _procRepo.ObterEmpresaEProcessoDaFaseAsync(faseInstanciaId);
+            return dadosFase?.processoId;
+        }
 
         public async Task RecalcularProgressoProcesso(int empresaId, int processoId)
         {

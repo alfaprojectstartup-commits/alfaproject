@@ -12,6 +12,7 @@ namespace Alfa.Web.Dtos
         public int PorcentagemProgresso { get; set; }
         public DateTime CriadoEm { get; set; }
         public List<string> UsuariosAlteracao { get; set; } = new();
+        public string Token { get; set; } = string.Empty;
     }
 
     public class PaginadoResultadoDto<T>
@@ -94,5 +95,38 @@ namespace Alfa.Web.Dtos
         public decimal? ValorNumero { get; set; }
         public DateTime? ValorData { get; set; }
         public bool? ValorBool { get; set; }
+    }
+
+    public class ProcessoHistoricoViewModel
+    {
+        public int Id { get; set; }
+
+        public int ProcessoId { get; set; }
+
+        public int? UsuarioId { get; set; }
+
+        public string UsuarioNome { get; set; } = string.Empty;
+
+        public string Descricao { get; set; } = string.Empty;
+
+        public DateTime CriadoEm { get; set; }
+    }
+
+    public class ProcessoStatusAtualizarInput
+    {
+        public string Status { get; set; } = string.Empty;
+
+        public int? UsuarioId { get; set; }
+
+        public string? UsuarioNome { get; set; }
+    }
+
+    public class ProcessoHistoricoPaginaViewModel
+    {
+        public ProcessoDetalheViewModel Processo { get; set; } = new();
+
+        public IList<ProcessoHistoricoViewModel> Historico { get; set; } = new List<ProcessoHistoricoViewModel>();
+
+        public string Token { get; set; } = string.Empty;
     }
 }

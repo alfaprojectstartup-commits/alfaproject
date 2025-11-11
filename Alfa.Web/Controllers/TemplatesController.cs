@@ -1,6 +1,7 @@
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
+using Alfa.Web.Servicos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +10,15 @@ namespace Alfa.Web.Controllers;
 [Authorize]
 public class TemplatesController : Controller
 {
-    private readonly ApiClient _apiClient;
+    private const string FasePurpose = "TemplatesController.FaseModeloId";
 
-    public TemplatesController(ApiClient apiClient)
+    private readonly ApiClient _apiClient;
+    private readonly IUrlProtector _urlProtector;
+
+    public TemplatesController(ApiClient apiClient, IUrlProtector urlProtector)
     {
         _apiClient = apiClient;
+        _urlProtector = urlProtector;
     }
 
     [HttpGet]
@@ -37,6 +42,11 @@ public class TemplatesController : Controller
                         return pagina;
                     })
                     .ToList();
+
+                if (fase.Id > 0)
+                {
+                    fase.Token = EncodeFaseId(fase.Id);
+                }
 
                 return fase;
             })
@@ -87,8 +97,13 @@ public class TemplatesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Editar(int id)
+    public async Task<IActionResult> Editar(string token)
     {
+        if (!TryDecodeFaseId(token, out var id))
+        {
+            return NotFound();
+        }
+
         var fase = await _apiClient.GetFaseTemplateAsync(id);
         if (fase is null) return NotFound();
 
@@ -104,13 +119,19 @@ public class TemplatesController : Controller
         };
 
         await PopularCatalogoAsync(modelo);
+        ViewBag.FaseToken = EncodeFaseId(id);
         return View("Form", modelo);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Editar(int id, FaseModeloFormViewModel model)
+    public async Task<IActionResult> Editar(string token, FaseModeloFormViewModel model)
     {
+        if (!TryDecodeFaseId(token, out var id))
+        {
+            return NotFound();
+        }
+
         model.Id = id;
         PrepararFormulario(model);
         ModelState.Clear();
@@ -120,6 +141,7 @@ public class TemplatesController : Controller
         if (!ModelState.IsValid)
         {
             await PopularCatalogoAsync(model);
+            ViewBag.FaseToken = EncodeFaseId(id);
             return View("Form", model);
         }
 
@@ -130,11 +152,16 @@ public class TemplatesController : Controller
             var corpo = await resposta.Content.ReadAsStringAsync();
             ModelState.AddModelError(string.Empty, $"Não foi possível atualizar a fase: {(int)resposta.StatusCode} {resposta.ReasonPhrase}. {corpo}");
             await PopularCatalogoAsync(model);
+            ViewBag.FaseToken = EncodeFaseId(id);
             return View("Form", model);
         }
 
         return RedirectToAction(nameof(Index));
     }
+
+    private string EncodeFaseId(int id) => _urlProtector.Encode(FasePurpose, id);
+
+    private bool TryDecodeFaseId(string? token, out int id) => _urlProtector.TryDecode(FasePurpose, token, out id);
 
     private static void PrepararFormulario(FaseModeloFormViewModel model)
     {
