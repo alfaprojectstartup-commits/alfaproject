@@ -1,4 +1,5 @@
-﻿using Alfa.Api.Dtos;
+﻿using Alfa.Api.Autorizacao;
+using Alfa.Api.Dtos;
 using Alfa.Api.Servicos.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Alfa.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/usuario")]
     public class UsuarioController : ControllerBase
     {
@@ -16,16 +18,11 @@ namespace Alfa.Api.Controllers
             _usuarioServico = usuarioServico;
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] UsuarioLoginDto login)
+        [Authorize(Policy = Permissoes.UsuariosGerenciar)]
+        [HttpGet("{empresaId}/listar")]
+        public async Task<IActionResult> ListarUsuariosEmpresaAsync([FromRoute] int empresaId)
         {
-            var logado = await _usuarioServico.Login(login);
-            if (logado == null)
-            {
-                return Unauthorized("E-mail ou senha inválidos.");
-            }
-
-            return Ok(logado);
+            return Ok(await _usuarioServico.ListarUsuariosEmpresaAsync(empresaId));
         }
 
         [HttpPost("registrar")]
@@ -35,7 +32,7 @@ namespace Alfa.Api.Controllers
             return Created();
         }
 
-        [Authorize]
+        
         [HttpGet("permissoes")]
         public async Task<IActionResult> ObterPermissoesUsuarios()
         {
@@ -49,6 +46,5 @@ namespace Alfa.Api.Controllers
             var permissoes = await _usuarioServico.ObterPermissoesPorUsuarioAsync(usuarioId);
             return Ok(permissoes);
         }
-
     }
 }
