@@ -743,11 +743,25 @@
                 if (reloadButton) reloadButton.disabled = true;
 
                 try {
-                    const camposPayload = Array.from(form.querySelectorAll('[data-campo-id]')).map(wrapper => {
+                    const lerArquivoComoBase64 = (arquivo) => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            if (typeof reader.result === 'string') {
+                                resolve(reader.result);
+                            } else {
+                                reject(new Error('Não foi possível ler o arquivo selecionado.'));
+                            }
+                        };
+                        reader.onerror = () => reject(reader.error || new Error('Falha ao processar o arquivo.'));
+                        reader.readAsDataURL(arquivo);
+                    });
+
+                    const wrappers = Array.from(form.querySelectorAll('[data-campo-id]'));
+                    const camposPayload = (await Promise.all(wrappers.map(async wrapper => {
                         const campoId = parseInt(wrapper.dataset.campoId, 10);
-                        const tipo = wrapper.dataset.tipo || '';
+                        const tipo = (wrapper.dataset.tipo || '').toLowerCase();
                         const input = wrapper.querySelector('[data-field-input]');
-                        if (!campoId || !input) return null;
+                        if (!campoId) return null;
                         const payload = { CampoInstanciaId: campoId, ValorTexto: null, ValorNumero: null, ValorData: null, ValorBool: null };
                         switch (tipo) {
                             case 'number': {
@@ -764,15 +778,41 @@
                             case 'checkbox':
                                 payload.ValorBool = input.checked;
                                 break;
+                            case 'checkboxlist': {
+                                const selecionados = Array.from(wrapper.querySelectorAll('[data-field-input]'))
+                                    .filter(el => el instanceof HTMLInputElement && el.checked)
+                                    .map(el => el.value)
+                                    .filter(valor => typeof valor === 'string' && valor.trim() !== '');
+                                payload.ValorTexto = selecionados.length > 0 ? selecionados.join(';') : null;
+                                break;
+                            }
+                            case 'signature':
+                            case 'image': {
+                                const arquivoInput = input;
+                                const existente = wrapper.querySelector('[data-existing-file]');
+                                const valorPersistido = existente ? (existente.value || null) : null;
+                                if (arquivoInput && arquivoInput.files && arquivoInput.files.length > 0) {
+                                    const arquivo = arquivoInput.files[0];
+                                    if (tipo === 'image' && arquivo.size > (50 * 1024 * 1024)) {
+                                        throw new Error('O arquivo de imagem excede o limite de 50 MB.');
+                                    }
+                                    payload.ValorTexto = await lerArquivoComoBase64(arquivo);
+                                } else {
+                                    payload.ValorTexto = valorPersistido;
+                                }
+                                break;
+                            }
                             case 'textarea':
                             case 'select':
                             case 'text':
                             default:
-                                payload.ValorTexto = input.value ? input.value : null;
+                                if (input) {
+                                    payload.ValorTexto = input.value ? input.value : null;
+                                }
                                 break;
                         }
                         return payload;
-                    }).filter(Boolean);
+                    }))).filter(Boolean);
 
                     const payload = {
                         FaseInstanciaId: parseInt(faseId, 10),

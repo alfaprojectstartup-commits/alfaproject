@@ -8,6 +8,20 @@
     var faseToken = ViewBag.FaseToken as string ?? string.Empty;
     ViewData["Title"] = isEdit ? "Editar fase" : "Nova fase";
     var catalogoCampos = Model?.CatalogoCampos ?? new List<CampoModeloViewModel>();
+    var mapaTipoDescricao = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Text"] = "Texto",
+        ["TextArea"] = "Texto longo",
+        ["Number"] = "Número",
+        ["Date"] = "Data",
+        ["Select"] = "Dropdown",
+        ["Checkbox"] = "Checkbox",
+        ["CheckboxList"] = "Opções checkbox",
+        ["Signature"] = "Assinatura",
+        ["Image"] = "Imagem"
+    };
+    Func<string, string> descreverTipo = tipo =>
+        mapaTipoDescricao.TryGetValue(tipo ?? string.Empty, out var descricao) ? descricao : tipo;
 }
 
 <nav aria-label="breadcrumb" class="mb-3 small">
@@ -142,8 +156,10 @@
                                                 {
                                                     var campo = pagina.Campos[j];
                                                     var tipoAtual = campo?.Tipo ?? string.Empty;
-                                                    var permiteOpcoes = (campo?.Opcoes?.Any() ?? false) || string.Equals(tipoAtual, "Select", StringComparison.OrdinalIgnoreCase);
-                                                    <div class="border rounded p-3 campo-item" data-field-index="@j" data-permite-opcoes="@(permiteOpcoes ? "true" : "false")">
+                                                    var permiteOpcoes = (campo?.Opcoes?.Any() ?? false)
+                                                        || string.Equals(tipoAtual, "Select", StringComparison.OrdinalIgnoreCase)
+                                                        || string.Equals(tipoAtual, "CheckboxList", StringComparison.OrdinalIgnoreCase);
+                                                    <div class="border rounded p-3 campo-item" data-field-index="@j" data-permite-opcoes="@(permiteOpcoes ? "true" : "false")" data-tipo-descricao="@descreverTipo(campo.Tipo)">
                                                         <input type="hidden" data-field-index-field name="Paginas[@i].Campos.Index" value="@j" />
                                                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
                                                             <div class="d-flex align-items-center gap-2">
@@ -161,7 +177,7 @@
                                                             </div>
                                                             <div class="col-md-3">
                                                                 <label class="form-label">Tipo</label>
-                                                                <div class="form-control-plaintext" data-field-tipo-display>@campo.Tipo</div>
+                                                                <div class="form-control-plaintext" data-field-tipo-display>@descreverTipo(campo.Tipo)</div>
                                                                 <input type="hidden" data-field-prop="Tipo" name="Paginas[@i].Campos[@j].Tipo" value="@campo.Tipo" />
                                                             </div>
                                                             <div class="col-md-3">
@@ -258,13 +274,15 @@
                     <div id="catalogo-campos" class="d-grid gap-2 catalogo-container">
                         @if (catalogoCampos.Any())
                         {
-                            foreach (var campoModelo in catalogoCampos.OrderBy(c => c.Rotulo))
+                            foreach (var campoModelo in catalogoCampos)
                             {
-                                var permiteOpcoesCatalogo = (campoModelo.Opcoes?.Any() ?? false) || string.Equals(campoModelo.Tipo, "Select", StringComparison.OrdinalIgnoreCase);
-                                <div class="catalogo-campo border rounded p-3 bg-light" data-tipo="@campoModelo.Tipo" data-rotulo="@campoModelo.Rotulo" data-nome="@campoModelo.NomeCampo" data-permite-opcoes="@(permiteOpcoesCatalogo ? "true" : "false")">
+                                var permiteOpcoesCatalogo = (campoModelo.Opcoes?.Any() ?? false)
+                                    || string.Equals(campoModelo.Tipo, "Select", StringComparison.OrdinalIgnoreCase)
+                                    || string.Equals(campoModelo.Tipo, "CheckboxList", StringComparison.OrdinalIgnoreCase);
+                                <div class="catalogo-campo border rounded p-3 bg-light" data-tipo="@campoModelo.Tipo" data-tipo-descricao="@descreverTipo(campoModelo.Tipo)" data-rotulo="@campoModelo.Rotulo" data-nome="@campoModelo.NomeCampo" data-permite-opcoes="@(permiteOpcoesCatalogo ? "true" : "false")">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <span class="fw-semibold">@campoModelo.Rotulo</span>
-                                        <span class="badge text-bg-secondary">@campoModelo.Tipo</span>
+                                        <span class="badge text-bg-secondary">@descreverTipo(campoModelo.Tipo)</span>
                                     </div>
                                 </div>
                             }
@@ -326,7 +344,7 @@
 </template>
 
 <template id="campo-template">
-    <div class="border rounded p-3 campo-item" data-permite-opcoes="false">
+    <div class="border rounded p-3 campo-item" data-permite-opcoes="false" data-tipo-descricao="">
         <input type="hidden" data-field-index-field />
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
             <div class="d-flex align-items-center gap-2">
@@ -428,7 +446,29 @@
             const form = document.getElementById('template-form');
             const catalogoContainer = document.getElementById('catalogo-campos');
             const dragGhostClass = 'drag-ghost';
-            const tiposComOpcoes = ['select'];
+            const tiposComOpcoes = ['select', 'checkboxlist'];
+            const tipoLabels = {
+                text: 'Texto',
+                textarea: 'Texto longo',
+                number: 'Número',
+                date: 'Data',
+                select: 'Dropdown',
+                checkbox: 'Checkbox',
+                checkboxlist: 'Opções checkbox',
+                signature: 'Assinatura',
+                image: 'Imagem'
+            };
+
+            function resolverDescricaoTipo(tipo, sugestao) {
+                if (typeof sugestao === 'string' && sugestao.trim() !== '') {
+                    return sugestao.trim();
+                }
+                if (!tipo) {
+                    return '';
+                }
+                const chave = tipo.toLowerCase();
+                return tipoLabels[chave] ?? tipo;
+            }
 
             function tipoPermiteOpcoes(tipo) {
                 if (!tipo) {
@@ -464,7 +504,7 @@
                 }
             }
 
-            function atualizarTipoCampo(campoEl, tipo, permiteOpcoes) {
+            function atualizarTipoCampo(campoEl, tipo, permiteOpcoes, tipoDescricaoSugestao) {
                 const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
                 const tipoDisplay = campoEl.querySelector('[data-field-tipo-display]');
                 const opcoesWrapper = campoEl.querySelector('[data-opcoes-wrapper]');
@@ -474,7 +514,13 @@
                     tipoHidden.value = tipo ?? '';
                 }
                 if (tipoDisplay) {
-                    tipoDisplay.textContent = tipo ? tipo : 'Selecione um campo no catálogo';
+                    const descricao = resolverDescricaoTipo(tipo, tipoDescricaoSugestao);
+                    tipoDisplay.textContent = descricao ? descricao : 'Selecione um campo no catálogo';
+                    if (descricao) {
+                        campoEl.dataset.tipoDescricao = descricao;
+                    } else {
+                        delete campoEl.dataset.tipoDescricao;
+                    }
                 }
 
                 const habilitaOpcoes = permiteOpcoes || tipoPermiteOpcoes(tipo);
@@ -552,7 +598,8 @@
                 const permiteOpcoes = dados?.PermiteOpcoes === true
                     || tipoPermiteOpcoes(tipoInicial)
                     || (dados?.Opcoes?.length ?? 0) > 0;
-                atualizarTipoCampo(campoEl, tipoInicial, permiteOpcoes);
+                const tipoDescricaoInicial = dados?.TipoDescricao ?? null;
+                atualizarTipoCampo(campoEl, tipoInicial, permiteOpcoes, tipoDescricaoInicial);
 
                 atualizarNomeInterno(campoEl, rotuloInicial || dados?.NomeCampo || '');
 
@@ -652,7 +699,7 @@
                 campoEl.querySelectorAll('.opcao-item').forEach(opcaoEl => inicializarOpcao(opcaoEl));
 
                 const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
-                atualizarTipoCampo(campoEl, tipoHidden?.value ?? '', campoEl.dataset.permiteOpcoes === 'true');
+                atualizarTipoCampo(campoEl, tipoHidden?.value ?? '', campoEl.dataset.permiteOpcoes === 'true', campoEl.dataset.tipoDescricao ?? null);
 
                 const rotuloInput = campoEl.querySelector('[data-field-prop="Rotulo"]');
                 if (rotuloInput) {
@@ -737,10 +784,12 @@
                             const rotulo = evt.item.getAttribute('data-rotulo') ?? '';
                             const nomeSugerido = evt.item.getAttribute('data-nome') ?? '';
                             const permiteOpcoesCatalogo = evt.item.getAttribute('data-permite-opcoes') === 'true';
+                            const tipoDescricaoCatalogo = evt.item.getAttribute('data-tipo-descricao') ?? '';
                             evt.item.remove();
                             const camposContainerDestino = evt.to;
                             const campoEl = adicionarCampo({
                                 Tipo: tipo,
+                                TipoDescricao: tipoDescricaoCatalogo,
                                 Rotulo: rotulo,
                                 NomeCampo: nomeSugerido || gerarNomeInterno(rotulo),
                                 Obrigatorio: false,
