@@ -7,9 +7,22 @@
 @{
     ViewData["Title"] = $"Processo · {Model.Titulo}";
     var fases = Model.Fases ?? new List<Alfa.Web.Dtos.FaseInstanciaViewModel>();
-    var primeiraPagina = fases.SelectMany(f => f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
-        .OrderBy(p => p.Ordem)
-        .FirstOrDefault();
+    var orderedPaginas = fases
+        .SelectMany(f => (f.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
+            .Select(p => new { Fase = f, Pagina = p }))
+        .OrderBy(fp => fp.Fase.Ordem)
+        .ThenBy(fp => fp.Pagina.Ordem)
+        .ToList();
+    var primeiraPagina = orderedPaginas.FirstOrDefault()?.Pagina;
+    var proximaPaginaEntrada = orderedPaginas.FirstOrDefault(fp => !fp.Pagina.Concluida);
+    var fallbackPaginaEntrada = orderedPaginas.FirstOrDefault();
+    var paginaSugerida = proximaPaginaEntrada ?? fallbackPaginaEntrada;
+    var proximaPagina = paginaSugerida?.Pagina;
+    var proximaPaginaFase = paginaSugerida?.Fase;
+    var totalPaginas = orderedPaginas.Count;
+    var paginasConcluidas = orderedPaginas.Count(fp => fp.Pagina.Concluida);
+    var totalFases = fases.Count;
+    var fasesConcluidas = fases.Count(f => f.PorcentagemProgresso >= 100);
     var historicoUrl = ViewBag.HistoricoUrl as string;
 }
 
@@ -25,65 +38,124 @@
 </form>
 
 <div id="processo-detalhes" data-processo-details data-processo-id="@Model.Id" data-link-preenchimento-url="@Url.Action("LinkPreenchimentoExterno", "Processos")">
-    <div class="d-flex flex-wrap gap-3 align-items-start mb-4">
-        <div class="flex-grow-1">
-            <h2 class="h4 mb-1">@Model.Titulo</h2>
-            <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
-        </div>
-        <span class="badge rounded-pill status-badge align-self-center" data-status-processo>@Model.Status</span>
-        <div class="btn-group align-self-center">
-            <a asp-action="DownloadPdf"
-               asp-route-id="@Model.Id"
-               class="btn btn-outline-primary"
-               title="Baixar processo em PDF">
-                Baixar PDF
-            </a>
-            @if (!string.IsNullOrWhiteSpace(historicoUrl))
-            {
-                <a href="@historicoUrl"
-                   class="btn btn-outline-secondary"
-                   target="_blank"
-                   rel="noopener"
-                   title="Abrir log completo do processo em nova guia">
-                    Log do processo
+    <section class="processo-hero card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="processo-hero__header d-flex flex-wrap gap-3 align-items-start">
+                <div class="flex-grow-1">
+                    <span class="badge processo-hero__badge">Processo</span>
+                    <h1 class="processo-hero__title h3 mb-1">@Model.Titulo</h1>
+                    <div class="text-muted small">Criado em @Model.CriadoEm.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="processo-hero__status text-end">
+                    <span class="badge rounded-pill status-badge processo-hero__status-badge" data-status-processo>@Model.Status</span>
+                    <div class="processo-hero__progress mt-3">
+                        <label class="form-label small text-muted mb-1">Progresso do processo</label>
+                        <progress-bar value="@Model.PorcentagemProgresso" label="@($"{Model.PorcentagemProgresso}%")" id="processo-progress" data-progresso-processo></progress-bar>
+                    </div>
+                </div>
+            </div>
+
+            <div class="processo-hero__meta mt-4">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+                    <div class="col">
+                        <div class="processo-meta-card">
+                            <span class="processo-meta-card__label">Fases</span>
+                            <span class="processo-meta-card__value">@totalFases</span>
+                            <span class="processo-meta-card__hint">@fasesConcluidas concluídas</span>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="processo-meta-card">
+                            <span class="processo-meta-card__label">Páginas</span>
+                            <span class="processo-meta-card__value">@totalPaginas</span>
+                            <span class="processo-meta-card__hint">@paginasConcluidas concluídas</span>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="processo-meta-card">
+                            <span class="processo-meta-card__label">Status geral</span>
+                            <span class="processo-meta-card__value">@($"{Model.PorcentagemProgresso}%")</span>
+                            <span class="processo-meta-card__hint">Atualiza automaticamente</span>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="processo-meta-card processo-meta-card--accent">
+                            <span class="processo-meta-card__label">Próxima etapa</span>
+                            <span class="processo-meta-card__value">@(!string.IsNullOrWhiteSpace(proximaPagina?.Titulo) ? proximaPagina.Titulo : "Tudo em dia")</span>
+                            <span class="processo-meta-card__hint">@(!string.IsNullOrWhiteSpace(proximaPaginaFase?.Titulo) ? $"Fase {proximaPaginaFase.Titulo}" : "Nenhuma página pendente")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="processo-hero__actions d-flex flex-wrap gap-2 mt-4">
+                @if (proximaPagina != null && proximaPaginaFase != null)
+                {
+                    <button type="button"
+                            class="btn btn-primary"
+                            data-page-jump
+                            data-fase-id="@proximaPaginaFase.Id"
+                            data-page-id="@proximaPagina.Id">
+                        Continuar preenchimento
+                    </button>
+                }
+
+                <a asp-action="DownloadPdf"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-outline-primary"
+                   title="Baixar processo em PDF">
+                    Baixar PDF
                 </a>
-            }
+
+                @if (!string.IsNullOrWhiteSpace(historicoUrl))
+                {
+                    <a href="@historicoUrl"
+                       class="btn btn-outline-secondary"
+                       target="_blank"
+                       rel="noopener"
+                       title="Abrir log completo do processo em nova guia">
+                        Log do processo
+                    </a>
+                }
+            </div>
         </div>
-    </div>
+    </section>
 
-    <div class="mb-4">
-        <label class="form-label small text-muted mb-1">Progresso do processo</label>
-        <progress-bar value="@Model.PorcentagemProgresso" label="@($"{Model.PorcentagemProgresso}%")" id="processo-progress" data-progresso-processo></progress-bar>
-    </div>
-
-    <div class="row g-4">
+    <div class="row g-4 processo-detalhes-grid">
         <div class="col-lg-4 col-xl-3">
             @foreach (var fase in fases)
             {
-                <div class="card shadow-sm fase-card mb-3" data-fase-card="@fase.Id">
+                <div class="card shadow-sm fase-card processo-fase-card mb-3" data-fase-card="@fase.Id">
                     <div class="card-body pb-2">
-                        <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="d-flex justify-content-between align-items-start gap-2 processo-fase-card__header">
                             <div>
+                                <span class="processo-fase-card__badge">Fase</span>
                                 <h5 class="card-title h6 mb-1">@fase.Titulo</h5>
                                 <span class="badge rounded-pill badge-phase-status" data-fase-status="@fase.Id">@fase.Status</span>
                             </div>
                         </div>
                         <div class="mt-3">
-                            <label class="form-label small text-muted mb-1">Progresso</label>
+                            <label class="form-label small text-muted mb-1">Progresso da fase</label>
                             <progress-bar value="@fase.PorcentagemProgresso" small="true" label="@($"{fase.PorcentagemProgresso}%")" id="fase-progress-@fase.Id"></progress-bar>
                         </div>
                     </div>
-                    <div class="list-group list-group-flush">
+                    <div class="list-group list-group-flush processo-fase-card__pages">
                         @foreach (var pagina in fase.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
                         {
                             var isActive = primeiraPagina != null && primeiraPagina.Id == pagina.Id;
                             <button type="button"
-                                    class="list-group-item list-group-item-action d-flex justify-content-between align-items-center page-selector @(isActive ? "active" : string.Empty)"
+                                    class="list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3 page-selector processo-page-link @(isActive ? "active" : string.Empty) @(pagina.Concluida ? "completed" : string.Empty)"
                                     data-page-selector
                                     data-fase-id="@fase.Id"
                                     data-page-id="@pagina.Id">
-                                <span class="me-2 page-state-icon @(pagina.Concluida ? "text-success" : "text-muted")" data-page-status="@pagina.Id">@(pagina.Concluida ? "✔" : "•")</span>
-                                <span class="flex-grow-1 text-start">@pagina.Titulo</span>
+                                <div class="d-flex align-items-center gap-3 flex-grow-1">
+                                    <span class="processo-page-status @(pagina.Concluida ? "is-complete" : string.Empty)" data-page-status="@pagina.Id" aria-hidden="true">@(pagina.Concluida ? "✔" : "•")</span>
+                                    <div class="text-start">
+                                        <div class="processo-page-title">@pagina.Titulo</div>
+                                        <div class="processo-page-subtitle text-muted small">@(pagina.Concluida ? "Concluída" : "Pendente")</div>
+                                    </div>
+                                </div>
+                                <span class="processo-page-chevron" aria-hidden="true">➜</span>
                             </button>
                         }
                     </div>
@@ -96,8 +168,8 @@
                 foreach (var pagina in fase.Paginas ?? new List<Alfa.Web.Dtos.PaginaInstanciaViewModel>())
                 {
                     var isActive = primeiraPagina != null && primeiraPagina.Id == pagina.Id;
-                    <section class="card shadow-sm mb-4 page-section @(isActive ? string.Empty : "d-none")" data-page-section data-fase-id="@fase.Id" data-page-id="@pagina.Id">
-                        <div class="card-header">
+                    <section class="card shadow-sm mb-4 page-section processo-page-card @(isActive ? string.Empty : "d-none")" data-page-section data-fase-id="@fase.Id" data-page-id="@pagina.Id">
+                        <div class="card-header processo-page-card__header">
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                                 <div>
                                     <h5 class="card-title mb-1">@pagina.Titulo</h5>
@@ -117,14 +189,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body processo-page-card__body">
                             <form data-resposta-form data-fase-id="@fase.Id" data-page-id="@pagina.Id">
                                 @foreach (var campo in pagina.Campos ?? new List<Alfa.Web.Dtos.CampoInstanciaViewModel>())
                                 {
                                     @await Html.PartialAsync("Partials/_CampoInstancia", campo)
                                 }
 
-                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                <div class="d-flex justify-content-between align-items-center mt-4 processo-page-card__actions">
                                     <div class="text-muted small" data-saving-feedback hidden>Salvando...</div>
                                     <div class="btn-group">
                                         <button type="submit" class="btn btn-success" data-bs-toggle="tooltip" title="Salva as respostas desta página"

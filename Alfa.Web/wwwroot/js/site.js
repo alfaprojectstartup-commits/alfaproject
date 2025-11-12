@@ -813,6 +813,7 @@
         if (!processoId) return;
 
         const selectors = Array.from(root.querySelectorAll('[data-page-selector]'));
+        const jumpers = Array.from(root.querySelectorAll('[data-page-jump]'));
         const sections = Array.from(root.querySelectorAll('[data-page-section]'));
         const linkButtons = Array.from(root.querySelectorAll('[data-link-preenchimento]'));
         const linkEndpoint = root.dataset.linkPreenchimentoUrl;
@@ -865,9 +866,26 @@
             });
         }
 
+        function scrollToSection(faseId, pageId) {
+            const target = root.querySelector(`[data-page-section][data-fase-id="${faseId}"][data-page-id="${pageId}"]`);
+            if (!target) return;
+            const behavior = 'scrollBehavior' in document.documentElement.style ? 'smooth' : 'auto';
+            target.scrollIntoView({ behavior, block: 'start' });
+        }
+
         selectors.forEach(btn => {
             btn.addEventListener('click', () => {
                 showPage(btn.dataset.faseId, btn.dataset.pageId);
+            });
+        });
+
+        jumpers.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const faseId = btn.dataset.faseId;
+                const pageId = btn.dataset.pageId;
+                if (!faseId || !pageId) return;
+                showPage(faseId, pageId);
+                scrollToSection(faseId, pageId);
             });
         });
 
