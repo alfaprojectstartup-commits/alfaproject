@@ -1,4 +1,5 @@
 @model Alfa.Web.Dtos.CampoInstanciaViewModel
+@using System
 @using System.Collections.Generic
 @using System.Globalization
 @using System.Linq
@@ -12,6 +13,15 @@
         .Where(o => o.Ativo)
         .OrderBy(o => o.Ordem)
         .ToList();
+    var valoresSelecionados = string.IsNullOrWhiteSpace(valorTexto)
+        ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        : valorTexto
+            .Split(new[] { ';', ',', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(v => v.Trim())
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var possuiArquivo = !string.IsNullOrWhiteSpace(valorTexto);
+    var pareceImagem = possuiArquivo && (valorTexto.StartsWith("data:image", StringComparison.OrdinalIgnoreCase) || valorTexto.StartsWith("http", StringComparison.OrdinalIgnoreCase));
 }
 
 <div class="mb-3" data-campo-id="@Model?.Id" data-tipo="@tipo">
@@ -83,6 +93,70 @@
                     </select>
 
                 }
+                break;
+            case "checkboxlist":
+                if (!opcoes.Any())
+                {
+                    <div class="text-muted small">Nenhuma opção configurada.</div>
+                }
+                else
+                {
+                    <div class="d-grid gap-2" data-checkbox-list>
+                        @for (var index = 0; index < opcoes.Count; index++)
+                        {
+                            var opcao = opcoes[index];
+                            var valorOpcao = opcao.Valor ?? opcao.Texto;
+                            var checkboxId = $"campo_{Model?.Id}_{index}";
+                            var selecionado = valoresSelecionados.Contains(valorOpcao ?? string.Empty);
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" data-field-input id="@checkboxId" value="@valorOpcao" @(selecionado ? "checked" : string.Empty) />
+                                <label class="form-check-label" for="@checkboxId">@opcao.Texto</label>
+                            </div>
+                        }
+                    </div>
+                }
+                break;
+            case "signature":
+                {
+                    var possuiAssinatura = !string.IsNullOrWhiteSpace(valorTexto);
+                <div class="signature-field" data-signature-field>
+                    <div class="signature-pad border border-2 rounded bg-white position-relative overflow-hidden" data-signature-pad style="height: 180px; border-style: dashed;">
+                        <canvas data-signature-canvas class="w-100 h-100" width="720" height="220" aria-label="Área para assinatura"></canvas>
+                        <div class="signature-hint position-absolute top-50 start-50 translate-middle text-muted small" data-signature-hint>Assine aqui usando o mouse ou toque.</div>
+                    </div>
+                    <input type="hidden" data-field-input data-signature-output value="@valorTexto" />
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-signature-clear>Limpar</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm@(possuiAssinatura ? string.Empty : " d-none")" data-signature-remove>Remover assinatura atual</button>
+                    </div>
+                    <div class="signature-preview mt-3@(possuiAssinatura ? string.Empty : " d-none")" data-signature-preview>
+                        <div class="text-muted small mb-2">Assinatura salva:</div>
+                        <img src="@valorTexto" alt="Assinatura atual" class="img-fluid border rounded" data-signature-preview-img />
+                    </div>
+                    <div class="form-text mt-2">A assinatura é salva em formato digital e pode ser refeita a qualquer momento.</div>
+                </div>
+                }
+                break;
+            case "image":
+                <div class="d-grid gap-2" data-file-field>
+                    <input class="form-control" type="file" data-field-input accept="image/*" id="campo_@Model?.Id" />
+                    <input type="hidden" data-existing-file value="@valorTexto" />
+                    <div class="form-text">Limite de 50 MB por imagem.</div>
+                    @if (possuiArquivo)
+                    {
+                        <div class="form-text">Uma imagem já foi enviada. Envie uma nova para substituir.</div>
+                        if (pareceImagem)
+                        {
+                            <img src="@valorTexto" alt="Imagem atual" class="img-fluid rounded border" />
+                        }
+                        else
+                        {
+                            <div>
+                                <a href="@valorTexto" target="_blank" rel="noopener">Visualizar imagem atual</a>
+                            </div>
+                        }
+                    }
+                </div>
                 break;
             default:
                 <input class="form-control" type="text" data-field-input id="campo_@Model?.Id" value="@valorTexto" placeholder="@Model?.Placeholder" />;

@@ -276,12 +276,49 @@ public class TemplatesController : Controller
         return dto;
     }
 
-    private async Task PopularCatalogoAsync(FaseModeloFormViewModel model)
+    private Task PopularCatalogoAsync(FaseModeloFormViewModel model)
     {
-        var catalogo = await _apiClient.GetCatalogoCamposAsync() ?? new List<CampoModeloViewModel>();
-        model.CatalogoCampos = catalogo
-            .OrderBy(c => c.Rotulo)
-            .ThenBy(c => c.NomeCampo)
-            .ToList();
+        var catalogoPadrao = new List<CampoModeloViewModel>
+        {
+            new()
+            {
+                Rotulo = "Texto",
+                NomeCampo = "texto",
+                Tipo = "Text"
+            },
+            new()
+            {
+                Rotulo = "Data",
+                NomeCampo = "data",
+                Tipo = "Date"
+            },
+            new()
+            {
+                Rotulo = "Dropdown",
+                NomeCampo = "dropdown",
+                Tipo = "Select"
+            },
+            new()
+            {
+                Rotulo = "Opções checkbox",
+                NomeCampo = "opcoes_checkbox",
+                Tipo = "CheckboxList"
+            },
+            new()
+            {
+                Rotulo = "Assinatura",
+                NomeCampo = "assinatura",
+                Tipo = "Signature"
+            },
+            new()
+            {
+                Rotulo = "Imagem",
+                NomeCampo = "imagem",
+                Tipo = "Image"
+            }
+        };
+
+        model.CatalogoCampos = catalogoPadrao;
+        return Task.CompletedTask;
     }
 }
