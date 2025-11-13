@@ -9,6 +9,10 @@
     var campos = pagina.Campos ?? new List<Alfa.Web.Dtos.CampoInstanciaViewModel>();
 }
 
+<form id="preenchimento-externo-antiforgery" class="d-none" method="post">
+    @Html.AntiForgeryToken()
+</form>
+
 <div class="container" data-preenchimento-externo data-processo-id="@Model.ProcessoId" data-fase-id="@Model.FaseInstanciaId" data-pagina-id="@pagina.Id" data-token="@Model.Token">
     <div class="row justify-content-center">
         <div class="col-lg-8 col-xl-7">
