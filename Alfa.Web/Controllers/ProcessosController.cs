@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Net.Http;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 using Alfa.Web.Services;
@@ -205,6 +206,108 @@ public class ProcessosController : Controller
         OrdenarProcesso(processo);
         ViewBag.HistoricoUrl = Url.Action(nameof(Historico), new { token });
         return View(processo);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Dados(int id)
+    {
+        var processo = await _api.GetProcessoAsync(id);
+        if (processo is null)
+        {
+            return NotFound();
+        }
+
+        OrdenarProcesso(processo);
+        return Json(processo);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegistrarRespostas([FromBody] RegistrarRespostasInput? input)
+    {
+        if (input is null || input.ProcessoId <= 0 || input.FaseInstanciaId <= 0 || input.PaginaInstanciaId <= 0)
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        var payload = input.ToPaginaRespostaInput();
+
+        HttpResponseMessage resposta;
+        try
+        {
+            resposta = await _api.RegistrarRespostasAsync(input.ProcessoId, payload);
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(502, new { message = "Falha ao chamar a API.", detail = ex.Message });
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            var corpo = await resposta.Content.ReadAsStringAsync();
+            var mensagem = ExtrairMensagemApi(corpo, "Não foi possível salvar as respostas.");
+            return StatusCode((int)resposta.StatusCode, new { message = mensagem });
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegistrarRespostasExterno([FromBody] RegistrarRespostasExternoInput? input)
+    {
+        if (input is null || string.IsNullOrWhiteSpace(input.Token))
+        {
+            return BadRequest(new { message = "Dados inválidos." });
+        }
+
+        if (!_tokenService.TryValidarToken(input.Token, out var tokenPayload) || tokenPayload is null)
+        {
+            return BadRequest(new { message = "Token inválido ou expirado." });
+        }
+
+        if (tokenPayload.ProcessoId <= 0 || tokenPayload.FaseInstanciaId <= 0 || tokenPayload.PaginaInstanciaId <= 0)
+        {
+            return BadRequest(new { message = "Token inválido." });
+        }
+
+        if (input.ProcessoId > 0 && input.ProcessoId != tokenPayload.ProcessoId)
+        {
+            return BadRequest(new { message = "Token não corresponde ao processo informado." });
+        }
+
+        if (input.FaseInstanciaId > 0 && input.FaseInstanciaId != tokenPayload.FaseInstanciaId)
+        {
+            return BadRequest(new { message = "Token não corresponde à fase informada." });
+        }
+
+        if (input.PaginaInstanciaId > 0 && input.PaginaInstanciaId != tokenPayload.PaginaInstanciaId)
+        {
+            return BadRequest(new { message = "Token não corresponde à página informada." });
+        }
+
+        var payload = input.ToPaginaRespostaInput();
+        payload.FaseInstanciaId = tokenPayload.FaseInstanciaId;
+        payload.PaginaInstanciaId = tokenPayload.PaginaInstanciaId;
+
+        HttpResponseMessage resposta;
+        try
+        {
+            resposta = await _api.RegistrarRespostasAsync(tokenPayload.ProcessoId, payload, input.Token);
+        }
+        catch (HttpRequestException ex)
+        {
+            return StatusCode(502, new { message = "Falha ao chamar a API.", detail = ex.Message });
+        }
+
+        if (!resposta.IsSuccessStatusCode)
+        {
+            var corpo = await resposta.Content.ReadAsStringAsync();
+            var mensagem = ExtrairMensagemApi(corpo, "Não foi possível enviar as respostas.");
+            return StatusCode((int)resposta.StatusCode, new { message = mensagem });
+        }
+
+        return Ok(new { ok = true });
     }
 
     [HttpGet]
@@ -415,6 +518,37 @@ public class ProcessosController : Controller
         return Ok(new { status });
     }
 
+    private static string ExtrairMensagemApi(string? corpo, string mensagemPadrao)
+    {
+        if (string.IsNullOrWhiteSpace(corpo))
+        {
+            return mensagemPadrao;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(corpo);
+            var root = doc.RootElement;
+            if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("message", out var msg) && msg.ValueKind == JsonValueKind.String)
+            {
+                var valor = msg.GetString();
+                return string.IsNullOrWhiteSpace(valor) ? mensagemPadrao : valor!;
+            }
+
+            if (root.ValueKind == JsonValueKind.String)
+            {
+                var valor = root.GetString();
+                return string.IsNullOrWhiteSpace(valor) ? mensagemPadrao : valor!;
+            }
+        }
+        catch
+        {
+            // ignora e usa corpo puro
+        }
+
+        return string.IsNullOrWhiteSpace(corpo) ? mensagemPadrao : corpo.Trim();
+    }
+
     private static List<ProcessoPadraoModeloViewModel> FiltrarPadroesValidos(
         IEnumerable<ProcessoPadraoModeloViewModel> padroes,
         IEnumerable<FaseModelosViewModel> fasesDisponiveis)
@@ -506,5 +640,43 @@ public class ProcessoStatusAlterarInput
 {
     public string Token { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
+}
+
+public sealed class RegistrarRespostasInput
+{
+    public int ProcessoId { get; set; }
+    public int FaseInstanciaId { get; set; }
+    public int PaginaInstanciaId { get; set; }
+    public IEnumerable<CampoRespostaInput> Campos { get; set; } = Enumerable.Empty<CampoRespostaInput>();
+
+    public PaginaRespostaInput ToPaginaRespostaInput() => new()
+    {
+        FaseInstanciaId = FaseInstanciaId,
+        PaginaInstanciaId = PaginaInstanciaId,
+        Campos = Campos?.Select(c => c.ToFieldResponseInput()).ToList() ?? new List<FieldResponseInput>()
+    };
+}
+
+public sealed class RegistrarRespostasExternoInput : RegistrarRespostasInput
+{
+    public string Token { get; set; } = string.Empty;
+}
+
+public sealed class CampoRespostaInput
+{
+    public int CampoInstanciaId { get; set; }
+    public string? ValorTexto { get; set; }
+    public decimal? ValorNumero { get; set; }
+    public DateTime? ValorData { get; set; }
+    public bool? ValorBool { get; set; }
+
+    public FieldResponseInput ToFieldResponseInput() => new()
+    {
+        CampoInstanciaId = CampoInstanciaId,
+        ValorTexto = ValorTexto,
+        ValorNumero = ValorNumero,
+        ValorData = ValorData,
+        ValorBool = ValorBool
+    };
 }
 
