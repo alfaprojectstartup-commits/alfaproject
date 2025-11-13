@@ -25,32 +25,36 @@ public class ProcessosController : Controller
         _urlProtector = urlProtector;
         _pdfGenerator = pdfGenerator;
     }
-
     public async Task<IActionResult> Index(int page = 1, string tab = "ativos")
     {
-        var status = tab == "finalizados" ? "Concluído" : null;
-        var res = await _api.GetProcessosAsync(page, 10, status)
-          ?? new PaginadoResultadoDto<ProcessoListaItemViewModel>
-          {
-              total = 0,
-              items = Enumerable.Empty<ProcessoListaItemViewModel>()
-          };
-
-        var itens = res.items.ToList();
-        foreach (var processo in itens)
+        try
         {
-            if (processo.Id > 0)
-            {
-                processo.Token = EncodeProcessoId(processo.Id);
-            }
-        }
+            var status = tab == "finalizados" ? "Concluído" : null;
+            var res = await _api.GetProcessosAsync(page, 10, status)
+                     ?? new PaginadoResultadoDto<ProcessoListaItemViewModel> { total = 0, items = Enumerable.Empty<ProcessoListaItemViewModel>() };
 
-        ViewBag.Tab = tab;
-        ViewBag.Page = page;
-        ViewBag.PageSize = 10;
-        ViewBag.Total = res.total;
-        return View(itens);
+            var itens = res.items.ToList();
+            foreach (var p in itens)
+                if (p.Id > 0) p.Token = EncodeProcessoId(p.Id);
+
+            ViewBag.Tab = tab;
+            ViewBag.Page = page;
+            ViewBag.PageSize = 10;
+            ViewBag.Total = res.total;
+            return View(itens);
+        }
+        catch (Exception ex)
+        {
+            // logue e mostre algo legível temporariamente
+            Console.WriteLine(ex); // ou _logger.LogError(ex, "...");
+
+            return Problem(
+                title: "Falha ao carregar processos",
+                detail: ex.Message, // vai mostrar "API /processos falhou: 401/400 ... Corpo: ..."
+                statusCode: 500);
+        }
     }
+
 
     [HttpGet]
     public async Task<IActionResult> Novo()

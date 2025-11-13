@@ -1,6 +1,6 @@
-using Alfa.Web.Configuration;
 using Alfa.Web.Dtos;
 using Alfa.Web.Filtros;
+using Alfa.Web.Services;
 using Alfa.Web.Servicos;
 using Alfa.Web.Servicos.Handlers;
 using Alfa.Web.Servicos.Interfaces;
@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
 builder.Services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
+builder.Services.AddScoped<ApiClient>();
 
 builder.Services.AddScoped<IPermissaoUiService, PermissaoUiServico>();
 
@@ -122,7 +124,16 @@ builder.Services.AddAlfaWeb(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseExceptionHandler("/Home/Error");
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
 
 if (!app.Environment.IsDevelopment())
 {

@@ -7,7 +7,11 @@ namespace Alfa.Web.Services;
 public class ApiClient
 {
     private readonly HttpClient _http;
-    public ApiClient(HttpClient http) => _http = http;
+
+    public ApiClient(IHttpClientFactory factory)
+    {
+        _http = factory.CreateClient("AlfaApi"); // <- usa o client nomeado COM handler
+    }
 
     public async Task<PaginadoResultadoDto<ProcessoListaItemViewModel>?> GetProcessosAsync(int page, int pageSize, string? status)
     {
