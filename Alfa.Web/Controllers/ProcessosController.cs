@@ -46,12 +46,11 @@ public class ProcessosController : Controller
         }
         catch (Exception ex)
         {
-            // logue e mostre algo legível temporariamente
-            Console.WriteLine(ex); // ou _logger.LogError(ex, "...");
+            Console.WriteLine(ex); 
 
             return Problem(
                 title: "Falha ao carregar processos",
-                detail: ex.Message, // vai mostrar "API /processos falhou: 401/400 ... Corpo: ..."
+                detail: ex.Message, 
                 statusCode: 500);
         }
     }
@@ -271,41 +270,41 @@ public class ProcessosController : Controller
             return BadRequest(new { message = "Token inválido." });
         }
 
-        if (input.ProcessoId > 0 && input.ProcessoId != tokenPayload.ProcessoId)
-        {
-            return BadRequest(new { message = "Token não corresponde ao processo informado." });
-        }
+        //if (input.ProcessoId > 0 && input.ProcessoId != tokenPayload.ProcessoId)
+        //{
+        //    return BadRequest(new { message = "Token não corresponde ao processo informado." });
+        //}
 
-        if (input.FaseInstanciaId > 0 && input.FaseInstanciaId != tokenPayload.FaseInstanciaId)
-        {
-            return BadRequest(new { message = "Token não corresponde à fase informada." });
-        }
+        //if (input.FaseInstanciaId > 0 && input.FaseInstanciaId != tokenPayload.FaseInstanciaId)
+        //{
+        //    return BadRequest(new { message = "Token não corresponde à fase informada." });
+        //}
 
-        if (input.PaginaInstanciaId > 0 && input.PaginaInstanciaId != tokenPayload.PaginaInstanciaId)
-        {
-            return BadRequest(new { message = "Token não corresponde à página informada." });
-        }
+        //if (input.PaginaInstanciaId > 0 && input.PaginaInstanciaId != tokenPayload.PaginaInstanciaId)
+        //{
+        //    return BadRequest(new { message = "Token não corresponde à página informada." });
+        //}
 
-        var payload = input.ToPaginaRespostaInput();
-        payload.FaseInstanciaId = tokenPayload.FaseInstanciaId;
-        payload.PaginaInstanciaId = tokenPayload.PaginaInstanciaId;
+        //var payload = input.ToPaginaRespostaInput();
+        //payload.FaseInstanciaId = tokenPayload.FaseInstanciaId;
+        //payload.PaginaInstanciaId = tokenPayload.PaginaInstanciaId;
 
         HttpResponseMessage resposta;
         try
         {
-            resposta = await _api.RegistrarRespostasAsync(tokenPayload.ProcessoId, payload, input.Token);
+            //resposta = await _api.RegistrarRespostasAsync(tokenPayload.ProcessoId, payload, input.Token);
         }
         catch (HttpRequestException ex)
         {
             return StatusCode(502, new { message = "Falha ao chamar a API.", detail = ex.Message });
         }
 
-        if (!resposta.IsSuccessStatusCode)
-        {
-            var corpo = await resposta.Content.ReadAsStringAsync();
-            var mensagem = ExtrairMensagemApi(corpo, "Não foi possível enviar as respostas.");
-            return StatusCode((int)resposta.StatusCode, new { message = mensagem });
-        }
+        //if (!resposta.IsSuccessStatusCode)
+        //{
+        //    var corpo = await resposta.Content.ReadAsStringAsync();
+        //    var mensagem = ExtrairMensagemApi(corpo, "Não foi possível enviar as respostas.");
+        //    return StatusCode((int)resposta.StatusCode, new { message = mensagem });
+        //}
 
         return Ok(new { ok = true });
     }
@@ -642,7 +641,7 @@ public class ProcessoStatusAlterarInput
     public string Status { get; set; } = string.Empty;
 }
 
-public sealed class RegistrarRespostasInput
+public class RegistrarRespostasInput
 {
     public int ProcessoId { get; set; }
     public int FaseInstanciaId { get; set; }

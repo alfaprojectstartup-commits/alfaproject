@@ -11,7 +11,7 @@ public class ApiClient
 
     public ApiClient(IHttpClientFactory factory)
     {
-        _http = factory.CreateClient("AlfaApi"); // <- usa o client nomeado COM handler
+        _http = factory.CreateClient("AlfaApi");
     }
 
     public async Task<PaginadoResultadoDto<ProcessoListaItemViewModel>?> GetProcessosAsync(int page, int pageSize, string? status)
