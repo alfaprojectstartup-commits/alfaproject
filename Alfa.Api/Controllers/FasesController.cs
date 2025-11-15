@@ -3,9 +3,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Alfa.Api.Dtos;
 using Alfa.Api.Repositorios.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class FasesController : ControllerBase
 {
@@ -22,9 +24,25 @@ public class FasesController : ControllerBase
         _paginas = paginas;
         _campos = campos;
     }
+    private int EmpresaId
+    {
+        get
+        {
+            var claim = User.FindFirst("empresaId")?.Value;
+            if (int.TryParse(claim, out var id) && id > 0)
+                return id;
 
-    private int EmpresaId =>
-        HttpContext.Items.TryGetValue("EmpresaId", out var v) && v is int id ? id : 0;
+            var header = Request.Headers["X-Empresa-Id"].ToString();
+            if (int.TryParse(header, out id) && id > 0)
+                return id;
+
+            if (HttpContext.Items.TryGetValue("EmpresaId", out var v)
+                && int.TryParse(v?.ToString(), out id) && id > 0)
+                return id;
+
+            return 0;
+        }
+    }
 
     // GET api/fases/templates
     [HttpGet("modelos")]

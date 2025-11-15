@@ -114,17 +114,68 @@
         }
     }
 
-    const empresaId = () => document.body ? document.body.dataset.empresaId : undefined;
-    const apiBaseUrl = () => document.body ? document.body.dataset.apiBase : undefined;
-    const buildApiUrl = (path) => {
-        const base = apiBaseUrl();
-        if (base && /^https?:/i.test(base)) {
-            const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
-            const normalizedPath = path.startsWith('/') ? path.substring(1) : path;
-            return `${normalizedBase}/${normalizedPath}`;
-        }
-        return path;
+    const getRequestVerificationToken = () => {
+        const input = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (input && input.value) return input.value;
+        const meta = document.querySelector('meta[name="request-verification-token"]');
+        if (meta && meta.content) return meta.content;
+        return null;
     };
+
+    async function parseJsonResponse(resp, fallbackMessage = 'Falha na operação.') {
+        if (!resp.ok) {
+            let msg = fallbackMessage;
+            const raw = await resp.text();
+            if (raw) {
+                try {
+                    const json = JSON.parse(raw);
+                    if (json) {
+                        if (typeof json.message === 'string' && json.message.trim() !== '') {
+                            msg = json.message.trim();
+                        } else if (typeof json === 'string' && json.trim() !== '') {
+                            msg = json.trim();
+                        } else {
+                            msg = raw.trim();
+                        }
+                    }
+                } catch {
+                    msg = raw.trim();
+                }
+            }
+            throw new Error(msg);
+        }
+
+        try {
+            return await resp.json();
+        } catch {
+            return null;
+        }
+    }
+
+    async function postJson(url, payload, errorMessage = 'Falha na operação.') {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = getRequestVerificationToken();
+        if (token) headers['RequestVerificationToken'] = token;
+
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload ?? {})
+        });
+
+        return parseJsonResponse(resp, errorMessage);
+    }
+
+    async function fetchJson(url, options = {}) {
+        const { method = 'GET', headers = {}, body, errorMessage = 'Falha na operação.' } = options;
+        const resp = await fetch(url, {
+            method,
+            headers,
+            body
+        });
+
+        return parseJsonResponse(resp, errorMessage);
+    }
 
     function initSignaturePads(scope) {
         if (!scope) return;
@@ -751,40 +802,8 @@
                 contextMenu.classList.add('is-loading');
             }
 
-            const headers = { 'Content-Type': 'application/json' };
-            if (antiforgeryInput && antiforgeryInput.value) {
-                headers['RequestVerificationToken'] = antiforgeryInput.value;
-            }
-
             try {
-                const resp = await fetch('/Processos/AlterarStatus', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ token, status: newStatus })
-                });
-
-                if (!resp.ok) {
-                    let message = 'Não foi possível atualizar o status.';
-                    const raw = await resp.text();
-                    if (raw && raw.trim() !== '') {
-                        try {
-                            const parsed = JSON.parse(raw);
-                            if (parsed) {
-                                if (typeof parsed.message === 'string' && parsed.message.trim() !== '') {
-                                    message = parsed.message.trim();
-                                } else if (typeof parsed === 'string' && parsed.trim() !== '') {
-                                    message = parsed.trim();
-                                } else {
-                                    message = raw.trim();
-                                }
-                            }
-                        } catch {
-                            message = raw.trim();
-                        }
-                    }
-                    Alfa.toast(message, 'danger');
-                    return;
-                }
+                await postJson('/Processos/AlterarStatus', { token, status: newStatus }, 'Não foi possível atualizar o status.');
 
                 item.dataset.status = newStatus;
                 const badge = item.querySelector('.status-badge');
@@ -796,7 +815,8 @@
                 Alfa.toast('Status do processo atualizado.', 'success');
             } catch (err) {
                 console.error('Erro ao atualizar status do processo.', err);
-                Alfa.toast('Não foi possível atualizar o status.', 'danger');
+                const message = err instanceof Error && err.message ? err.message : 'Não foi possível atualizar o status.';
+                Alfa.toast(message, 'danger');
             } finally {
                 if (contextMenu) {
                     contextMenu.classList.remove('is-loading');
@@ -813,10 +833,10 @@
         if (!processoId) return;
 
         const selectors = Array.from(root.querySelectorAll('[data-page-selector]'));
+        const jumpers = Array.from(root.querySelectorAll('[data-page-jump]'));
         const sections = Array.from(root.querySelectorAll('[data-page-section]'));
         const linkButtons = Array.from(root.querySelectorAll('[data-link-preenchimento]'));
         const linkEndpoint = root.dataset.linkPreenchimentoUrl;
-        const antiforgeryInput = document.querySelector('#preenchimento-externo-antiforgery input[name="__RequestVerificationToken"]');
 
         const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
         const normalizeKey = (key) => !key ? key : key.charAt(0).toLowerCase() + key.slice(1);
@@ -865,9 +885,26 @@
             });
         }
 
+        function scrollToSection(faseId, pageId) {
+            const target = root.querySelector(`[data-page-section][data-fase-id="${faseId}"][data-page-id="${pageId}"]`);
+            if (!target) return;
+            const behavior = 'scrollBehavior' in document.documentElement.style ? 'smooth' : 'auto';
+            target.scrollIntoView({ behavior, block: 'start' });
+        }
+
         selectors.forEach(btn => {
             btn.addEventListener('click', () => {
                 showPage(btn.dataset.faseId, btn.dataset.pageId);
+            });
+        });
+
+        jumpers.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const faseId = btn.dataset.faseId;
+                const pageId = btn.dataset.pageId;
+                if (!faseId || !pageId) return;
+                showPage(faseId, pageId);
+                scrollToSection(faseId, pageId);
             });
         });
 
@@ -887,26 +924,11 @@
                 btn.textContent = 'Gerando link...';
 
                 try {
-                    const headers = { 'Content-Type': 'application/json' };
-                    if (antiforgeryInput && antiforgeryInput.value) {
-                        headers['RequestVerificationToken'] = antiforgeryInput.value;
-                    }
-
-                    const resp = await fetch(linkEndpoint, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                            processoId,
-                            faseInstanciaId: faseId,
-                            paginaInstanciaId: paginaId
-                        })
-                    });
-
-                    if (!resp.ok) {
-                        throw new Error('Falha ao gerar link.');
-                    }
-
-                    const data = await resp.json();
+                    const data = await postJson(linkEndpoint, {
+                        processoId,
+                        faseInstanciaId: faseId,
+                        paginaInstanciaId: paginaId
+                    }, 'Falha ao gerar link.');
                     const link = data?.link;
                     if (!link) {
                         throw new Error('Resposta inválida.');
@@ -925,7 +947,8 @@
                     }
                 } catch (err) {
                     console.error(err);
-                    Alfa.toast('Não foi possível gerar o link público.', 'danger');
+                    const message = err instanceof Error && err.message ? err.message : 'Não foi possível gerar o link público.';
+                    Alfa.toast(message, 'danger');
                 } finally {
                     btn.disabled = false;
                     btn.textContent = originalText;
@@ -1032,29 +1055,22 @@
                     }))).filter(Boolean);
 
                     const payload = {
+                        ProcessoId: processoId,
                         FaseInstanciaId: parseInt(faseId, 10),
                         PaginaInstanciaId: parseInt(paginaId, 10),
                         Campos: camposPayload
                     };
 
-                    const headers = { 'Content-Type': 'application/json' };
-                    const empId = empresaId();
-                    if (empId) headers['X-Empresa-Id'] = empId;
-                    const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!resp.ok) {
-                        throw new Error('Falha ao salvar respostas');
-                    }
+                    await postJson('/Processos/RegistrarRespostas', payload, 'Não foi possível salvar as respostas.');
 
                     await refreshProcess(paginaId);
                     Alfa.toast('Respostas salvas com sucesso!', 'success');
                 } catch (err) {
                     console.error(err);
-                    Alfa.toast('Não foi possível salvar as respostas. Tente novamente.', 'danger');
+                    const message = err instanceof Error && err.message
+                        ? err.message
+                        : 'Não foi possível salvar as respostas. Tente novamente.';
+                    Alfa.toast(message, 'danger');
                 } finally {
                     if (feedback) feedback.hidden = true;
                     if (button) {
@@ -1230,12 +1246,9 @@
         }
 
         async function refreshProcess(focusPageId) {
-            const headers = {};
-            const empId = empresaId();
-            if (empId) headers['X-Empresa-Id'] = empId;
-            const resp = await fetch(buildApiUrl(`/processos/${processoId}`), { headers });
-            if (!resp.ok) throw new Error('Erro ao atualizar processo');
-            const data = await resp.json();
+            const data = await fetchJson(`/Processos/Dados?id=${processoId}`, {
+                errorMessage: 'Erro ao atualizar processo'
+            });
             updateProcessSummary(data);
             const fases = readArray(data, 'Fases');
             updatePhaseCards(fases);
@@ -1316,28 +1329,22 @@
                 }).filter(Boolean);
 
                 const payload = {
+                    ProcessoId: processoId,
                     FaseInstanciaId: faseId,
                     PaginaInstanciaId: paginaId,
-                    Campos: camposPayload
+                    Campos: camposPayload,
+                    Token: token
                 };
 
-                const headers = { 'Content-Type': 'application/json' };
-                if (token) headers['X-Preenchimento-Token'] = token;
-
-                const resp = await fetch(buildApiUrl(`/processos/${processoId}/respostas`), {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify(payload)
-                });
-
-                if (!resp.ok) {
-                    throw new Error('Falha ao enviar respostas');
-                }
+                await postJson('/Processos/RegistrarRespostasExterno', payload, 'Falha ao enviar respostas');
 
                 Alfa.toast('Respostas enviadas com sucesso!', 'success');
             } catch (err) {
                 console.error(err);
-                Alfa.toast('Não foi possível enviar as respostas. Tente novamente.', 'danger');
+                const message = err instanceof Error && err.message
+                    ? err.message
+                    : 'Não foi possível enviar as respostas. Tente novamente.';
+                Alfa.toast(message, 'danger');
             } finally {
                 if (feedback) feedback.hidden = true;
                 if (button) {
