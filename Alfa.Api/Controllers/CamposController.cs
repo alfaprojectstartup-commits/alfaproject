@@ -14,8 +14,25 @@ public class CamposController : ControllerBase
         _campos = campos;
     }
 
-    private int EmpresaId =>
-        HttpContext.Items.TryGetValue("EmpresaId", out var v) && v is int id ? id : 0;
+    private int EmpresaId
+    {
+        get
+        {
+            var claim = User.FindFirst("empresaId")?.Value;
+            if (int.TryParse(claim, out var id) && id > 0)
+                return id;
+
+            var header = Request.Headers["X-Empresa-Id"].ToString();
+            if (int.TryParse(header, out id) && id > 0)
+                return id;
+
+            if (HttpContext.Items.TryGetValue("EmpresaId", out var v)
+                && int.TryParse(v?.ToString(), out id) && id > 0)
+                return id;
+
+            return 0;
+        }
+    }
 
     [HttpGet("catalogo")]
     public async Task<IActionResult> Catalogo()

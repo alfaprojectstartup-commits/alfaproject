@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http;
+using System.Net.Http.Json;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
 
@@ -7,7 +8,11 @@ namespace Alfa.Web.Services;
 public class ApiClient
 {
     private readonly HttpClient _http;
-    public ApiClient(HttpClient http) => _http = http;
+
+    public ApiClient(IHttpClientFactory factory)
+    {
+        _http = factory.CreateClient("AlfaApi");
+    }
 
     public async Task<PaginadoResultadoDto<ProcessoListaItemViewModel>?> GetProcessosAsync(int page, int pageSize, string? status)
     {
@@ -32,8 +37,20 @@ public class ApiClient
     public Task<HttpResponseMessage> CriarProcessoAsync(string titulo, int[] fasesTemplateIds)
         => _http.PostAsJsonAsync("api/processos", new { titulo, faseModeloIds = fasesTemplateIds });
 
-    public Task<HttpResponseMessage> RegistrarRespostasAsync(int processoId, PaginaRespostaInput payload)
-        => _http.PostAsJsonAsync($"api/processos/{processoId}/respostas", payload);
+    public Task<HttpResponseMessage> RegistrarRespostasAsync(int processoId, PaginaRespostaInput payload, string? preenchimentoToken = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/processos/{processoId}/respostas")
+        {
+            Content = JsonContent.Create(payload)
+        };
+
+        if (!string.IsNullOrWhiteSpace(preenchimentoToken))
+        {
+            request.Headers.Add("X-Preenchimento-Token", preenchimentoToken);
+        }
+
+        return _http.SendAsync(request);
+    }
 
     public Task<List<ProcessoPadraoModeloViewModel>?> GetProcessoPadraoModelosAsync()
         => _http.GetFromJsonAsync<List<ProcessoPadraoModeloViewModel>>("api/processos/padroes");
