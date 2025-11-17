@@ -1,0 +1,44 @@
+﻿@model Alfa.Web.Models.UsuarioPermissoesViewModel
+
+@{
+    ViewData["Title"] = "Permissões do Usuário";
+}
+
+<div class="container mt-4">
+    <h3>Permissões - @Model.UsuarioNome</h3>
+
+    <form asp-action="Permissoes" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="UsuarioId" />
+
+        <div class="mb-3">
+            <button type="button" id="btn-toggle-all" class="btn btn-sm btn-secondary">Marcar todos</button>
+        </div>
+
+        <div class="list-group">
+            @foreach (var p in Model.Permissoes)
+            {
+                <label class="list-group-item d-flex align-items-center">
+                    <input type="checkbox"
+                           name="PermissoesSelecionadas"
+                           value="@p.Id"
+                           @(p.Selected ? "checked" : "")
+                           class="form-check-input me-2" />
+                    <div>
+                        <strong>@p.Nome</strong><br />
+                        <small class="text-muted">@p.Codigo</small>
+                    </div>
+                </label>
+            }
+        </div>
+
+        <div class="mt-3 d-flex">
+            <a asp-action="Index" class="btn btn-outline-secondary me-2">Cancelar</a>
+            <button type="submit" class="btn btn-success">Salvar</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/usuario-permissoes.js"></script>
+}

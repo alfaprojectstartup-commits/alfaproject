@@ -1349,3 +1349,41 @@ html[data-theme="dark"] .processo-log__item::after {
 html[data-theme="dark"] .processo-log__item::before {
     box-shadow: 0 0 0 4px rgba(108, 143, 255, 0.2);
 }
+
+html[data-theme="dark"] .table tbody tr {
+    color: var(--alfa-text) !important;
+    background-color: var(--alfa-surface) !important;
+}
+
+html[data-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+    background-color: var(--alfa-surface-subtle) !important;
+}
+
+html[data-theme="dark"] .table-hover tbody tr:hover {
+    background-color: var(--alfa-primary-soft) !important;
+    color: var(--alfa-text) !important;
+}
+
+html[data-theme="dark"] .pagination .page-link {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+    color: var(--alfa-text);
+}
+
+    html[data-theme="dark"] .pagination .page-link:hover {
+        background-color: var(--alfa-surface-subtle);
+        border-color: var(--alfa-primary);
+        color: var(--alfa-text);
+    }
+
+html[data-theme="dark"] .pagination .page-item.active .page-link {
+    background-color: var(--alfa-primary);
+    border-color: var(--alfa-primary);
+    color: #fff;
+}
+
+html[data-theme="dark"] .pagination .page-item.disabled .page-link {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+    color: var(--alfa-text-muted);
+}

@@ -13,6 +13,22 @@ namespace Alfa.Web.Servicos
             _httpFactory = httpFactory;
         }
 
+        public async Task<UsuarioEmpresaViewModel?> ObterUsuarioPorIdAsync(int usuarioId)
+        {
+            string rotaListarUsuariosEmpresa = $"/api/usuario/{usuarioId}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaListarUsuariosEmpresa);
+
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var usuario = await resposta.Content.ReadFromJsonAsync<UsuarioEmpresaViewModel>();
+            return usuario ?? null;
+        }
+
         public async Task<IEnumerable<UsuarioEmpresaViewModel>> ListarUsuariosEmpresaAsync(int empresaId)
         {
             string rotaListarUsuariosEmpresa = $"/api/usuario/{empresaId}/listar";
@@ -41,6 +57,38 @@ namespace Alfa.Web.Servicos
 
             var txt = await resposta.Content.ReadAsStringAsync();
             return (false, txt);
+        }
+
+        public async Task<(bool Success, string? Error)> AtualizarDadosUsuarioAsync(UsuarioEmpresaViewModel usuario)
+        {
+            string rotaAtualizarUsuario = $"/api/usuario/{usuario.Id}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.PutAsJsonAsync(rotaAtualizarUsuario, usuario);
+
+            if (resposta.IsSuccessStatusCode)
+            {
+                return (true, null);
+            }
+
+            var txt = await resposta.Content.ReadAsStringAsync();
+            return (false, txt);
+        }
+
+        public async Task<IEnumerable<UsuarioPermissaoViewModel>> ObterPermissoesUsuarioAsync(int usuarioId)
+        {
+            string rotaListarPermissoesUsuario = $"/api/usuario/permissoes/{usuarioId}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaListarPermissoesUsuario);
+
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            var permissoesUsuario = await resposta.Content.ReadFromJsonAsync<IEnumerable<UsuarioPermissaoViewModel>>();
+            return permissoesUsuario ?? [];
         }
     }
 }

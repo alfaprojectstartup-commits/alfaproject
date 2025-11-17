@@ -40,7 +40,7 @@ namespace Alfa.Api.Autorizacao
             var permissoes = await _cache.GetOrCreateAsync(cacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
-                return await _usuarioRepositorio.ObterPermissoesPorUsuarioIdAsync(usuarioId);
+                return await _usuarioRepositorio.ObterUsuarioPermissoesUiAsync(usuarioId);
             });
 
             if (permissoes is not null && permissoes.Contains(requirement.Codigo))

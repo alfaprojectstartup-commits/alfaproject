@@ -24,7 +24,7 @@ builder.Services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
 builder.Services.AddScoped<ApiClient>();
 
-builder.Services.AddScoped<IPermissaoUiService, PermissaoUiServico>();
+builder.Services.AddScoped<IPermissaoUiServico, PermissaoUiServico>();
 
 // ===== HttpClient para chamar a API =====
 builder.Services.AddHttpClient("AlfaApiLogin", client =>

@@ -22,7 +22,7 @@ namespace Alfa.Api.Servicos
             try
             {
                 var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(login.Email);
-                if (usuarioExistente is null || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
+                if (usuarioExistente is null || !usuarioExistente.Ativo || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
                 {
                     return null;
                 }
@@ -40,15 +40,15 @@ namespace Alfa.Api.Servicos
 
         }
 
-        public async Task<UsuarioModel?> BuscarUsuarioPorEmailAsync(string email)
+        public async Task<UsuarioEmpresaDto?> BuscarUsuarioPorIdAsync(int usuarioId)
         {
-            if (String.IsNullOrWhiteSpace(email)) {
-                throw new BadHttpRequestException("E-mail inválido");
+            if (usuarioId == 0) {
+                throw new BadHttpRequestException("UsuarioId inválido");
             }
 
             try
             {
-                return await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(email);
+                return await _usuarioRepositorio.BuscarUsuarioPorIdAsync(usuarioId);
             }
             catch (Exception ex)
             {
@@ -96,13 +96,48 @@ namespace Alfa.Api.Servicos
             }
         }
 
-        public async Task<PermissoesUsuarioDto> ObterPermissoesPorUsuarioAsync(int usuarioId)
+        public async Task AtualizarDadosUsuarioAsync(UsuarioEmpresaDto usuario)
         {
-            PermissoesUsuarioDto response = new();
+            try
+            {
+                var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorIdAsync(usuario.Id);
+                if (usuarioExistente == null)
+                {
+                    throw new BadHttpRequestException($"Usuário não encontrado para o id: {usuario.Id}");
+                }
+
+                int usuarioAtualizado = await _usuarioRepositorio.AtualizarDadosUsuarioAsync(usuario);
+
+                if (usuarioAtualizado == 0)
+                {
+                    throw new Exception("Erro ao atualizar dados do usuário.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao atualizar dados do usuário.", ex);
+            }
+        }
+
+        public async Task<IEnumerable<PermissaoModel?>> ListarPermissoesSistemaAsync()
+        {
+            try
+            {
+                return await _usuarioRepositorio.ListarPermissoesSistemaAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao listar permissões do sistema.", ex);
+            }
+        }
+
+        public async Task<UsuarioPermissoesUiDto> ObterUsuarioPermissoesUiAsync(int usuarioId)
+        {
+            UsuarioPermissoesUiDto response = new();
 
             try
             {
-                var permissoes = await _usuarioRepositorio.ObterPermissoesPorUsuarioIdAsync(usuarioId);
+                var permissoes = await _usuarioRepositorio.ObterUsuarioPermissoesUiAsync(usuarioId);
 
                 response.UsuarioId = usuarioId;
                 response.Permissoes = permissoes.ToList();
@@ -111,7 +146,20 @@ namespace Alfa.Api.Servicos
             }
             catch (Exception ex)
             {
-                throw new Exception("Erro ao cadastrar novo usuário.", ex);
+                throw new Exception("Erro ao obter permissões de ui do usuário.", ex);
+            }
+        }
+
+        public async Task<IEnumerable<UsuarioPermissaoModel?>> ObterPermissoesUsuarioAsync(int usuarioId)
+        {
+            try
+            {
+                var permissoes = await _usuarioRepositorio.ObterPermissoesUsuarioAsync(usuarioId);
+                return permissoes;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao obter permissões do usuário.", ex);
             }
         }
     }

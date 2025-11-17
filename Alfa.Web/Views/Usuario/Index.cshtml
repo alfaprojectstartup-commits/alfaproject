@@ -1,11 +1,14 @@
-﻿@model IEnumerable<Alfa.Web.Models.UsuarioEmpresaViewModel>
+﻿@model UsuarioPaginacaoViewModel<Alfa.Web.Models.UsuarioEmpresaViewModel>
+
 @{
-    ViewData["Title"] = "Gerenciar Usuários";
+    ViewData["Title"] = "Usuários";
+    var usuariosJson = ViewData["UsuariosJson"] ?? "[]";
 }
 
-<div class="d-flex justify-content-between mb-3">
-    <h3>Usuários</h3>
-    <a class="btn btn-primary" asp-controller="Usuario" asp-action="Registrar">Novo Usuário</a>
+<h3 class="mb-3">Gerenciar Usuários</h3>
+
+<div class="mb-3">
+    <input id="filtro-usuario" type="text" class="form-control" placeholder="Buscar por nome ou email" />
 </div>
 
 <table class="table table-striped table-hover">
@@ -14,20 +17,29 @@
             <th>Nome</th>
             <th>Email</th>
             <th>Ativo</th>
-            <th></th>
+            <th>Ações</th>
         </tr>
     </thead>
-    <tbody>
-        @foreach (var u in Model)
-        {
-            <tr>
-                <td>@u.Nome</td>
-                <td>@u.Email</td>
-                <td>@(u.Ativo ? "Sim" : "Não")</td>
-                <td>
-                    <!-- futuramente botões Edit / Delete -->
-                </td>
-            </tr>
-        }
+    <tbody id="usuarios-tbody">
+        <tr>
+            <td colspan="4" class="text-center">Carregando usuários...</td>
+        </tr>
     </tbody>
 </table>
+
+<div class="d-flex justify-content-center mt-3">
+    <nav>
+        <ul id="usuarios-pagination" class="pagination"> </ul>
+    </nav>
+</div>
+
+<script>
+    window.USUARIOS = @Html.Raw(usuariosJson);
+    window.INITIAL_PAGE = @Model.PaginaAtual;
+    window.PAGE_SIZE = 10;
+</script>
+
+@section Scripts {
+    <script src="~/js/usuario.js"> </script>
+}
+
