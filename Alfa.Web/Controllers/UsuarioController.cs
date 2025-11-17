@@ -173,7 +173,11 @@ namespace Alfa.Web.Controllers
             return View(viewModel);
         }
 
-        //// POST: /Usuario/Permissoes
+        
+        //ONDE PAREI:
+        // Criei a tela de visualização das permissões
+        // Mas falta criar a funcionalidade de salvar as permissões alteradas
+
         //[HttpPost]
         //[ValidateAntiForgeryToken]
         //public async Task<IActionResult> Permissoes(UsuarioPermissoesViewModel model)
