@@ -22,7 +22,7 @@ namespace Alfa.Api.Servicos
             try
             {
                 var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(login.Email);
-                if (usuarioExistente is null || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
+                if (usuarioExistente is null || !usuarioExistente.Ativo || !SenhaHash.VerificarSenhaHash(login.Email, usuarioExistente.SenhaHash, login.Senha))
                 {
                     return null;
                 }
@@ -40,15 +40,15 @@ namespace Alfa.Api.Servicos
 
         }
 
-        public async Task<UsuarioModel?> BuscarUsuarioPorEmailAsync(string email)
+        public async Task<UsuarioEmpresaDto?> BuscarUsuarioPorIdAsync(int usuarioId)
         {
-            if (String.IsNullOrWhiteSpace(email)) {
-                throw new BadHttpRequestException("E-mail inválido");
+            if (usuarioId == 0) {
+                throw new BadHttpRequestException("UsuarioId inválido");
             }
 
             try
             {
-                return await _usuarioRepositorio.BuscarUsuarioPorEmailAsync(email);
+                return await _usuarioRepositorio.BuscarUsuarioPorIdAsync(usuarioId);
             }
             catch (Exception ex)
             {
@@ -93,6 +93,29 @@ namespace Alfa.Api.Servicos
             catch (Exception ex)
             {
                 throw new Exception("Erro ao cadastrar novo usuário.", ex);
+            }
+        }
+
+        public async Task AtualizarDadosUsuarioAsync(UsuarioEmpresaDto usuario)
+        {
+            try
+            {
+                var usuarioExistente = await _usuarioRepositorio.BuscarUsuarioPorIdAsync(usuario.Id);
+                if (usuarioExistente == null)
+                {
+                    throw new BadHttpRequestException($"Usuário não encontrado para o id: {usuario.Id}");
+                }
+
+                int usuarioAtualizado = await _usuarioRepositorio.AtualizarDadosUsuarioAsync(usuario);
+
+                if (usuarioAtualizado == 0)
+                {
+                    throw new Exception("Erro ao atualizar dados do usuário.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao atualizar dados do usuário.", ex);
             }
         }
 
