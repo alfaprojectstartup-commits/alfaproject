@@ -1363,3 +1363,27 @@ html[data-theme="dark"] .table-hover tbody tr:hover {
     background-color: var(--alfa-primary-soft) !important;
     color: var(--alfa-text) !important;
 }
+
+html[data-theme="dark"] .pagination .page-link {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+    color: var(--alfa-text);
+}
+
+    html[data-theme="dark"] .pagination .page-link:hover {
+        background-color: var(--alfa-surface-subtle);
+        border-color: var(--alfa-primary);
+        color: var(--alfa-text);
+    }
+
+html[data-theme="dark"] .pagination .page-item.active .page-link {
+    background-color: var(--alfa-primary);
+    border-color: var(--alfa-primary);
+    color: #fff;
+}
+
+html[data-theme="dark"] .pagination .page-item.disabled .page-link {
+    background-color: var(--alfa-surface);
+    border-color: var(--alfa-border);
+    color: var(--alfa-text-muted);
+}
