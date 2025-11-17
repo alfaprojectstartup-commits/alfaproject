@@ -1,6 +1,8 @@
 ﻿using Alfa.Web.Dtos;
+using Alfa.Web.Models;
 using Alfa.Web.Servicos.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Alfa.Web.Controllers
 {
@@ -13,7 +15,7 @@ namespace Alfa.Web.Controllers
             _usuarioServico = usuarioServico;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int pagina = 1)
         {
             var empresaIdClaim = User.FindFirst("empresaId")?.Value;
 
@@ -23,8 +25,70 @@ namespace Alfa.Web.Controllers
             }
 
             var usuarios = await _usuarioServico.ListarUsuariosEmpresaAsync(empresaId);
-            return View(usuarios);
+            var usuariosOrdenados = usuarios.OrderBy(x => x.Nome).ToList();
+
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            ViewData["UsuariosJson"] = JsonSerializer.Serialize(usuariosOrdenados, jsonOptions);
+
+            int totalUsuarios = usuariosOrdenados.Count();
+            int itensPorPagina = 10;
+
+            var usuariosPaginados = usuariosOrdenados
+                .Skip((pagina - 1) * itensPorPagina)
+                .Take(itensPorPagina)
+                .ToList();
+
+            var viewModel = new UsuarioPaginacaoViewModel<UsuarioEmpresaViewModel>
+            {
+                Itens = usuariosPaginados,
+                PaginaAtual = pagina,
+                TotalPaginas = (int)Math.Ceiling(totalUsuarios / (double)itensPorPagina)
+            };
+
+            return View(viewModel);
         }
+
+        // GET: /Usuario/Editar/5
+        public async Task<IActionResult> Editar(int id)
+        {
+            var usuario = await _usuarioServico.ObterUsuarioPorIdAsync(id);
+            if (usuario == null) {
+                return NotFound();
+            }
+                
+            var vm = new UsuarioEmpresaViewModel
+            {
+                Id = usuario.Id,
+                Nome = usuario.Nome,
+                Email = usuario.Email,
+                EmpresaId = usuario.EmpresaId,
+                Ativo = usuario.Ativo
+            };
+
+            return View("Editar", vm);
+        }
+
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Editar(UsuarioEmpresaViewModel model)
+        //{
+        //    if (!ModelState.IsValid) {
+        //        return View("Editar", model);
+        //    } 
+
+        //    var ok = await _usuarioServico.AtualizarUsuarioAsync(model);
+        //    if (!ok)
+        //    {
+        //        ModelState.AddModelError("", "Erro ao salvar usuário");
+        //        return View("Editar", model);
+        //    }
+
+        //    TempData["ok"] = "Usuário atualizado.";
+        //    return RedirectToAction("Index");
+        //}
 
         [HttpGet]
         public IActionResult Registrar()

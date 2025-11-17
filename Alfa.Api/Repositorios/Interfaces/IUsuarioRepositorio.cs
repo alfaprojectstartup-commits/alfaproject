@@ -5,6 +5,7 @@ namespace Alfa.Api.Repositorios.Interfaces
 {
     public interface IUsuarioRepositorio
     {
+        Task<UsuarioEmpresaDto?> BuscarUsuarioPorIdAsync(int usuarioId);
         Task<UsuarioModel?> BuscarUsuarioPorEmailAsync(string email);
         Task<IEnumerable<UsuarioEmpresaDto>> ListarUsuariosEmpresaAsync(int empresaId);
         Task<int> CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro);

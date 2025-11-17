@@ -9,7 +9,6 @@
 @inject IPermissaoUiService PermissaoService
 
 @{ 
-    // var nome = Http.HttpContext?.Session.GetString("Nome") ?? "Visitante"; // Estou pegando o nome direto do usuario autenticado
     var ctrl = (string?)ViewContext.RouteData.Values["controller"] ?? "";
     var empresaId = Http.HttpContext?.Session.GetInt32("EmpresaId");
     var apiBaseSetting = Config["ApiBaseUrl"] ?? string.Empty;
@@ -72,12 +71,13 @@
                         </li>
 
 
-                        @if (PermissaoService.PossuiPermissao("USUARIOS_GERENCIAR"))
+                        @if (PermissaoService.PossuiPermissao("CONFIGURACOES_EDITAR"))
                         {
                             <li class="nav-item dropdown dropdown-hover">
-                                <a class="nav-link dropdown-toggle @(ctrl == "Usuarios" ? "active" : "")" href="#" data-bs-toggle="dropdown">Usuários</a>
+                                <a class="nav-link dropdown-toggle @(ctrl == "Usuarios" ? "active" : "")" href="#" data-bs-toggle="dropdown">Configurações</a>
                                 <ul class="dropdown-menu dropdown-fade">
-                                    <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Gerenciar Usuários</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Dados Empresa</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Usuários</a></li>
                                 </ul>
                             </li>
                         }

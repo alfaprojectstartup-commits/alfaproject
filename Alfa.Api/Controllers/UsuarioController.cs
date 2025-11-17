@@ -19,6 +19,13 @@ namespace Alfa.Api.Controllers
         }
 
         [Authorize(Policy = Permissoes.UsuariosGerenciar)]
+        [HttpGet("{usuarioId}")]
+        public async Task<IActionResult> BuscarUsuarioPorIdAsync([FromRoute] int usuarioId)
+        {
+            return Ok(await _usuarioServico.BuscarUsuarioPorIdAsync(usuarioId));
+        }
+
+        [Authorize(Policy = Permissoes.UsuariosGerenciar)]
         [HttpGet("{empresaId}/listar")]
         public async Task<IActionResult> ListarUsuariosEmpresaAsync([FromRoute] int empresaId)
         {
@@ -32,7 +39,6 @@ namespace Alfa.Api.Controllers
             return Created();
         }
 
-        
         [HttpGet("permissoes")]
         public async Task<IActionResult> ObterPermissoesUsuarios()
         {

@@ -13,6 +13,22 @@ namespace Alfa.Web.Servicos
             _httpFactory = httpFactory;
         }
 
+        public async Task<UsuarioEmpresaViewModel?> ObterUsuarioPorIdAsync(int usuarioId)
+        {
+            string rotaListarUsuariosEmpresa = $"/api/usuario/{usuarioId}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaListarUsuariosEmpresa);
+
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var usuario = await resposta.Content.ReadFromJsonAsync<UsuarioEmpresaViewModel>();
+            return usuario ?? null;
+        }
+
         public async Task<IEnumerable<UsuarioEmpresaViewModel>> ListarUsuariosEmpresaAsync(int empresaId)
         {
             string rotaListarUsuariosEmpresa = $"/api/usuario/{empresaId}/listar";
