@@ -9,5 +9,6 @@ namespace Alfa.Web.Servicos.Interfaces
         Task<IEnumerable<UsuarioEmpresaViewModel>> ListarUsuariosEmpresaAsync(int empresaId);
         Task<(bool Success, string? Error)> RegistrarAsync(UsuarioRegistroDto registro);
         Task<(bool Success, string? Error)> AtualizarDadosUsuarioAsync(UsuarioEmpresaViewModel usuario);
+        Task<IEnumerable<UsuarioPermissaoViewModel>> ObterPermissoesUsuarioAsync(int usuarioId);
     }
 }

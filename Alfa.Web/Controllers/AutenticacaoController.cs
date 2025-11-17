@@ -11,9 +11,9 @@ namespace Alfa.Web.Controllers
     public class AutenticacaoController : Controller
     {
         private readonly IAutenticacaoServico _autenticacaoServico;
-        private readonly IPermissaoUiService _permissaoUiServico;
+        private readonly IPermissaoUiServico _permissaoUiServico;
 
-        public AutenticacaoController(IAutenticacaoServico autenticacaoServico, IPermissaoUiService permissaoUiServico)
+        public AutenticacaoController(IAutenticacaoServico autenticacaoServico, IPermissaoUiServico permissaoUiServico)
         {
             _autenticacaoServico = autenticacaoServico;
             _permissaoUiServico = permissaoUiServico;

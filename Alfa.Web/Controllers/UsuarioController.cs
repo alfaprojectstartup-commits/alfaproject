@@ -9,10 +9,12 @@ namespace Alfa.Web.Controllers
     public class UsuarioController : Controller
     {
         private readonly IUsuarioServico _usuarioServico;
+        private readonly IPermissaoUiServico _permissaoUiServico;
 
-        public UsuarioController(IUsuarioServico usuarioServico)
+        public UsuarioController(IUsuarioServico usuarioServico, IPermissaoUiServico permissaoUiServico)
         {
             _usuarioServico = usuarioServico;
+            _permissaoUiServico = permissaoUiServico;
         }
 
         public async Task<IActionResult> Index(int pagina = 1)
@@ -123,5 +125,128 @@ namespace Alfa.Web.Controllers
             TempData["ok"] = "Usuário atualizado com sucesso.";
             return RedirectToAction("Index");
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Permissoes(int id)
+        {
+            var empresaIdClaim = User.FindFirst("empresaId")?.Value;
+            if (!int.TryParse(empresaIdClaim, out var empresaId))
+            {
+                return Forbid();
+            }
+
+            var usuario = await _usuarioServico.ObterUsuarioPorIdAsync(id);
+            if (usuario == null || usuario.EmpresaId != empresaId)
+            {
+                return NotFound();
+            }
+
+            // carregar todas permissões do sistema
+            var permissoesSistema = (await _permissaoUiServico.ListarPermissoesSistemaAsync())
+                .OrderBy(permissaoSistema => permissaoSistema.Nome)
+                .ToList();
+
+            if (permissoesSistema is null || permissoesSistema.Count == 0)
+            {
+                TempData["ok"] = "Erro ao encontrar as permissões do sistema.";
+                return NotFound("Erro ao encontrar as permissões do sistema.");
+            }
+
+            // carregar ids das permissões do usuário
+            var permissoesUsuarioIds = (await _usuarioServico.ObterPermissoesUsuarioAsync(id))
+                .Select(permissao => permissao.PermissaoId)
+                .ToList();
+
+            var viewModel = new UsuarioPermissoesViewModel
+            {
+                UsuarioId = usuario.Id,
+                UsuarioNome = usuario.Nome,
+                Permissoes = permissoesSistema.Select(permissao => new PermissaoCheckboxViewModel
+                {
+                    Id = permissao.Id,
+                    Nome = permissao.Nome,
+                    Codigo = permissao.Codigo,
+                    Selected = permissoesUsuarioIds.Contains(permissao.Id)
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        //// POST: /Usuario/Permissoes
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Permissoes(UsuarioPermissoesViewModel model)
+        //{
+        //    // validar model básico
+        //    if (model == null) return BadRequest();
+
+        //    // opcional: checar permissão/empresa do usuário
+        //    var empresaIdClaim = User.FindFirst("empresaId")?.Value;
+        //    if (!int.TryParse(empresaIdClaim, out var empresaId))
+        //        return Forbid();
+
+        //    var usuario = await _context.Usuarios
+        //        .FirstOrDefaultAsync(u => u.Id == model.UsuarioId && u.EmpresaId == empresaId);
+
+        //    if (usuario == null) return NotFound();
+
+        //    // ids marcados no POST
+        //    var selecionados = model.PermissoesSelecionadas ?? new int[0];
+
+        //    // carregar ids atuais no banco
+        //    var atuais = await _context.UsuariosPermissoes
+        //        .Where(up => up.UsuarioId == model.UsuarioId)
+        //        .Select(up => up.PermissaoId)
+        //        .ToListAsync();
+
+        //    // calcular o que inserir e o que remover
+        //    var idsParaInserir = selecionados.Except(atuais).ToList(); // novos selects
+        //    var idsParaRemover = atuais.Except(selecionados).ToList(); // desmarcados
+
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // inserir novos
+        //        if (idsParaInserir.Any())
+        //        {
+        //            var now = DateTimeOffset.UtcNow;
+        //            var usuarioId = model.UsuarioId;
+        //            var listToAdd = idsParaInserir.Select(pid => new UsuariosPermissoes
+        //            {
+        //                UsuarioId = usuarioId,
+        //                PermissaoId = pid,
+        //                ConcedidoEm = now,
+        //                ConcedidoPor = /* opcional: pegar id do usuário atual */ null
+        //            }).ToList();
+
+        //            _context.UsuariosPermissoes.AddRange(listToAdd);
+        //        }
+
+        //        // remover antigos
+        //        if (idsParaRemover.Any())
+        //        {
+        //            var removals = await _context.UsuariosPermissoes
+        //                .Where(up => up.UsuarioId == model.UsuarioId && idsParaRemover.Contains(up.PermissaoId))
+        //                .ToListAsync();
+
+        //            _context.UsuariosPermissoes.RemoveRange(removals);
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+
+        //        TempData["ok"] = "Permissões atualizadas com sucesso.";
+        //        return RedirectToAction("Index");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        // log do erro (ex) aqui
+        //        TempData["erro"] = "Erro ao atualizar permissões.";
+        //        // se quiser, re-montar model.Permissoes para reexibir a view com erros
+        //        return RedirectToAction("Permissoes", new { id = model.UsuarioId });
+        //    }
+        //}
     }
 }

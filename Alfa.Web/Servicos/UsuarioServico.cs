@@ -74,5 +74,21 @@ namespace Alfa.Web.Servicos
             var txt = await resposta.Content.ReadAsStringAsync();
             return (false, txt);
         }
+
+        public async Task<IEnumerable<UsuarioPermissaoViewModel>> ObterPermissoesUsuarioAsync(int usuarioId)
+        {
+            string rotaListarPermissoesUsuario = $"/api/usuario/permissoes/{usuarioId}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaListarPermissoesUsuario);
+
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            var permissoesUsuario = await resposta.Content.ReadFromJsonAsync<IEnumerable<UsuarioPermissaoViewModel>>();
+            return permissoesUsuario ?? [];
+        }
     }
 }

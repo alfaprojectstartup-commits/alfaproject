@@ -47,7 +47,14 @@ namespace Alfa.Api.Controllers
         }
 
         [HttpGet("permissoes")]
-        public async Task<IActionResult> ObterPermissoesUsuarios()
+        public async Task<IActionResult> ListarPermissoesSistemaAsync()
+        {
+            var permissoes = await _usuarioServico.ListarPermissoesSistemaAsync();
+            return Ok(permissoes);
+        }
+
+        [HttpGet("permissoes/interface")]
+        public async Task<IActionResult> ObterUsuarioPermissoesUiAsync()
         {
             var usuarioIdClaim = User.FindFirst("usuarioId")?.Value;
 
@@ -56,7 +63,14 @@ namespace Alfa.Api.Controllers
                 return Forbid();
             }
                 
-            var permissoes = await _usuarioServico.ObterPermissoesPorUsuarioAsync(usuarioId);
+            var permissoes = await _usuarioServico.ObterUsuarioPermissoesUiAsync(usuarioId);
+            return Ok(permissoes);
+        }
+
+        [HttpGet("permissoes/{usuarioId}")]
+        public async Task<IActionResult> ObterPermissoesUsuarioAsync([FromRoute] int usuarioId)
+        {
+            var permissoes = await _usuarioServico.ObterPermissoesUsuarioAsync(usuarioId);
             return Ok(permissoes);
         }
     }

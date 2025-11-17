@@ -119,13 +119,25 @@ namespace Alfa.Api.Servicos
             }
         }
 
-        public async Task<PermissoesUsuarioDto> ObterPermissoesPorUsuarioAsync(int usuarioId)
+        public async Task<IEnumerable<PermissaoModel?>> ListarPermissoesSistemaAsync()
         {
-            PermissoesUsuarioDto response = new();
+            try
+            {
+                return await _usuarioRepositorio.ListarPermissoesSistemaAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao listar permissões do sistema.", ex);
+            }
+        }
+
+        public async Task<UsuarioPermissoesUiDto> ObterUsuarioPermissoesUiAsync(int usuarioId)
+        {
+            UsuarioPermissoesUiDto response = new();
 
             try
             {
-                var permissoes = await _usuarioRepositorio.ObterPermissoesPorUsuarioIdAsync(usuarioId);
+                var permissoes = await _usuarioRepositorio.ObterUsuarioPermissoesUiAsync(usuarioId);
 
                 response.UsuarioId = usuarioId;
                 response.Permissoes = permissoes.ToList();
@@ -134,7 +146,20 @@ namespace Alfa.Api.Servicos
             }
             catch (Exception ex)
             {
-                throw new Exception("Erro ao cadastrar novo usuário.", ex);
+                throw new Exception("Erro ao obter permissões de ui do usuário.", ex);
+            }
+        }
+
+        public async Task<IEnumerable<UsuarioPermissaoModel?>> ObterPermissoesUsuarioAsync(int usuarioId)
+        {
+            try
+            {
+                var permissoes = await _usuarioRepositorio.ObterPermissoesUsuarioAsync(usuarioId);
+                return permissoes;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Erro ao obter permissões do usuário.", ex);
             }
         }
     }

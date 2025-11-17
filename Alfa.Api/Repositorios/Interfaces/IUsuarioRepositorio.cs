@@ -10,7 +10,9 @@ namespace Alfa.Api.Repositorios.Interfaces
         Task<IEnumerable<UsuarioEmpresaDto>> ListarUsuariosEmpresaAsync(int empresaId);
         Task<int> CadastrarUsuarioAsync(UsuarioRegistroDto usuarioRegistro);
         Task<int> AtualizarDadosUsuarioAsync(UsuarioEmpresaDto usuario);
-        Task<IEnumerable<string>> ObterPermissoesPorUsuarioIdAsync(int usuarioId);
+        Task<IEnumerable<PermissaoModel?>> ListarPermissoesSistemaAsync();
+        Task<IEnumerable<string>> ObterUsuarioPermissoesUiAsync(int usuarioId);
+        Task<IEnumerable<UsuarioPermissaoModel?>> ObterPermissoesUsuarioAsync(int usuarioId);
         Task ConcederPermissaoAsync(int usuarioId, int permissaoId, int? concedidoPor);
         Task RevogarPermissaoAsync(int usuarioId, int permissaoId);
     }

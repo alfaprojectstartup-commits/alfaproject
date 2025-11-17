@@ -1,4 +1,5 @@
 ﻿using Alfa.Api.Dtos;
+using Alfa.Api.Modelos;
 
 namespace Alfa.Api.Servicos.Interfaces
 {
@@ -8,7 +9,9 @@ namespace Alfa.Api.Servicos.Interfaces
         Task<UsuarioEmpresaDto?> BuscarUsuarioPorIdAsync(int usuarioId);
         Task<IEnumerable<UsuarioEmpresaDto>> ListarUsuariosEmpresaAsync(int empresaId);
         Task CadastrarUsuarioAsync(UsuarioRegistroDto usuario);
-        Task<PermissoesUsuarioDto> ObterPermissoesPorUsuarioAsync(int usuarioId);
+        Task<IEnumerable<PermissaoModel?>> ListarPermissoesSistemaAsync();
+        Task<UsuarioPermissoesUiDto> ObterUsuarioPermissoesUiAsync(int usuarioId);
+        Task<IEnumerable<UsuarioPermissaoModel?>> ObterPermissoesUsuarioAsync(int usuarioId);
         Task AtualizarDadosUsuarioAsync(UsuarioEmpresaDto usuario);
     }
 }
