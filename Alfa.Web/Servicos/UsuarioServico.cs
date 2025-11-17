@@ -58,5 +58,21 @@ namespace Alfa.Web.Servicos
             var txt = await resposta.Content.ReadAsStringAsync();
             return (false, txt);
         }
+
+        public async Task<(bool Success, string? Error)> AtualizarDadosUsuarioAsync(UsuarioEmpresaViewModel usuario)
+        {
+            string rotaAtualizarUsuario = $"/api/usuario/{usuario.Id}";
+
+            var client = _httpFactory.CreateClient("AlfaApi");
+            var resposta = await client.PutAsJsonAsync(rotaAtualizarUsuario, usuario);
+
+            if (resposta.IsSuccessStatusCode)
+            {
+                return (true, null);
+            }
+
+            var txt = await resposta.Content.ReadAsStringAsync();
+            return (false, txt);
+        }
     }
 }

@@ -39,6 +39,13 @@ namespace Alfa.Api.Controllers
             return Created();
         }
 
+        [HttpPut("{usuarioId}")]
+        public async Task<IActionResult> AtualizarDadosUsuarioAsync([FromBody] UsuarioEmpresaDto usuario)
+        {
+            await _usuarioServico.AtualizarDadosUsuarioAsync(usuario);
+            return Ok();
+        }
+
         [HttpGet("permissoes")]
         public async Task<IActionResult> ObterPermissoesUsuarios()
         {

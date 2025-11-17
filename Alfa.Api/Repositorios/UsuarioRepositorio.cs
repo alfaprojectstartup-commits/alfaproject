@@ -76,6 +76,23 @@ namespace Alfa.Api.Repositorios
             return await _execucaoDb.ExecuteScalarAsync<int>(sql, parameters);
         }
 
+        public async Task<int> AtualizarDadosUsuarioAsync(UsuarioEmpresaDto usuario)
+        {
+            const string sql = @"
+                UPDATE Usuarios
+                SET Nome = @Nome, Email = @Email, Ativo = CASE WHEN @Ativo = 1 THEN 1 ELSE 0 END
+                WHERE Id = @UsuarioId;
+            ";
+
+            DynamicParameters parameters = new();
+            parameters.Add("@Nome", usuario.Nome, DbType.String);
+            parameters.Add("@Email", usuario.Email, DbType.String);
+            parameters.Add("@UsuarioId", usuario.Id, DbType.Int64);
+            parameters.Add("@Ativo", usuario.Ativo, DbType.Boolean);
+
+            return await _execucaoDb.ExecuteAsync(sql, parameters);
+        }
+
         public async Task<IEnumerable<string>> ObterPermissoesPorUsuarioIdAsync(int usuarioId)
         {
             const string sql = @"

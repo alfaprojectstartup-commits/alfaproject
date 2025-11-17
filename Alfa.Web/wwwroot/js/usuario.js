@@ -71,7 +71,7 @@
 
             // Link permissões
             var aPerm = document.createElement('a');
-            aPerm.className = 'btn btn-sm btn-warning';
+            aPerm.className = 'btn btn-sm btn-primary me-1';
             aPerm.href = '/Usuario/Permissoes/' + (u.id || u.Id);
             aPerm.textContent = 'Permissões';
             tdAcoes.appendChild(aPerm);

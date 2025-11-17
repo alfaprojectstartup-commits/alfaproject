@@ -51,45 +51,6 @@ namespace Alfa.Web.Controllers
             return View(viewModel);
         }
 
-        // GET: /Usuario/Editar/5
-        public async Task<IActionResult> Editar(int id)
-        {
-            var usuario = await _usuarioServico.ObterUsuarioPorIdAsync(id);
-            if (usuario == null) {
-                return NotFound();
-            }
-                
-            var vm = new UsuarioEmpresaViewModel
-            {
-                Id = usuario.Id,
-                Nome = usuario.Nome,
-                Email = usuario.Email,
-                EmpresaId = usuario.EmpresaId,
-                Ativo = usuario.Ativo
-            };
-
-            return View("Editar", vm);
-        }
-
-        //[HttpPost]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Editar(UsuarioEmpresaViewModel model)
-        //{
-        //    if (!ModelState.IsValid) {
-        //        return View("Editar", model);
-        //    } 
-
-        //    var ok = await _usuarioServico.AtualizarUsuarioAsync(model);
-        //    if (!ok)
-        //    {
-        //        ModelState.AddModelError("", "Erro ao salvar usuário");
-        //        return View("Editar", model);
-        //    }
-
-        //    TempData["ok"] = "Usuário atualizado.";
-        //    return RedirectToAction("Index");
-        //}
-
         [HttpGet]
         public IActionResult Registrar()
         {
@@ -120,6 +81,46 @@ namespace Alfa.Web.Controllers
 
             // após registrar, redirecionar para login com mensagem
             TempData["Message"] = "Registro realizado com sucesso. Faça login.";
+            return RedirectToAction("Index");
+        }
+
+        public async Task<IActionResult> Editar(int id)
+        {
+            var usuario = await _usuarioServico.ObterUsuarioPorIdAsync(id);
+            if (usuario == null)
+            {
+                return NotFound();
+            }
+
+            var vm = new UsuarioEmpresaViewModel
+            {
+                Id = usuario.Id,
+                Nome = usuario.Nome,
+                Email = usuario.Email,
+                EmpresaId = usuario.EmpresaId,
+                Ativo = usuario.Ativo
+            };
+
+            return View("Editar", vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(UsuarioEmpresaViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("Editar", model);
+            }
+
+            var usuarioAtualizado = await _usuarioServico.AtualizarDadosUsuarioAsync(model);
+            if (!usuarioAtualizado.Success)
+            {
+                TempData["erro"] = "Erro ao atualizar dados do usuário.";
+                return View("Editar", model);
+            }
+
+            TempData["ok"] = "Usuário atualizado com sucesso.";
             return RedirectToAction("Index");
         }
     }
