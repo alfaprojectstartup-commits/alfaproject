@@ -51,6 +51,7 @@
         popoverTriggers.forEach(el => new bootstrap.Popover(el, { container: 'body' }));
 
         initThemeToggle();
+        initNavInteractions();
     });
 
     function initThemeToggle() {
@@ -110,6 +111,135 @@
                 const nextTheme = activeTheme === 'dark' ? 'light' : 'dark';
                 applyTheme(nextTheme, true);
             });
+        }
+    }
+
+    function initNavInteractions() {
+        initHoverDropdowns();
+        initCollapseOnNavItemClick();
+    }
+
+    function initHoverDropdowns() {
+        if (typeof window.bootstrap === 'undefined' || typeof bootstrap.Dropdown !== 'function') {
+            return;
+        }
+
+        const dropdowns = document.querySelectorAll('.dropdown-hover');
+        if (!dropdowns.length) {
+            return;
+        }
+
+        const mediaQuery = typeof window.matchMedia === 'function'
+            ? window.matchMedia('(pointer: fine) and (min-width: 992px)')
+            : null;
+
+        if (!mediaQuery) {
+            return;
+        }
+        const listeners = new Map();
+
+        const attach = () => {
+            dropdowns.forEach(dropdown => {
+                if (listeners.has(dropdown)) {
+                    return;
+                }
+
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if (!toggle) {
+                    return;
+                }
+
+                const handleMouseEnter = () => {
+                    bootstrap.Dropdown.getOrCreateInstance(toggle).show();
+                };
+
+                const handleMouseLeave = () => {
+                    bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+                };
+
+                dropdown.addEventListener('mouseenter', handleMouseEnter);
+                dropdown.addEventListener('mouseleave', handleMouseLeave);
+                listeners.set(dropdown, { handleMouseEnter, handleMouseLeave });
+            });
+        };
+
+        const detach = () => {
+            listeners.forEach((handlers, dropdown) => {
+                dropdown.removeEventListener('mouseenter', handlers.handleMouseEnter);
+                dropdown.removeEventListener('mouseleave', handlers.handleMouseLeave);
+
+                const toggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                if (toggle) {
+                    const instance = bootstrap.Dropdown.getInstance(toggle);
+                    if (instance) {
+                        instance.hide();
+                    }
+                }
+            });
+
+            listeners.clear();
+        };
+
+        const handleChange = event => {
+            if (event.matches) {
+                attach();
+            } else {
+                detach();
+            }
+        };
+
+        if (mediaQuery.matches) {
+            attach();
+        }
+
+        addMediaQueryListener(mediaQuery, handleChange);
+    }
+
+    function initCollapseOnNavItemClick() {
+        if (typeof window.bootstrap === 'undefined' || typeof bootstrap.Collapse !== 'function') {
+            return;
+        }
+
+        const navCollapse = document.getElementById('mainNav');
+        const navToggler = document.querySelector('[data-bs-toggle="collapse"][data-bs-target="#mainNav"]');
+
+        if (!navCollapse || !navToggler) {
+            return;
+        }
+
+        const isTogglerVisible = () => window.getComputedStyle(navToggler).display !== 'none';
+
+        navCollapse.addEventListener('click', event => {
+            const target = event.target instanceof Element ? event.target.closest('a, button') : null;
+            if (!target) {
+                return;
+            }
+
+            if (!isTogglerVisible()) {
+                return;
+            }
+
+            if (target.classList.contains('dropdown-toggle')) {
+                return;
+            }
+
+            const collapseInstance = bootstrap.Collapse.getInstance(navCollapse) || new bootstrap.Collapse(navCollapse, { toggle: false });
+            collapseInstance.hide();
+        });
+    }
+
+    function addMediaQueryListener(query, handler) {
+        if (!query || typeof handler !== 'function') {
+            return;
+        }
+
+        if (typeof query.addEventListener === 'function') {
+            query.addEventListener('change', handler);
+            return;
+        }
+
+        if (typeof query.addListener === 'function') {
+            query.addListener(handler);
         }
     }
 
