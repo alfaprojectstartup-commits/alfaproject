@@ -85,13 +85,68 @@
         min-height: 3rem;
     }
 
-    .catalogo-container {
-        max-height: 24rem;
+    .catalogo-sticky-card {
+        position: sticky;
+        top: 1.5rem;
+        z-index: 1;
+    }
+
+    .catalogo-sticky-card .card-body {
+        max-height: calc(100vh - 8rem);
         overflow-y: auto;
+    }
+
+    @media (min-width: 992px) {
+        .builder-row {
+            align-items: stretch;
+        }
+
+        .builder-row .catalogo-column {
+            align-self: stretch;
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .catalogo-sticky-card {
+            position: static;
+        }
+
+        .catalogo-sticky-card .card-body {
+            max-height: none;
+        }
     }
 
     .catalogo-campo {
         cursor: grab;
+    }
+
+    .campo-preview {
+        border: 1px solid var(--bs-border-color);
+        border-radius: var(--bs-border-radius);
+        padding: 1rem;
+        background-color: var(--bs-body-bg);
+    }
+
+    .campo-preview-header {
+        text-transform: uppercase;
+        font-size: .75rem;
+        letter-spacing: .05em;
+        color: var(--bs-secondary-color);
+        font-weight: 600;
+        margin-bottom: .5rem;
+    }
+
+    .campo-preview-body input,
+    .campo-preview-body textarea,
+    .campo-preview-body select {
+        pointer-events: none;
+    }
+
+    .campo-preview-body .form-control:disabled,
+    .campo-preview-body .form-select:disabled,
+    .campo-preview-body .form-check-input:disabled {
+        opacity: 1;
+        background-color: var(--bs-tertiary-bg);
     }
 </style>
 
@@ -122,7 +177,7 @@
         </div>
     </div>
 
-    <div class="row g-4 align-items-start mb-4">
+    <div class="row g-4 align-items-start mb-4 builder-row">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h2 class="h5 mb-0">Páginas da fase</h2>
@@ -195,6 +250,10 @@
                                                                 <span class="fw-semibold">Campo</span>
                                                             </div>
                                                             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
+                                                        </div>
+                                                        <div class="campo-preview mb-3" data-campo-preview>
+                                                            <div class="campo-preview-header">Prévia do campo</div>
+                                                            <div class="text-muted small">Arraste um campo do catálogo para visualizar como ele será exibido.</div>
                                                         </div>
                                                         <div class="row g-3 align-items-start">
                                                             <div class="col-md-7">
@@ -281,8 +340,8 @@
             </div>
             <div class="text-muted small">Inclua pelo menos uma página com seus respectivos campos para que a fase esteja pronta para uso.</div>
         </div>
-        <div class="col-lg-4">
-            <div class="card shadow-sm position-sticky top-0" style="z-index: 1;">
+        <div class="col-lg-4 catalogo-column">
+            <div class="card shadow-sm catalogo-sticky-card">
                 <div class="card-header">
                     <h3 class="h6 mb-0">Catálogo de campos</h3>
                 </div>
@@ -377,6 +436,10 @@
                 <span class="fw-semibold">Campo</span>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger" data-remover-campo>Remover</button>
+        </div>
+        <div class="campo-preview mb-3" data-campo-preview>
+            <div class="campo-preview-header">Prévia do campo</div>
+            <div class="text-muted small">Arraste um campo do catálogo para visualizar como ele será exibido.</div>
         </div>
         <div class="row g-3 align-items-start">
             <div class="col-md-7">
@@ -484,6 +547,200 @@
                 return tipoLabels[chave] ?? tipo;
             }
 
+            function escapeHtml(valor) {
+                if (valor === null || valor === undefined) {
+                    return '';
+                }
+                return valor.toString()
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function coletarOpcoesPreview(campoEl) {
+                return Array.from(campoEl.querySelectorAll('.opcao-item')).map(opcaoEl => {
+                    const texto = opcaoEl.querySelector('[data-option-prop="Texto"]')?.value ?? '';
+                    const ativoCheckbox = opcaoEl.querySelector('input[type="checkbox"][data-option-prop="Ativo"]');
+                    const ativoHidden = opcaoEl.querySelector('input[type="hidden"][data-option-prop="Ativo"]');
+                    const ativo = ativoCheckbox ? ativoCheckbox.checked : (ativoHidden?.value === 'true');
+                    return { texto, ativo };
+                }).filter(opcao => opcao.texto && opcao.ativo);
+            }
+
+            function renderCampoPreview(campoEl) {
+                const previewContainer = campoEl.querySelector('[data-campo-preview]');
+                if (!previewContainer) {
+                    return;
+                }
+
+                const tipo = (campoEl.querySelector('[data-field-prop="Tipo"]')?.value ?? '').toLowerCase();
+                const rotulo = campoEl.querySelector('[data-field-prop="Rotulo"]')?.value ?? '';
+                const placeholder = campoEl.querySelector('[data-field-prop="Placeholder"]')?.value ?? '';
+                const ajuda = campoEl.querySelector('[data-field-prop="Ajuda"]')?.value ?? '';
+                const obrigatorioCheck = campoEl.querySelector('input[type="checkbox"][data-field-prop="Obrigatorio"]');
+                const obrigatorio = obrigatorioCheck ? obrigatorioCheck.checked : false;
+                const tipoDescricao = campoEl.dataset.tipoDescricao || resolverDescricaoTipo(tipo);
+                const rotuloTexto = rotulo && rotulo.trim() ? rotulo : 'Campo sem rótulo';
+                const ajudaHtml = ajuda && ajuda.trim() ? `<div class="form-text mt-1">${escapeHtml(ajuda)}</div>` : '';
+
+                if (!tipo) {
+                    previewContainer.innerHTML = `<div class="campo-preview-header">Prévia do campo</div><div class="campo-preview-body text-muted small">Selecione um campo do catálogo para visualizar.</div>`;
+                    return;
+                }
+
+                const badgeObrigatorio = obrigatorio ? '<span class="badge badge-required ms-2">Obrigatório</span>' : '';
+                let corpoHtml = '';
+                const placeholderTexto = placeholder && placeholder.trim() ? placeholder : '';
+                const opcoesAtivas = coletarOpcoesPreview(campoEl);
+
+                switch (tipo) {
+                    case 'checkbox':
+                        corpoHtml = `
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" disabled ${obrigatorio ? 'required' : ''} />
+                                <label class="form-check-label">
+                                    ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                                </label>
+                                ${ajudaHtml}
+                            </div>`;
+                        break;
+                    case 'number':
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <input class="form-control" type="number" disabled placeholder="${escapeHtml(placeholderTexto)}" />
+                            ${ajudaHtml}`;
+                        break;
+                    case 'date':
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <input class="form-control" type="date" disabled placeholder="${escapeHtml(placeholderTexto)}" />
+                            ${ajudaHtml}`;
+                        break;
+                    case 'textarea':
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <textarea class="form-control" rows="4" disabled placeholder="${escapeHtml(placeholderTexto)}"></textarea>
+                            ${ajudaHtml}`;
+                        break;
+                    case 'select':
+                        {
+                            const placeholderOption = obrigatorio ? '' : `<option value="">${escapeHtml(placeholderTexto || 'Selecione')}</option>`;
+                            const opcoesHtml = opcoesAtivas.length
+                                ? opcoesAtivas.map(opcao => `<option>${escapeHtml(opcao.texto)}</option>`).join('')
+                                : '<option disabled>Configure as opções para este campo</option>';
+                            corpoHtml = `
+                                <label class="form-label">
+                                    ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                                </label>
+                                <select class="form-select" disabled>
+                                    ${placeholderOption}${opcoesHtml}
+                                </select>
+                                ${ajudaHtml}`;
+                        }
+                        break;
+                    case 'checkboxlist':
+                        {
+                            const listaHtml = opcoesAtivas.length
+                                ? opcoesAtivas.map(opcao => `
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" disabled />
+                                            <label class="form-check-label">${escapeHtml(opcao.texto)}</label>
+                                        </div>`).join('')
+                                : '<div class="text-muted small">Nenhuma opção configurada.</div>';
+                            corpoHtml = `
+                                <label class="form-label">
+                                    ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                                </label>
+                                <div class="d-grid gap-2">${listaHtml}</div>
+                                ${ajudaHtml}`;
+                        }
+                        break;
+                    case 'signature':
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <div class="signature-field">
+                                <div class="signature-pad border border-2 rounded bg-white position-relative overflow-hidden" style="height: 150px; border-style: dashed;">
+                                    <div class="signature-hint position-absolute top-50 start-50 translate-middle text-muted small">Assine aqui usando o mouse ou toque.</div>
+                                </div>
+                                <div class="form-text mt-2">A assinatura é salva em formato digital e pode ser refeita a qualquer momento.</div>
+                            </div>
+                            ${ajudaHtml}`;
+                        break;
+                    case 'image':
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <div class="d-grid gap-2">
+                                <input class="form-control" type="file" disabled />
+                                <div class="form-text">Limite de 50 MB por imagem.</div>
+                            </div>
+                            ${ajudaHtml}`;
+                        break;
+                    default:
+                        corpoHtml = `
+                            <label class="form-label">
+                                ${escapeHtml(rotuloTexto)}${badgeObrigatorio}
+                            </label>
+                            <input class="form-control" type="text" disabled placeholder="${escapeHtml(placeholderTexto)}" />
+                            ${ajudaHtml}`;
+                        break;
+                }
+
+                previewContainer.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center campo-preview-header">
+                        <span>Prévia do campo</span>
+                        <span class="badge text-bg-light">${escapeHtml(tipoDescricao || 'Sem tipo')}</span>
+                    </div>
+                    <div class="campo-preview-body">
+                        ${corpoHtml}
+                    </div>`;
+            }
+
+            function registrarPreviewListeners(campoEl) {
+                if (campoEl.dataset.previewListeners === 'true') {
+                    return;
+                }
+                campoEl.dataset.previewListeners = 'true';
+                const camposParaMonitorar = campoEl.querySelectorAll('input[data-field-prop], textarea[data-field-prop], select[data-field-prop]');
+                camposParaMonitorar.forEach(input => {
+                    if (input.type === 'hidden') {
+                        return;
+                    }
+                    const evento = input.type === 'checkbox' ? 'change' : 'input';
+                    input.addEventListener(evento, () => {
+                        renderCampoPreview(campoEl);
+                    });
+                });
+            }
+
+            function registrarPreviewListenersOpcao(opcaoEl, campoEl) {
+                const campoReferencia = campoEl ?? opcaoEl.closest('.campo-item');
+                if (!campoReferencia) {
+                    return;
+                }
+                if (opcaoEl.dataset.previewListeners === 'true') {
+                    return;
+                }
+                opcaoEl.dataset.previewListeners = 'true';
+                opcaoEl.querySelectorAll('input, textarea').forEach(input => {
+                    const evento = input.type === 'checkbox' ? 'change' : 'input';
+                    input.addEventListener(evento, () => {
+                        renderCampoPreview(campoReferencia);
+                    });
+                });
+            }
+
             function tipoPermiteOpcoes(tipo) {
                 if (!tipo) {
                     return false;
@@ -548,6 +805,8 @@
                 if (addOpcaoBtn) {
                     addOpcaoBtn.classList.toggle('d-none', !habilitaOpcoes);
                 }
+
+                renderCampoPreview(campoEl);
             }
 
             if (!paginasContainer) {
@@ -688,6 +947,7 @@
                     ativoCheck.checked = ativo;
                 }
                 inicializarOpcao(opcaoEl);
+                registrarPreviewListenersOpcao(opcaoEl, campoEl);
                 return opcaoEl;
             }
 
@@ -715,6 +975,7 @@
                 campoEl.querySelector('[data-adicionar-opcao]')?.addEventListener('click', () => {
                     const opcaoEl = adicionarOpcao(campoEl);
                     campoEl.querySelector('.opcoes-container').appendChild(opcaoEl);
+                    renderCampoPreview(campoEl);
                     reindexar();
                 });
 
@@ -727,7 +988,10 @@
                     reindexar();
                 });
 
-                campoEl.querySelectorAll('.opcao-item').forEach(opcaoEl => inicializarOpcao(opcaoEl));
+                campoEl.querySelectorAll('.opcao-item').forEach(opcaoEl => {
+                    inicializarOpcao(opcaoEl);
+                    registrarPreviewListenersOpcao(opcaoEl, campoEl);
+                });
 
                 const tipoHidden = campoEl.querySelector('[data-field-prop="Tipo"]');
                 atualizarTipoCampo(campoEl, tipoHidden?.value ?? '', campoEl.dataset.permiteOpcoes === 'true', campoEl.dataset.tipoDescricao ?? null);
@@ -748,8 +1012,12 @@
                 if (obrigatorioCheck && obrigatorioHidden) {
                     obrigatorioCheck.addEventListener('change', () => {
                         obrigatorioHidden.value = obrigatorioCheck.checked ? 'true' : 'false';
+                        renderCampoPreview(campoEl);
                     });
                 }
+
+                registrarPreviewListeners(campoEl);
+                renderCampoPreview(campoEl);
             }
 
             function inicializarOpcao(opcaoEl) {
@@ -767,7 +1035,11 @@
                 }
 
                 opcaoEl.querySelector('[data-remover-opcao]')?.addEventListener('click', () => {
+                    const campoAtual = opcaoEl.closest('.campo-item');
                     opcaoEl.remove();
+                    if (campoAtual) {
+                        renderCampoPreview(campoAtual);
+                    }
                     reindexar();
                 });
             }
