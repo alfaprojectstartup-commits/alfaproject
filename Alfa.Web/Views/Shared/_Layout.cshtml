@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using System.Security.Claims
+@using System.Linq
 @inject IHttpContextAccessor Http
 @inject IConfiguration Config
 @inject IPermissaoUiServico PermissaoService
@@ -16,6 +17,20 @@
         ? string.Empty
         : string.Concat(apiBaseSetting.TrimEnd('/'), "/api");
     var hideChrome = (ViewBag.HideChrome as bool?) ?? false;
+    var displayName = Http.HttpContext?.User?.Identity?.Name;
+    displayName = string.IsNullOrWhiteSpace(displayName) ? "Usuário Alfa" : displayName;
+    var initials = new string(displayName
+        .Where(char.IsLetter)
+        .Take(2)
+        .DefaultIfEmpty('A')
+        .Select(char.ToUpperInvariant)
+        .ToArray());
+    var greeting = DateTime.Now.Hour switch
+    {
+        >= 6 and < 12 => "Bom dia",
+        >= 12 and < 18 => "Boa tarde",
+        _ => "Boa noite"
+    };
 }
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -54,11 +69,12 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav align-items-lg-center flex-grow-1">
+                    <ul class="navbar-nav align-items-lg-center flex-grow-1 nav-main">
 
                         <li class="nav-item dropdown dropdown-hover">
-                            <a class="nav-link dropdown-toggle @(ctrl=="Processos" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown">
-                                Processos
+                            <a class="nav-link nav-link-rich dropdown-toggle @(ctrl=="Processos" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown">
+                                <span class="nav-link-text">Processos</span>
+                                <small class="nav-link-subtitle">Fluxos, templates e gestão</small>
                             </a>
                             <ul class="dropdown-menu dropdown-fade">
                                 <li><a class="dropdown-item" asp-controller="Processos" asp-action="Index">Lista</a></li>
@@ -67,14 +83,20 @@
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link @(ctrl=="Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
+                            <a class="nav-link nav-link-rich @(ctrl=="Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                                <span class="nav-link-text">Dashboard</span>
+                                <small class="nav-link-subtitle">Visão geral e indicadores</small>
+                            </a>
                         </li>
 
 
                         @if (PermissaoService.PossuiPermissao("CONFIGURACOES_EDITAR"))
                         {
                             <li class="nav-item dropdown dropdown-hover">
-                                <a class="nav-link dropdown-toggle @(ctrl == "Usuarios" ? "active" : "")" href="#" data-bs-toggle="dropdown">Configurações</a>
+                                <a class="nav-link nav-link-rich dropdown-toggle @(ctrl == "Usuarios" ? "active" : "")" href="#" data-bs-toggle="dropdown">
+                                    <span class="nav-link-text">Configurações</span>
+                                    <small class="nav-link-subtitle">Usuários e preferências</small>
+                                </a>
                                 <ul class="dropdown-menu dropdown-fade">
                                     <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Dados Empresa</a></li>
                                     <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">Usuários</a></li>
@@ -84,6 +106,26 @@
 
                     </ul>
 
+                    <div class="nav-quick-actions d-flex flex-column flex-lg-row gap-2 ms-lg-4">
+                        <div class="nav-quick-label text-uppercase text-muted fw-semibold small">Ações rápidas</div>
+                        <div class="nav-quick-buttons d-flex flex-column flex-lg-row gap-2">
+                            <a class="nav-quick-link nav-quick-link-primary" asp-controller="Processos" asp-action="Novo">
+                                <span class="icon" aria-hidden="true">+</span>
+                                <span class="text">
+                                    <span class="title">Novo processo</span>
+                                    <small>Inicie um fluxo agora</small>
+                                </span>
+                            </a>
+                            <a class="nav-quick-link" asp-controller="Templates" asp-action="Index">
+                                <span class="icon" aria-hidden="true">📁</span>
+                                <span class="text">
+                                    <span class="title">Biblioteca</span>
+                                    <small>Templates disponíveis</small>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="navbar-utilities d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-4 mt-lg-0">
                         <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
                             <span class="icon" data-theme-icon aria-hidden="true">🌙</span>
@@ -92,8 +134,12 @@
 
                         @if (User?.Identity?.IsAuthenticated == true)
                         {
-                            <div class="navbar-user d-flex flex-column flex-sm-row align-items-sm-center gap-2">
-                                <span class="navbar-text small text-muted flex-grow-1 text-center text-sm-start">Bem-vindo, @User.Identity.Name</span>
+                            <div class="navbar-user d-flex align-items-center gap-2 text-center text-sm-start">
+                                <div class="navbar-user-avatar" aria-hidden="true">@initials</div>
+                                <div class="navbar-user-info d-flex flex-column align-items-start">
+                                    <span class="navbar-text small text-muted">@greeting</span>
+                                    <span class="navbar-user-name">@displayName</span>
+                                </div>
                                 <a class="btn btn-outline-secondary btn-sm flex-shrink-0" asp-controller="Autenticacao" asp-action="Logout">Sair</a>
                             </div>
                         }
