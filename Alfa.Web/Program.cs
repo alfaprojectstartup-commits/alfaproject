@@ -1,6 +1,5 @@
 using Alfa.Web.Dtos;
 using Alfa.Web.Filtros;
-using Alfa.Web.Services;
 using Alfa.Web.Servicos;
 using Alfa.Web.Servicos.Handlers;
 using Alfa.Web.Servicos.Interfaces;
@@ -13,41 +12,38 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 var builder = WebApplication.CreateBuilder(args);
 
 
-// ===== configuração da URL base da sua API (opcional) =====
-builder.Configuration["ApiBaseUrl"] = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:5001"; // ajuste
 
 builder.Services.AddHttpContextAccessor();
 
-// ===== registrar o serviço de autenticação que criamos =====
+// ===== registrar o serviÃ§o de autenticaÃ§Ã£o que criamos =====
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
 builder.Services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
-builder.Services.AddScoped<ApiClient>();
 
 builder.Services.AddScoped<IPermissaoUiServico, PermissaoUiServico>();
 
 // ===== HttpClient para chamar a API =====
 builder.Services.AddHttpClient("AlfaApiLogin", client =>
 {
-    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurada.");
+    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl nÃ£o configurada.");
     client.BaseAddress = new Uri(baseAddress is not null ? baseAddress : "");
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
 builder.Services.AddHttpClient("AlfaApi", client =>
 {
-    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl não configurada.");
+    var baseAddress = builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl nÃ£o configurada.");
     client.BaseAddress = new Uri(baseAddress is not null ? baseAddress : "");
     client.Timeout = TimeSpan.FromSeconds(30);
 })
 .AddHttpMessageHandler<JwtCookieHandler>();
 
 
-// Configurações JWT
+// ConfiguraÃ§Ãµes JWT
 var configuracoesJwt = builder.Configuration.GetSection("ConfiguracoesJwt").Get<TokenJwtDto>()!;
 builder.Services.AddSingleton(configuracoesJwt);
 
-// ===== Authentication: JWT Bearer que lê o token do cookie "JwtToken" =====
+// ===== Authentication: JWT Bearer que lÃª o token do cookie "JwtToken" =====
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -62,11 +58,11 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    // IMPORTANT: configure validação de acordo com seu issuer/audience/chave
+    // IMPORTANT: configure validaÃ§Ã£o de acordo com seu issuer/audience/chave
     options.RequireHttpsMetadata = true;
     options.SaveToken = true;
 
-    // Se você tem a chave pública ou validação, configure aqui:
+    // Se vocÃª tem a chave pÃºblica ou validaÃ§Ã£o, configure aqui:
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -93,7 +89,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Evita páginas serem cacheadas pelo navegador, evitando probleams ao clicar na seta "voltar" do navegador
+// Evita pÃ¡ginas serem cacheadas pelo navegador, evitando probleams ao clicar na seta "voltar" do navegador
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add(new FiltroCache());

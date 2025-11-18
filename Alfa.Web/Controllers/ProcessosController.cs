@@ -3,8 +3,8 @@ using System.Text.Json;
 using System.Net.Http;
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
-using Alfa.Web.Services;
 using Alfa.Web.Servicos;
+using Alfa.Web.Servicos.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
@@ -14,14 +14,21 @@ public class ProcessosController : Controller
 {
     private const string ProcessoPurpose = "ProcessosController.ProcessoId";
 
-    private readonly ApiClient _api;
+    private readonly IProcessoServico _processoServico;
+    private readonly IFaseServico _faseServico;
     private readonly PreenchimentoExternoTokenService _tokenService;
     private readonly IUrlProtector _urlProtector;
     private readonly IProcessoPdfGenerator _pdfGenerator;
 
-    public ProcessosController(ApiClient api, PreenchimentoExternoTokenService tokenService, IUrlProtector urlProtector, IProcessoPdfGenerator pdfGenerator)
+    public ProcessosController(
+        IProcessoServico processoServico,
+        IFaseServico faseServico,
+        PreenchimentoExternoTokenService tokenService,
+        IUrlProtector urlProtector,
+        IProcessoPdfGenerator pdfGenerator)
     {
-        _api = api;
+        _processoServico = processoServico;
+        _faseServico = faseServico;
         _tokenService = tokenService;
         _urlProtector = urlProtector;
         _pdfGenerator = pdfGenerator;
@@ -31,7 +38,7 @@ public class ProcessosController : Controller
         try
         {
             var status = tab == "finalizados" ? "Concluído" : null;
-            var res = await _api.GetProcessosAsync(page, 10, status)
+            var res = await _processoServico.ObterProcessosAsync(page, 10, status)
                      ?? new PaginadoResultadoDto<ProcessoListaItemViewModel> { total = 0, items = Enumerable.Empty<ProcessoListaItemViewModel>() };
 
             var itens = res.items.ToList();
@@ -59,13 +66,13 @@ public class ProcessosController : Controller
     [HttpGet]
     public async Task<IActionResult> Novo()
     {
-        var fases = await _api.GetFaseTemplatesAsync() ?? new List<FaseModelosViewModel>();
+        var fases = await _faseServico.ObterModelosAsync() ?? new List<FaseModelosViewModel>();
         var fasesAtivas = fases
             .Where(f => f.Ativo)
             .OrderBy(f => f.Ordem)
             .ToList();
 
-        var processosPadrao = await _api.GetProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
+        var processosPadrao = await _processoServico.ObterProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
         var padroesValidos = FiltrarPadroesValidos(processosPadrao, fasesAtivas);
 
         var vm = new NovoProcessoVm
@@ -79,13 +86,13 @@ public class ProcessosController : Controller
     [HttpPost]
     public async Task<IActionResult> Novo(NovoProcessoVm vm)
     {
-        var fasesDisponiveis = (await _api.GetFaseTemplatesAsync() ?? new List<FaseModelosViewModel>())
+        var fasesDisponiveis = (await _faseServico.ObterModelosAsync() ?? new List<FaseModelosViewModel>())
             .Where(f => f.Ativo)
             .OrderBy(f => f.Ordem)
             .ToList();
 
         vm.FasesDisponiveis = fasesDisponiveis;
-        var processosPadrao = await _api.GetProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
+        var processosPadrao = await _processoServico.ObterProcessoPadraoModelosAsync() ?? new List<ProcessoPadraoModeloViewModel>();
         var padroesValidos = FiltrarPadroesValidos(processosPadrao, fasesDisponiveis);
         vm.ProcessosPadrao = padroesValidos;
 
@@ -122,7 +129,7 @@ public class ProcessosController : Controller
             return View(vm);
         }
 
-        var resp = await _api.CriarProcessoAsync(titulo, fases);
+        var resp = await _processoServico.CriarProcessoAsync(titulo, fases);
         if (!resp.IsSuccessStatusCode)
         {
             ModelState.AddModelError("", "Falha ao criar processo.");
@@ -168,7 +175,7 @@ public class ProcessosController : Controller
         HttpResponseMessage? resp;
         try
         {
-            resp = await _api.CriarProcessoPadraoAsync(input);
+            resp = await _processoServico.CriarProcessoPadraoAsync(input);
         }
         catch (HttpRequestException ex)
         {
@@ -200,7 +207,7 @@ public class ProcessosController : Controller
             return NotFound();
         }
 
-        var processo = await _api.GetProcessoAsync(id);
+        var processo = await _processoServico.ObterProcessoAsync(id);
         if (processo is null) return NotFound();
         OrdenarProcesso(processo);
         ViewBag.HistoricoUrl = Url.Action(nameof(Historico), new { token });
@@ -210,7 +217,7 @@ public class ProcessosController : Controller
     [HttpGet]
     public async Task<IActionResult> Dados(int id)
     {
-        var processo = await _api.GetProcessoAsync(id);
+        var processo = await _processoServico.ObterProcessoAsync(id);
         if (processo is null)
         {
             return NotFound();
@@ -234,7 +241,7 @@ public class ProcessosController : Controller
         HttpResponseMessage resposta;
         try
         {
-            resposta = await _api.RegistrarRespostasAsync(input.ProcessoId, payload);
+            resposta = await _processoServico.RegistrarRespostasAsync(input.ProcessoId, payload);
         }
         catch (HttpRequestException ex)
         {
@@ -292,7 +299,7 @@ public class ProcessosController : Controller
         HttpResponseMessage resposta;
         try
         {
-            //resposta = await _api.RegistrarRespostasAsync(tokenPayload.ProcessoId, payload, input.Token);
+            //resposta = await _processoServico.RegistrarRespostasAsync(tokenPayload.ProcessoId, payload, input.Token);
         }
         catch (HttpRequestException ex)
         {
@@ -317,14 +324,14 @@ public class ProcessosController : Controller
             return NotFound();
         }
 
-        var processo = await _api.GetProcessoAsync(id);
+        var processo = await _processoServico.ObterProcessoAsync(id);
         if (processo is null) return NotFound();
         OrdenarProcesso(processo);
 
         List<ProcessoHistoricoViewModel> historico;
         try
         {
-            historico = await _api.GetProcessoHistoricoAsync(id) ?? new List<ProcessoHistoricoViewModel>();
+            historico = await _processoServico.ObterHistoricoAsync(id) ?? new List<ProcessoHistoricoViewModel>();
         }
         catch (HttpRequestException)
         {
@@ -361,7 +368,7 @@ public class ProcessosController : Controller
             return BadRequest(new { message = "Identificadores inválidos." });
         }
 
-        var processo = await _api.GetProcessoAsync(input.ProcessoId);
+        var processo = await _processoServico.ObterProcessoAsync(input.ProcessoId);
         if (processo is null)
         {
             return NotFound(new { message = "Processo não encontrado." });
@@ -393,7 +400,7 @@ public class ProcessosController : Controller
     [HttpGet]
     public async Task<IActionResult> DownloadPdf(int id)
     {
-        var processo = await _api.GetProcessoAsync(id);
+        var processo = await _processoServico.ObterProcessoAsync(id);
         if (processo is null) return NotFound();
 
         OrdenarProcesso(processo);
@@ -411,7 +418,7 @@ public class ProcessosController : Controller
             return BadRequest("Token inválido ou expirado.");
         }
 
-        var processo = await _api.GetProcessoAsync(payload.ProcessoId);
+        var processo = await _processoServico.ObterProcessoAsync(payload.ProcessoId);
         if (processo is null)
         {
             return NotFound();
@@ -475,7 +482,7 @@ public class ProcessosController : Controller
         HttpResponseMessage resposta;
         try
         {
-            resposta = await _api.AtualizarProcessoStatusAsync(processoId, payload);
+            resposta = await _processoServico.AtualizarStatusAsync(processoId, payload);
         }
         catch (HttpRequestException ex)
         {
