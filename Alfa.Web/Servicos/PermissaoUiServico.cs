@@ -1,4 +1,5 @@
 ﻿using Alfa.Web.Dtos;
+using Alfa.Web.Models;
 using Alfa.Web.Servicos.Interfaces;
 using Microsoft.AspNetCore.Authentication;
 using System.Net.Http.Headers;
@@ -6,7 +7,7 @@ using System.Text.Json;
 
 namespace Alfa.Web.Servicos
 {
-    public class PermissaoUiServico : IPermissaoUiService
+    public class PermissaoUiServico : IPermissaoUiServico
     {
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _contextAccessor;
@@ -15,6 +16,22 @@ namespace Alfa.Web.Servicos
         {
             _httpClientFactory = httpClientFactory;
             _contextAccessor = contextAccessor;
+        }
+
+        public async Task<IEnumerable<PermissaoViewModel>> ListarPermissoesSistemaAsync()
+        {
+            string rotaPermissoesSistema = "/api/usuario/permissoes";
+
+            var client = _httpClientFactory.CreateClient("AlfaApi");
+            var resposta = await client.GetAsync(rotaPermissoesSistema);
+
+            if (!resposta.IsSuccessStatusCode)
+            {
+                return [];
+            }
+
+            var usuario = await resposta.Content.ReadFromJsonAsync<IEnumerable<PermissaoViewModel>>();
+            return usuario ?? [];
         }
 
         public async Task<HashSet<string>> ObterPermissoesAsync(string token)
@@ -27,7 +44,7 @@ namespace Alfa.Web.Servicos
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             }
                 
-            var response = await client.GetAsync("/api/usuario/permissoes");
+            var response = await client.GetAsync("/api/usuario/permissoes/interface");
             if (!response.IsSuccessStatusCode) 
             {
                 return [];

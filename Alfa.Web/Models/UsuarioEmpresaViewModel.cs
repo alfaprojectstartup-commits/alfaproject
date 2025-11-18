@@ -1,11 +1,19 @@
-﻿namespace Alfa.Web.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Alfa.Web.Models
 {
     public class UsuarioEmpresaViewModel
     {
-        public required int Id { get; set; }
-        public required string Nome { get; set; }
-        public required string Email { get; set; }
-        public required int EmpresaId { get; set; }
-        public required bool Ativo { get; set; }
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "O campo Nome é obrigatório.")]
+        public string? Nome { get; set; }
+
+        [Required(ErrorMessage = "O campo Email é obrigatório.")]
+        [EmailAddress(ErrorMessage = "Digite um email válido.")]
+        public string? Email { get; set; }
+
+        public int EmpresaId { get; set; }
+        public bool Ativo { get; set; }
     }
 }
