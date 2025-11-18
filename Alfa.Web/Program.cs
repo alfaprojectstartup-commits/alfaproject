@@ -19,7 +19,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioServico, UsuarioServico>();
 builder.Services.AddScoped<IAutenticacaoServico, AutenticacaoServico>();
 builder.Services.AddTransient<JwtCookieHandler>();
-builder.Services.AddScoped<ApiClient>();
 
 builder.Services.AddScoped<IPermissaoUiServico, PermissaoUiServico>();
 
