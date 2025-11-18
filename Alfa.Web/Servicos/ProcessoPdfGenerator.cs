@@ -17,7 +17,9 @@ public interface IProcessoPdfGenerator
 public class ProcessoPdfGenerator : IProcessoPdfGenerator
 {
     private static bool _licenseConfigured;
-    private static readonly ImageSource PlaceholderLogo = ImageSource.FromBinary(() => Placeholders.Image(160, 60));
+    private static readonly byte[] PlaceholderLogo =
+    Placeholders.Image(160, 60);
+
 
     public ProcessoPdfGenerator()
     {
