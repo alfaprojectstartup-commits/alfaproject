@@ -43,12 +43,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const root = document.querySelector('[data-preenchimento-externo]');
-            if (root && window.Alfa && typeof window.Alfa.initPreenchimentoExterno === 'function') {
-                window.Alfa.initPreenchimentoExterno(root);
-            }
-        });
-    </script>
+    <script src="~/js/preenchimento-externo.js" asp-append-version="true"></script>
 }

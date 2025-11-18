@@ -140,8 +140,12 @@ else
                        asp-route-token="@p.Token"
                        class="stretched-link"
                        aria-label="Ver detalhes do processo @p.Titulo"></a>
-                </div>
-            }
+</div>
+}
+
+@section Scripts {
+    <script src="~/js/processos-lista.js" asp-append-version="true"></script>
+}
         </div>
         <div class="processo-context-menu d-none" data-processo-menu>
             <div class="processo-context-menu__group" data-menu-status></div>

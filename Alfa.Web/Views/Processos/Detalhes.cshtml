@@ -215,12 +215,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const root = document.getElementById('processo-detalhes');
-            if (root && window.Alfa && typeof window.Alfa.initProcessoDetalhes === 'function') {
-                window.Alfa.initProcessoDetalhes(root);
-            }
-        });
-    </script>
+    <script src="~/js/processo-detalhes.js" asp-append-version="true"></script>
 }
