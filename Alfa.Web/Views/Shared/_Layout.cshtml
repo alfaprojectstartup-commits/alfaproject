@@ -43,18 +43,18 @@
     @if (!hideChrome)
     {
         <header class="navbar navbar-expand-lg al-navbar shadow-sm sticky-top">
-            <div class="container">
+            <div class="container align-items-center">
                 <a class="navbar-brand d-flex align-items-center" asp-controller="Processos" asp-action="Index">
                     <img src="~/img/logo.svg" alt="Alfa" height="28" class="me-2 logo-mark">
                     <span class="fw-semibold">Alfa</span>
                 </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
-                    <span class="navbar-toggler-icon"></span>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-label="Alternar navegação">
+                    <span class="navbar-toggler-icon" aria-hidden="true"></span>
                 </button>
 
                 <div class="collapse navbar-collapse" id="mainNav">
-                    <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <ul class="navbar-nav align-items-lg-center flex-grow-1">
 
                         <li class="nav-item dropdown dropdown-hover">
                             <a class="nav-link dropdown-toggle @(ctrl=="Processos" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown">
@@ -82,23 +82,22 @@
                             </li>
                         }
 
+                    </ul>
 
-                        <li class="nav-item me-lg-3">
-                            <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
-                                <span class="icon" data-theme-icon aria-hidden="true">🌙</span>
-                                <span class="label" data-theme-label>Tema escuro</span>
-                            </button>
-                        </li>
+                    <div class="navbar-utilities d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-4 mt-lg-0">
+                        <button type="button" class="btn btn-soft-theme btn-sm" data-theme-toggle aria-pressed="false">
+                            <span class="icon" data-theme-icon aria-hidden="true">🌙</span>
+                            <span class="label" data-theme-label>Tema escuro</span>
+                        </button>
 
                         @if (User?.Identity?.IsAuthenticated == true)
                         {
-                            <li class="nav-item ms-lg-2">
-                                <span class="navbar-text small text-muted me-2">Bem-vindo, @User.Identity.Name</span>
-                                <a class="btn btn-outline-secondary btn-sm" asp-controller="Autenticacao" asp-action="Logout">Sair</a>
-                            </li>
+                            <div class="navbar-user d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                                <span class="navbar-text small text-muted flex-grow-1 text-center text-sm-start">Bem-vindo, @User.Identity.Name</span>
+                                <a class="btn btn-outline-secondary btn-sm flex-shrink-0" asp-controller="Autenticacao" asp-action="Logout">Sair</a>
+                            </div>
                         }
-
-                    </ul>
+                    </div>
                 </div>
             </div>
         </header>
