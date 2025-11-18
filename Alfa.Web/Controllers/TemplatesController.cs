@@ -1,7 +1,7 @@
 using Alfa.Web.Dtos;
 using Alfa.Web.Models;
-using Alfa.Web.Services;
 using Alfa.Web.Servicos;
+using Alfa.Web.Servicos.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,19 +12,19 @@ public class TemplatesController : Controller
 {
     private const string FasePurpose = "TemplatesController.FaseModeloId";
 
-    private readonly ApiClient _apiClient;
+    private readonly IFaseServico _faseServico;
     private readonly IUrlProtector _urlProtector;
 
-    public TemplatesController(ApiClient apiClient, IUrlProtector urlProtector)
+    public TemplatesController(IFaseServico faseServico, IUrlProtector urlProtector)
     {
-        _apiClient = apiClient;
+        _faseServico = faseServico;
         _urlProtector = urlProtector;
     }
 
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var fases = await _apiClient.GetFaseTemplatesAsync() ?? new List<FaseModelosViewModel>();
+        var fases = await _faseServico.ObterModelosAsync() ?? new List<FaseModelosViewModel>();
         var ordenadas = fases
             .OrderBy(f => f.Ordem)
             .ThenBy(f => f.Titulo)
@@ -84,7 +84,7 @@ public class TemplatesController : Controller
         }
 
         var payload = MapearParaDto(model);
-        var resposta = await _apiClient.CriarFaseTemplateAsync(payload);
+        var resposta = await _faseServico.CriarModeloAsync(payload);
         if (!resposta.IsSuccessStatusCode)
         {
             var corpo = await resposta.Content.ReadAsStringAsync();
@@ -104,7 +104,7 @@ public class TemplatesController : Controller
             return NotFound();
         }
 
-        var fase = await _apiClient.GetFaseTemplateAsync(id);
+        var fase = await _faseServico.ObterModeloPorIdAsync(id);
         if (fase is null) return NotFound();
 
         var modelo = new FaseModeloFormViewModel
@@ -146,7 +146,7 @@ public class TemplatesController : Controller
         }
 
         var payload = MapearParaDto(model);
-        var resposta = await _apiClient.AtualizarFaseTemplateAsync(id, payload);
+        var resposta = await _faseServico.AtualizarModeloAsync(id, payload);
         if (!resposta.IsSuccessStatusCode)
         {
             var corpo = await resposta.Content.ReadAsStringAsync();
