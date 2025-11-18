@@ -96,7 +96,17 @@
         overflow-y: auto;
     }
 
-    @@media (max-width: 991.98px) {
+    @media (min-width: 992px) {
+        .builder-row {
+            align-items: stretch;
+        }
+
+        .builder-row .catalogo-column {
+            align-self: stretch;
+        }
+    }
+
+    @media (max-width: 991.98px) {
         .catalogo-sticky-card {
             position: static;
         }
@@ -167,7 +177,7 @@
         </div>
     </div>
 
-    <div class="row g-4 align-items-start mb-4">
+    <div class="row g-4 align-items-start mb-4 builder-row">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h2 class="h5 mb-0">Páginas da fase</h2>
@@ -330,7 +340,7 @@
             </div>
             <div class="text-muted small">Inclua pelo menos uma página com seus respectivos campos para que a fase esteja pronta para uso.</div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-4 catalogo-column">
             <div class="card shadow-sm catalogo-sticky-card">
                 <div class="card-header">
                     <h3 class="h6 mb-0">Catálogo de campos</h3>
